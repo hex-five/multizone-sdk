@@ -1,0 +1,5 @@
+*.o
+*.hex
+*.elf
+
+multizone_security
