@@ -1,5 +1,14 @@
+*.d
+*.lst
+*.map
 *.o
-*.hex
 *.elf
-
-multizone_security
+*.hex
+*.cproject
+*.project
+*.launch
+*.settings
+*.java
+*.bin
+*.xml
+*.externalToolBuilders
