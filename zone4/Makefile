@@ -1,8 +1,8 @@
 # Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved
 
-TARGET = zone3.elf
+TARGET = zone4.elf
 
-CFLAGS += -O2 -ffunction-sections -fdata-sections
+CFLAGS += -Os -ffunction-sections -fdata-sections
 LDFLAGS += -Xlinker --gc-sections
 
 BSP_BASE := ../bsp

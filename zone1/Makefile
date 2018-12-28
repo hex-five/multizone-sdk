@@ -2,7 +2,7 @@
 
 TARGET = zone1.elf
 
-CFLAGS += -Os -ffunction-sections -fdata-sections
+CFLAGS += -O2 -ffunction-sections -fdata-sections
 LDFLAGS += -Xlinker --gc-sections
 
 BSP_BASE := ../bsp
