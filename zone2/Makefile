@@ -13,9 +13,17 @@ LINKER_SCRIPT := flash.lds
 
 C_SRCS += main.c
 
-INCLUDES += -I../multizone/libhexfive
-LDFLAGS += -L../multizone/libhexfive
-LDFLAGS += $(if $(findstring rv64, $(RISCV_ARCH)), -lhexfive64, -lhexfive32)
+INCLUDES += -I../multizone/libhexfive -Ilib/picotcp/build/include
+LDFLAGS += -L../multizone/libhexfive -Llib/picotcp/build/lib
+LDFLAGS += $(if $(findstring rv64, $(RISCV_ARCH)), -lhexfive64, -lhexfive32) -lpicotcp
+
+HEADERS += picotcp
+LINK_DEPS += picotcp
+CLEAN_OBJS += lib/picotcp/build
 
 include $(NEWLIB_DIR)/newlib.mk
 
+.PHONY: picotcp
+picotcp:
+	cd lib/picotcp && $(MAKE) clean
+	cd lib/picotcp && $(MAKE)
