@@ -4,3 +4,6 @@
 [submodule "riscv-openocd"]
 	path = riscv-openocd
 	url = https://github.com/riscv/riscv-openocd.git
+[submodule "zone2/lib/picotcp"]
+	path = zone2/lib/picotcp
+	url = git@github.com:borancar/picotcp.git
