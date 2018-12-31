@@ -2,8 +2,8 @@
 
 TARGET = zone1.elf
 
-CFLAGS += -O2 -ffunction-sections -fdata-sections
-LDFLAGS += -Xlinker --gc-sections
+CFLAGS += -O0 -g3 -ffunction-sections -fdata-sections 
+LDFLAGS += -Xlinker --gc-sections -static --specs=nosys.specs 
 
 BSP_BASE := ../bsp
 PLATFORM_DIR := $(BSP_BASE)/$(BOARD)
@@ -12,6 +12,25 @@ NEWLIB_DIR := $(PLATFORM_DIR)/newlib
 LINKER_SCRIPT := flash.lds
 
 C_SRCS += main.c
+FREERTOS_SRC_DIR := ./Source
+C_SRCS += \
+	$(FREERTOS_SRC_DIR)/croutine.c \
+	$(FREERTOS_SRC_DIR)/event_groups.c \
+	$(FREERTOS_SRC_DIR)/list.c \
+	$(FREERTOS_SRC_DIR)/queue.c \
+	$(FREERTOS_SRC_DIR)/stream_buffer.c \
+	$(FREERTOS_SRC_DIR)/tasks.c \
+	$(FREERTOS_SRC_DIR)/timers.c \
+	$(FREERTOS_SRC_DIR)/portable/MemMang/heap_4.c \
+
+C_SRCS += $(FREERTOS_SRC_DIR)/portable/GCC/RISCV/port.c
+ASM_SRCS += $(FREERTOS_SRC_DIR)/portable/GCC/RISCV/portasm.S
+
+INCLUDES = \
+	-I. \
+	-I$(FREERTOS_SRC_DIR)/include \
+	-I$(FREERTOS_SRC_DIR)/portable/GCC/RISCV 
+
 
 INCLUDES += -I../multizone/libhexfive
 LDFLAGS += -L../multizone/libhexfive
