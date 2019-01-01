@@ -25,6 +25,9 @@ BOARD ?= E31
 ifeq ($(BOARD),E31)
 	RISCV_ARCH := rv32imac
 	RISCV_ABI := ilp32
+else ifeq ($(BOARD),E51)
+	RISCV_ARCH := rv64imac
+	RISCV_ABI := lp64
 else
 	$(error Unsupported board $(BOARD))
 endif
@@ -74,7 +77,6 @@ OPENOCDARGS += -f $(OPENOCDCFG)
 GDB_PORT ?= 3333
 GDB_LOAD_ARGS ?= --batch
 GDB_LOAD_CMDS += -ex "set mem inaccessible-by-default off"
-GDB_LOAD_CMDS += -ex "set arch riscv:rv32"
 GDB_LOAD_CMDS += -ex "set remotetimeout 240"
 GDB_LOAD_CMDS += -ex "target extended-remote localhost:$(GDB_PORT)"
 GDB_LOAD_CMDS += -ex "monitor reset halt"
