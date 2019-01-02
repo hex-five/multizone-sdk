@@ -47,7 +47,7 @@ export RISCV_ABI
 #############################################################
 
 .PHONY: all 
-all: clean
+all: 
 	$(MAKE) -C zone1
 	$(MAKE) -C zone2
 	$(MAKE) -C zone3
