@@ -105,7 +105,9 @@ void print_cpu_info(void) {
 	uint64_t misa = 0x0; asm ( "csrr %0, misa" : "=r"(misa) );
 	//const uint64_t misa = ECALL_CSRR_MISA();
 
-	const int xlen = misa >>30 == 1ul ? 32 : misa >>30 == 2ul ? 64 : misa >>30 == 3ul ? 128 : 0;
+	const int xlen = ((misa >> __riscv_xlen-2)&0b11)==1 ?  32 :
+					 ((misa >> __riscv_xlen-2)&0b11)==2 ?  64 :
+					 ((misa >> __riscv_xlen-2)&0b11)==1 ? 128 : 0;
 
 	char misa_str[26+1]="";
 	for (int i=0, j=0; i<26; i++)
