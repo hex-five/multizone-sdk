@@ -25,6 +25,7 @@
 #include <pico_stack.h>
 #include <pico_ipv4.h>
 #include <pico_icmp4.h>
+#include <pico_socket.h>
 #include <pico_dev_xemaclite.h>
 
 #define NUM_PING 10
@@ -75,9 +76,36 @@ void cb_ping(struct pico_icmp4_stats *s)
     }
 }
 
+void cb_telnet(uint16_t ev, struct pico_socket *s)
+{
+    struct pico_ip4 ipaddr;
+    uint16_t port;
+    static uint8_t buf[16];
+    static int bytes = 0;
+
+    if (ev & PICO_SOCK_EV_CONN) {
+        pico_socket_accept(s, &ipaddr.addr, &port);
+    }
+
+    if (ev & PICO_SOCK_EV_RD) {
+        bytes = pico_socket_read(s, buf, sizeof(buf));
+    }
+
+    if ((ev & PICO_SOCK_EV_WR) && bytes > 0) {
+        pico_socket_write(s, buf, bytes);
+        bytes = 0;
+    }
+
+    if (ev & PICO_SOCK_EV_CLOSE) {
+        pico_socket_close(s);
+    }
+}
+
 int main(int argc, char *argv[]){
     int id;
+    uint16_t port = short_be(23);
     struct pico_ip4 ipaddr, netmask;
+    struct pico_socket* socket;
     struct pico_device* dev;
 
     uint16_t bmsr = 0;
@@ -103,11 +131,20 @@ int main(int argc, char *argv[]){
     pico_string_to_ipv4("255.255.255.0", &netmask.addr);
     pico_ipv4_link_add(dev, ipaddr, netmask);
 
-    printf("starting ping\n");
-    id = pico_icmp4_ping("192.168.1.1", NUM_PING, 1000, 10000, 64, cb_ping);
+    printf("Listening on port %d\n", short_be(port));
+    socket = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, cb_telnet);
+    if (!socket) {
+        printf("Could not open socket!\n");
+        return -1;
+    }
 
-    if (id == -1) {
-        printf("Could not ping\n");
+    if (pico_socket_bind(socket, &ipaddr, &port) != 0) {
+        printf("Could not bind!\n");
+        return -1;
+    }
+
+    if (pico_socket_listen(socket, 1) != 0) {
+        printf("Could not start listening!\n");
         return -1;
     }
 
