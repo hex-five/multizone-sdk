@@ -74,7 +74,7 @@ extern void vPortClearInterruptMask( int uxSavedStatusValue ); //in port.c
 	extern uint32_t ulPortYieldRequired;        \
 	if( xSwitchRequired != pdFALSE )			\
 	{											\
-		lPortYieldRequired = pdTRUE;       		\
+		ulPortYieldRequired = pdTRUE;       	\
 	}											\
 }	
 

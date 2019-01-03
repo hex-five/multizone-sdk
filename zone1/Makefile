@@ -12,6 +12,8 @@ NEWLIB_DIR := $(PLATFORM_DIR)/newlib
 LINKER_SCRIPT := flash.lds
 
 C_SRCS += main.c
+HEADERS += FreeRTOSConfig.h
+
 FREERTOS_SRC_DIR := ./Source
 C_SRCS += \
 	$(FREERTOS_SRC_DIR)/croutine.c \

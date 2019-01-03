@@ -9,11 +9,12 @@
  */
 
 /* Kernel includes. */
-#include "FreeRTOS.h" /* Must come first. */
-#include "task.h"     /* RTOS task related API prototypes. */
-#include "queue.h"    /* RTOS queue related API prototypes. */
-#include "timers.h"   /* Software timer related API prototypes. */
-#include "semphr.h"   /* Semaphore related API prototypes. */
+#include <FreeRTOS.h> /* Must come first. */
+#include <task.h>     /* RTOS task related API prototypes. */
+#include <queue.h>   /* RTOS queue related API prototypes. */
+#include <timers.h>   /* Software timer related API prototypes. */
+#include <semphr.h>   /* Semaphore related API prototypes. */
+#include <event_groups.h>
 
 /* TODO Add any manufacture supplied header files can be included
 here. */
@@ -31,7 +32,16 @@ here. */
 
 extern void _interrupt_entry();
 static void prvSetupHardware( void );
-static void prvTask( void *pvParameters );
+static void ledFadeTask( void *pvParameters );
+static void pingTask( void *pvParameters );
+
+TaskHandle_t ledfade_task;
+TimerHandle_t ledfade_timer;
+EventGroupHandle_t ledfade_event;
+
+
+
+void ledfade_callback( TimerHandle_t xTimer );
 
 /*-----------------------------------------------------------*/
 
@@ -51,59 +61,42 @@ plic_instance_t g_plic;
 #define LOCAL_INT_BTN_1  1
 #define LOCAL_INT_BTN_2  2
 
-#define RED_LED_OFFSET   0
-#define GREEN_LED_OFFSET 1
-#define BLUE_LED_OFFSET  2
-
 #define BUTTON_0_OFFSET 15
 #define BUTTON_1_OFFSET 30
 #define BUTTON_2_OFFSET 31
 
-#define GPIO_INT_BASE 7
-#define INT_DEVICE_BUTTON_0 (GPIO_INT_BASE + BTN0)
-#define INT_DEVICE_BUTTON_1 (GPIO_INT_BASE + BTN1)
-#define INT_DEVICE_BUTTON_2 (GPIO_INT_BASE + BTN2)
+#define LD1_GRN_ON PWM_REG(PWM_CMP1)  = 0x00;
+#define LD1_BLU_ON PWM_REG(PWM_CMP2)  = 0x00;
+#define LD1_RED_ON PWM_REG(PWM_CMP3)  = 0x00;
 
-#define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x00;
-#define LD1_GRN_ON PWM_REG(PWM_CMP2)  = 0x00;
-#define LD1_BLU_ON PWM_REG(PWM_CMP3)  = 0x00;
-
-#define LD1_RED_OFF PWM_REG(PWM_CMP1)  = 0xFF;
-#define LD1_GRN_OFF PWM_REG(PWM_CMP2)  = 0xFF;
-#define LD1_BLU_OFF PWM_REG(PWM_CMP3)  = 0xFF;
+#define LD1_GRN_OFF PWM_REG(PWM_CMP1)  = 0xFF;
+#define LD1_BLU_OFF PWM_REG(PWM_CMP2)  = 0xFF;
+#define LD1_RED_OFF PWM_REG(PWM_CMP3)  = 0xFF;
 
 #define IRQ_M_LOCAL        16
 #define MCAUSE_CAUSE       0x3FFUL
 #define IRQ_M_EXT          11
-
-// Application specific.
-static volatile int led = GREEN_LED_OFFSET;
 
 /*-------------------------------------------------------------*/
 
 int main(void)
 {
 
-    // while(1){
-	// 	int msg[4]={0,0,0,0};
-	// 	ECALL_RECV(4, msg);
-	// 	if (msg[0]) ECALL_SEND(4, msg);
-	// 	ECALL_YIELD();
-	// }
-
-
     /* Configure the system ready to run the demo.  The clock configuration
     can be done here if it was not done before main() was called. */
     prvSetupHardware();
 
-    /* Create the task. */
-	xTaskCreate(    prvTask,
-					"prvTask",
-					configMINIMAL_STACK_SIZE,
-					NULL,
-					0x02,
-					NULL );
+    ledfade_timer = xTimerCreate("ledfade_timer", 3000/portTICK_PERIOD_MS, 
+                pdFALSE, ( void * ) 0, ledfade_callback);
 
+    ledfade_event = xEventGroupCreate();
+    xEventGroupSetBits( ledfade_event, 1);
+
+    /* Create the task. */
+	xTaskCreate(ledFadeTask, "ledFadeTask", configMINIMAL_STACK_SIZE, NULL, 0x02,
+            &ledfade_task);
+    xTaskCreate(pingTask, "pingTask", configMINIMAL_STACK_SIZE, NULL, 0x00, /* must have idle priority */
+            NULL);
 
     /* Start the tasks and timer running. */
     vTaskStartScheduler();
@@ -117,8 +110,28 @@ int main(void)
 }
 /*-----------------------------------------------------------*/
 
+void ledfade_callback( TimerHandle_t xTimer ){
+    xEventGroupSetBits(ledfade_event, 1);
+    //vTaskResume(ledfade_task);
+}
 
-static void prvTask( void *pvParameters )
+static void pingTask( void *pvParameters )
+{
+	while(1){
+
+		int msg[4]={0,0,0,0};
+
+		ECALL_RECV(4, msg);
+
+		if (msg[0]) ECALL_SEND(4, msg);
+
+		taskYIELD();
+
+	}
+}
+
+
+static void ledFadeTask( void *pvParameters )
 {
 
     uint16_t r=0x3F;
@@ -136,7 +149,9 @@ static void prvTask( void *pvParameters )
 
         // const uint64_t T1 = ECALL_CSRR_MTIME() + 400; //12*RTC_FREQ/1000;
         // while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
-        vTaskDelay(40/portTICK_PERIOD_MS);
+        vTaskDelay(20/portTICK_PERIOD_MS);
+
+        xEventGroupWaitBits(ledfade_event, 1, pdFALSE, pdFALSE, portMAX_DELAY );
 
         if(r > 0 && b == 0){ r--; g++; }
         if(g > 0 && r == 0){ g--; b++; }
@@ -151,24 +166,58 @@ static void prvTask( void *pvParameters )
 
 /*ISR triggered by Button 3 */
 
+void button_0_handler(void){ // local interrupt
+
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	GPIO_REG(GPIO_RISE_IP)  |= (1<<BUTTON_0_OFFSET);
+
+	LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
+
+    xEventGroupClearBitsFromISR(ledfade_event, 1);
+    //vTaskSuspend(ledfade_task);
+    xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+   
+    ECALL_SEND(4, (int[4]){216,0,0,0} );
+   
+}
+
 void button_1_handler(void){ // local interrupt
 
-	// GPIO_REG(GPIO_OUTPUT_VAL) &= ~(0x1 << led); // LED OFF
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	// led = (led==GREEN_LED_OFFSET ? BLUE_LED_OFFSET :
-	// 	   led==BLUE_LED_OFFSET  ? RED_LED_OFFSET :
-	// 			   	   	   	   	   GREEN_LED_OFFSET
-	// );
+	GPIO_REG(GPIO_RISE_IP)  |= (1<<BUTTON_1_OFFSET);
 
-    ECALL_SEND(1, ((int[]){'p',0,0,0}));
+	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
 
-	// volatile uint64_t * now, then;
-	// now = (volatile uint64_t*)(CLINT_CTRL_ADDR + CLINT_MTIME);
-	// then = *now + 500*32768/1000;
-	// while (*now < then) ECALL_YIELD();
+    xEventGroupClearBitsFromISR(ledfade_event, 1);
+    //vTaskSuspend(ledfade_task);
+    xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
+    
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+   
+    ECALL_SEND(4, (int[4]){217,0,0,0} );
+    
+}
 
-	//GPIO_REG(GPIO_RISE_IP) |= (1<<BUTTON_3_OFFSET);
+void button_2_handler(void){ // local interrupt
 
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	GPIO_REG(GPIO_RISE_IP)  |= (1<<BUTTON_2_OFFSET);
+
+	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
+
+    xEventGroupClearBitsFromISR(ledfade_event, 1);
+    //vTaskSuspend(ledfade_task);
+    xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+   
+    ECALL_SEND(4, (int[4]){218,0,0,0} );
+    
 }
 
 /*-----------------------------------------------------------*/
@@ -178,12 +227,7 @@ void handle_interrupt(unsigned long mcause){
   /* check if global*/
   if(!((mcause & MCAUSE_CAUSE) == IRQ_M_EXT))   {
     localISR[mcause & MCAUSE_CAUSE]();
-  } else {
-      //global interrupt
-    plic_source int_num  = PLIC_claim_interrupt(&g_plic);
-    g_ext_interrupt_handlers[int_num]();
-    PLIC_complete_interrupt(&g_plic, int_num);
-  }
+  } 
 
 }
 
@@ -232,54 +276,38 @@ void enable_interrupt(uint32_t int_num, uint32_t int_priority, function_ptr_t ha
      * After decoding the mcause and aknowleding the interrupt on the PLIC (in case
      * of a global interrupt) execution will be redirected to the final handler.
      */
-    ECALL_IRQ_VECT(int_num, _interrupt_entry);
+    ECALL_IRQ_VECT(IRQ_M_EXT, _interrupt_entry);
 }
 /*-----------------------------------------------------------*/
 
-/*
- *enables the plic and programs handlers
-**/
-void interrupts_init(  ) {
+
+void interrupts_init( ) {
     
-    /**
-     * MULTIZONE: multizone API does not allow us to enable or disable
-     * interrupts. After we register an handler for a interrupt it is 
-     * permantently enabled. At this point, no handler was registered,
-     * so we know all interrupts are disabled.
-     */
-    // Disable the machine & timer interrupts until setup is done.
-    //clear_csr(mie, MIP_MEIP);
-    //clear_csr(mie, MIP_MTIP);
-
-
-  //setup PLIC
-  PLIC_init(&g_plic,
-	    PLIC_BASE,
-	    PLIC_NUM_INTERRUPTS,
-	    PLIC_NUM_PRIORITIES);
-
-  //assign interrupts to default handler
-  for (int ii = 0; ii < PLIC_NUM_INTERRUPTS; ii ++){
-    g_ext_interrupt_handlers[ii] = no_interrupt_handler;
-  }
-
   for (int isr = 0; isr < 32; isr++){
     localISR[isr] = no_interrupt_handler;
   }
 
-    /**
-     * MULTIZONE: multizone API has no notion of a global exertnal interrupt
-     * enable. As mentioned in the comment above, after an handler for an
-     * interrupt is registered, that interrupt is enabled (permantely).
-     */
-    // Enable the Machine-External bit in MIE
-    //set_csr(mie, MIP_MEIP);
-
 }
 /*-----------------------------------------------------------*/
 
+void b0_irq_init() {
 
-/*configures Button3 as a local interrupt*/
+    //dissable hw io function
+    GPIO_REG(GPIO_IOF_EN ) &=  ~(1 << BUTTON_0_OFFSET);
+
+    //set to input
+    GPIO_REG(GPIO_INPUT_EN)   |= (1<<BUTTON_0_OFFSET);
+    GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BUTTON_0_OFFSET);
+
+    //set to interrupt on rising edge
+    GPIO_REG(GPIO_RISE_IE)    |= (1<<BUTTON_0_OFFSET);
+
+    //enable the interrupt
+    ECALL_IRQ_VECT(16+LOCAL_INT_BTN_0, _interrupt_entry);
+    localISR[IRQ_M_LOCAL + LOCAL_INT_BTN_0] = button_0_handler;
+}
+
+
 void b1_irq_init() {
 
     //dissable hw io function
@@ -293,21 +321,34 @@ void b1_irq_init() {
     GPIO_REG(GPIO_RISE_IE)    |= (1<<BUTTON_1_OFFSET);
 
     //enable the interrupt
-    ECALL_IRQ_VECT(16+LOCAL_INT_BTN_0, _interrupt_entry);
     ECALL_IRQ_VECT(16+LOCAL_INT_BTN_1, _interrupt_entry);
-    ECALL_IRQ_VECT(16+LOCAL_INT_BTN_2, _interrupt_entry);
-    localISR[IRQ_M_LOCAL + LOCAL_INT_BTN_0] = button_1_handler;
     localISR[IRQ_M_LOCAL + LOCAL_INT_BTN_1] = button_1_handler;
-    localISR[IRQ_M_LOCAL + LOCAL_INT_BTN_2] = button_1_handler;
-    //enable_interrupt(INT_DEVICE_BUTTON_3, 2, &b0_ISR);
+}
+
+void b2_irq_init() {
+
+    //dissable hw io function
+    GPIO_REG(GPIO_IOF_EN ) &=  ~(1 << BUTTON_2_OFFSET);
+
+    //set to input
+    GPIO_REG(GPIO_INPUT_EN)   |= (1<<BUTTON_2_OFFSET);
+    GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BUTTON_2_OFFSET);
+
+    //set to interrupt on rising edge
+    GPIO_REG(GPIO_RISE_IE)    |= (1<<BUTTON_2_OFFSET);
+
+    //enable the interrupt
+    ECALL_IRQ_VECT(16+LOCAL_INT_BTN_2, _interrupt_entry);
+    localISR[IRQ_M_LOCAL + LOCAL_INT_BTN_2] = button_2_handler;
 }
 /*-----------------------------------------------------------*/
 
 static void prvSetupHardware( void )
 {
-
     interrupts_init();
+    b0_irq_init();
     b1_irq_init();
+    b2_irq_init();
 }
 
 

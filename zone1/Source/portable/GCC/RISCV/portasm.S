@@ -200,12 +200,12 @@ _msg:
 	portSAVE_CONTEXT
 1:
 	/* Enable IRQs (allowing nesting) */
-	jal 	ECALL_CSRS_MIE
+	//jal 	ECALL_CSRS_MIE
 .endm
 
 .macro NESTED_TRAP_EXIT
 	/* Disable IRQs (handling nesting) */
-	jal		ECALL_CSRC_MIE
+	//jal		ECALL_CSRC_MIE
 	/* Decrement IRQ nesting */
 	la		t0, ulPortInterruptNesting
 	LOAD	t1, 0(t0)
