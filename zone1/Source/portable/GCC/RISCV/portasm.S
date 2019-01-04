@@ -1,10 +1,35 @@
+/*
+ * FreeRTOS Kernel V10.1.1
+ * Copyright (C) 2018 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * http://www.FreeRTOS.org
+ * http://aws.amazon.com/freertos
+ *
+ * 1 tab == 4 spaces!
+ */
+
 /**
  * Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved
  *
  * @author 	Sandro Pinto <sandro2pinto@gmail.com>
  * @author 	José Martins <josemartins90@gmail.com>
- *
- * TODO: add credits to original sifive port
  * 
  */
 
@@ -28,7 +53,10 @@ registers must be saved by the portasmSAVE_ADDITIONAL_REGISTERS and
 portasmRESTORE_ADDITIONAL_REGISTERS macros - which can be defined in a chip
 specific version of freertos_risc_v_port_specific_extensions.h.  See the notes
 at the top of this file. */
-#define portCONTEXT_SIZE ( 30 * portWORD_SIZE )
+#define portCONTEXT_SIZE ( 29 * portWORD_SIZE )
+#define MCAUSE_OFFSET ( 29 * portWORD_SIZE )
+#define MEPC_OFFSET ( 30 * portWORD_SIZE )
+
 
 .section .data
 .align portWORD_SIZE
@@ -46,7 +74,7 @@ _msg:
 .section      .text.entry
 .align 4
 
-.global xPortStartScheduler
+.global xPortStartFirstTask
 .global vPortYield
 .global vTaskIncrementTick
 .global vPortEndScheduler
@@ -55,49 +83,48 @@ _msg:
 .global _syncexception_entry
 .global _interrupt_entry
 
+.extern pxCurrentTCB
+
 /* Macro for saving task context */
 .macro pushREGFILE
 	/* create stack frame */
-	addi	sp, sp, -portWORD_SIZE * 32
+	//addi	sp, sp, -portWORD_SIZE * 32
+	addi	sp, sp, -portCONTEXT_SIZE
 
 	/* Save Context */
 	STORE	x1, 1 * portWORD_SIZE(sp)
-	STORE	x2, 2 * portWORD_SIZE(sp)
-	STORE	x3, 3 * portWORD_SIZE(sp)
-	STORE	x4, 4 * portWORD_SIZE(sp)
-	STORE	x5, 5 * portWORD_SIZE(sp)
-	STORE	x6, 6 * portWORD_SIZE(sp)
-	STORE	x7, 7 * portWORD_SIZE(sp)
-	STORE	x8, 8 * portWORD_SIZE(sp)
-	STORE	x9, 9 * portWORD_SIZE(sp)
-	STORE	x10, 10 * portWORD_SIZE(sp)
-	STORE	x11, 11 * portWORD_SIZE(sp)
-	STORE	x12, 12 * portWORD_SIZE(sp)
-	STORE	x13, 13 * portWORD_SIZE(sp)
-	STORE	x14, 14 * portWORD_SIZE(sp)
-	STORE	x15, 15 * portWORD_SIZE(sp)
-	STORE	x16, 16 * portWORD_SIZE(sp)
-	STORE	x17, 17 * portWORD_SIZE(sp)
-	STORE	x18, 18 * portWORD_SIZE(sp)
-	STORE	x19, 19 * portWORD_SIZE(sp)
-	STORE	x20, 20 * portWORD_SIZE(sp)
-	STORE	x21, 21 * portWORD_SIZE(sp)
-	STORE	x22, 22 * portWORD_SIZE(sp)
-	STORE	x23, 23 * portWORD_SIZE(sp)
-	STORE	x24, 24 * portWORD_SIZE(sp)
-	STORE	x25, 25 * portWORD_SIZE(sp)
-	STORE	x26, 26 * portWORD_SIZE(sp)
-	STORE	x27, 27 * portWORD_SIZE(sp)
-	STORE	x28, 28 * portWORD_SIZE(sp)
-	STORE	x29, 29 * portWORD_SIZE(sp)
-	STORE	x30, 30 * portWORD_SIZE(sp)
-	STORE	x31, 31 * portWORD_SIZE(sp)
+	STORE	x5, 2 * portWORD_SIZE(sp)
+	STORE	x6, 3 * portWORD_SIZE(sp)
+	STORE	x7, 4 * portWORD_SIZE(sp)
+	STORE	x8, 5 * portWORD_SIZE(sp)
+	STORE	x9, 6 * portWORD_SIZE(sp)
+	STORE	x10, 7 * portWORD_SIZE(sp)
+	STORE	x11, 8 * portWORD_SIZE(sp)
+	STORE	x12, 9 * portWORD_SIZE(sp)
+	STORE	x13, 10 * portWORD_SIZE(sp)
+	STORE	x14, 11 * portWORD_SIZE(sp)
+	STORE	x15, 12 * portWORD_SIZE(sp)
+	STORE	x16, 13 * portWORD_SIZE(sp)
+	STORE	x17, 14 * portWORD_SIZE(sp)
+	STORE	x18, 15 * portWORD_SIZE(sp)
+	STORE	x19, 16 * portWORD_SIZE(sp)
+	STORE	x20, 17 * portWORD_SIZE(sp)
+	STORE	x21, 18 * portWORD_SIZE(sp)
+	STORE	x22, 19 * portWORD_SIZE(sp)
+	STORE	x23, 20 * portWORD_SIZE(sp)
+	STORE	x24, 21 * portWORD_SIZE(sp)
+	STORE	x25, 22 * portWORD_SIZE(sp)
+	STORE	x26, 23 * portWORD_SIZE(sp)
+	STORE	x27, 24 * portWORD_SIZE(sp)
+	STORE	x28, 25 * portWORD_SIZE(sp)
+	STORE	x29, 26 * portWORD_SIZE(sp)
+	STORE	x30, 27 * portWORD_SIZE(sp)
+	STORE	x31, 28 * portWORD_SIZE(sp)
 
 .endm
 
 /* save current sp (points to context) in active task tcb*/
 .macro portSAVE_CONTEXT
-	.global	pxCurrentTCB
 	/* Store current stackpointer in task control block (TCB) */
 	LOAD	t0, pxCurrentTCB	//pointer
 	STORE	sp, 0x0(t0)
@@ -106,7 +133,6 @@ _msg:
 
  /* restore sp (pointing to context) from active task tcb */
 .macro portRESTORE_CONTEXT
-	.global	pxCurrentTCB
 	/* Load stack pointer from the current TCB */
 	LOAD	sp, pxCurrentTCB
 	LOAD	sp, 0x0(sp)
@@ -118,38 +144,36 @@ _msg:
 
 	/* Restore registers */
 	LOAD	x1, 1 * portWORD_SIZE(sp)
-	LOAD 	x3, 3 * portWORD_SIZE(sp)
-	LOAD	x4, 4 * portWORD_SIZE(sp)
-	LOAD	x5, 5 * portWORD_SIZE(sp)
-	LOAD	x6, 6 * portWORD_SIZE(sp)
-	LOAD	x7, 7 * portWORD_SIZE(sp)
-	LOAD	x8, 8 * portWORD_SIZE(sp)
-	LOAD	x9, 9 * portWORD_SIZE(sp)
-	LOAD	x10, 10 * portWORD_SIZE(sp)
-	LOAD	x11, 11 * portWORD_SIZE(sp)
-	LOAD	x12, 12 * portWORD_SIZE(sp)
-	LOAD	x13, 13 * portWORD_SIZE(sp)
-	LOAD	x14, 14 * portWORD_SIZE(sp)
-	LOAD	x15, 15 * portWORD_SIZE(sp)
-	LOAD	x16, 16 * portWORD_SIZE(sp)
-	LOAD	x17, 17 * portWORD_SIZE(sp)
-	LOAD	x18, 18 * portWORD_SIZE(sp)
-	LOAD	x19, 19 * portWORD_SIZE(sp)
-	LOAD	x20, 20 * portWORD_SIZE(sp)
-	LOAD	x21, 21 * portWORD_SIZE(sp)
-	LOAD	x22, 22 * portWORD_SIZE(sp)
-	LOAD	x23, 23 * portWORD_SIZE(sp)
-	LOAD	x24, 24 * portWORD_SIZE(sp)
-	LOAD	x25, 25 * portWORD_SIZE(sp)
-	LOAD	x26, 26 * portWORD_SIZE(sp)
-	LOAD	x27, 27 * portWORD_SIZE(sp)
-	LOAD	x28, 28 * portWORD_SIZE(sp)
-	LOAD	x29, 29 * portWORD_SIZE(sp)
-	LOAD	x30, 30 * portWORD_SIZE(sp)
-	LOAD	x31, 31 * portWORD_SIZE(sp)
+	LOAD	x5, 2 * portWORD_SIZE(sp)
+	LOAD	x6, 3 * portWORD_SIZE(sp)
+	LOAD	x7, 4 * portWORD_SIZE(sp)
+	LOAD	x8, 5 * portWORD_SIZE(sp)
+	LOAD	x9, 6 * portWORD_SIZE(sp)
+	LOAD	x10, 7 * portWORD_SIZE(sp)
+	LOAD	x11, 8 * portWORD_SIZE(sp)
+	LOAD	x12, 9 * portWORD_SIZE(sp)
+	LOAD	x13, 10 * portWORD_SIZE(sp)
+	LOAD	x14, 11 * portWORD_SIZE(sp)
+	LOAD	x15, 12 * portWORD_SIZE(sp)
+	LOAD	x16, 13 * portWORD_SIZE(sp)
+	LOAD	x17, 14 * portWORD_SIZE(sp)
+	LOAD	x18, 15 * portWORD_SIZE(sp)
+	LOAD	x19, 16 * portWORD_SIZE(sp)
+	LOAD	x20, 17 * portWORD_SIZE(sp)
+	LOAD	x21, 18 * portWORD_SIZE(sp)
+	LOAD	x22, 19 * portWORD_SIZE(sp)
+	LOAD	x23, 20 * portWORD_SIZE(sp)
+	LOAD	x24, 21 * portWORD_SIZE(sp)
+	LOAD	x25, 22 * portWORD_SIZE(sp)
+	LOAD	x26, 23 * portWORD_SIZE(sp)
+	LOAD	x27, 24 * portWORD_SIZE(sp)
+	LOAD	x28, 25 * portWORD_SIZE(sp)
+	LOAD	x29, 26 * portWORD_SIZE(sp)
+	LOAD	x30, 27 * portWORD_SIZE(sp)
+	LOAD	x31, 28 * portWORD_SIZE(sp)
 
 	/* destroy stack frame */
-	addi	sp, sp, portWORD_SIZE * 32
+	addi	sp, sp, portCONTEXT_SIZE
 
 .endm
 
@@ -188,8 +212,8 @@ _msg:
 	/* Save RegFile context */
 	pushREGFILE
     /* Save mcause */
-	LOAD	s0, 32 * portWORD_SIZE(sp)
-	STORE	zero, 32 * portWORD_SIZE(sp)
+	LOAD	s0, MCAUSE_OFFSET(sp)
+	STORE	zero, MCAUSE_OFFSET(sp)
 	/* Increment IRQ nesting */
 	la		t0, ulPortInterruptNesting
 	LOAD	t1, 0(t0)
@@ -223,7 +247,7 @@ _msg:
 2:
 	/* Restoring Task context and previous mcause */
 	portRESTORE_CONTEXT
-	STORE	s0, 32 * portWORD_SIZE(sp)
+	STORE	s0, MCAUSE_OFFSET(sp)
 3:
 	/* Restore RegFile context */
 	popREGFILE
@@ -254,7 +278,8 @@ _syncexception_entry:
 	jal  handle_syncexception
 
 	/* the value returned by the handler is the new mepc. update it on the stack */
-	STORE	a0, 33*portWORD_SIZE(sp)
+	//STORE	a0, 33*portWORD_SIZE(sp)
+	STORE	a0, MCAUSE_OFFSET(sp)
 
 	/* restore preempted context */
 	popREGFILE
@@ -281,9 +306,10 @@ _timer_handler:
 	NESTED_TRAP_EXIT
 
 .align 4
-xPortStartScheduler:
+xPortStartFirstTask:
 	/* Setup exceptions and timer */
-	jal vPortSetup
+	//jal vPortSetup
+
 	/* Restore first task context */
 	portRESTORE_CONTEXT
 	popREGFILE
@@ -317,11 +343,6 @@ vPortYield:
 	minimalInterruptEnable
 	uret
 
-/**
- * If scheduler returns, loop forever.
- */
-vPortEndScheduler:
-	j	.
 
 /**
  *	Stub for the interrupt handler if this is not defined in the application.

@@ -3,8 +3,6 @@
  *
  * @author 	Sandro Pinto <sandro2pinto@gmail.com>
  * @author 	José Martins <josemartins90@gmail.com>
- *
- * TODO: add credits to original sifive port
  * 
  */
 
@@ -82,8 +80,7 @@ plic_instance_t g_plic;
 int main(void)
 {
 
-    /* Configure the system ready to run the demo.  The clock configuration
-    can be done here if it was not done before main() was called. */
+	/* Setup platform-specific hardware. */
     prvSetupHardware();
 
     ledfade_timer = xTimerCreate("ledfade_timer", 3000/portTICK_PERIOD_MS, 
