@@ -17,7 +17,7 @@ void trap_0x0_handler(void){
 	ECALL_RECV(1, msg);
 	printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
-	printf("\nPress any key to reboot");
+	printf("\nPress any key to restart");
 	char c='\0'; while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 
 }
@@ -29,7 +29,7 @@ void trap_0x1_handler(void){
 	ECALL_RECV(1, msg);
 	printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 	
-	printf("\nPress any key to reboot");
+	printf("\nPress any key to restart");
 	char c='\0'; while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 
 }
@@ -102,8 +102,7 @@ void print_cpu_info(void) {
 // ------------------------------------------------------------------------
 
 	// misa
-	uint64_t misa = 0x0; asm ( "csrr %0, misa" : "=r"(misa) );
-	//const uint64_t misa = ECALL_CSRR_MISA();
+	const uint64_t misa = ECALL_CSRR_MISA();
 
 	const int xlen = ((misa >> __riscv_xlen-2)&0b11)==1 ?  32 :
 					 ((misa >> __riscv_xlen-2)&0b11)==2 ?  64 :
