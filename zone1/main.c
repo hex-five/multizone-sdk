@@ -135,6 +135,9 @@ static void ledFadeTask( void *pvParameters )
     uint16_t g=0;
     uint16_t b=0;
 
+    GPIO_REG(GPIO_IOF_EN) |= IOF1_PWM1_MASK;
+    GPIO_REG(GPIO_IOF_SEL) |= IOF1_PWM1_MASK;
+
     PWM_REG(PWM_CFG)   = 0;
     PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS) | (PWM_CFG_ZEROCMP) | (PWM_CFG_DEGLITCH);
     PWM_REG(PWM_COUNT) = 0;

@@ -29,7 +29,7 @@
 // -----------------------------------------------------------------------------
 // PWM
 // -----------------------------------------------------------------------------
-#define PWM_BASE	0x10015000
+#define PWM_BASE	0x10025000
 
 #define PWM_CFG		0x00
 #define PWM_COUNT	0x08
@@ -104,5 +104,6 @@
 
 
 #define IOF0_UART0_MASK         0x00030000UL
+#define IOF1_PWM1_MASK          0x00680000UL
 
 #endif /* HEXFIVE_PLATFORM_H */
