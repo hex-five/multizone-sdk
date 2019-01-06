@@ -389,7 +389,7 @@ void print_pmp_ranges(void){
 		// poll & print incoming messages
 		int msg[4]={0,0,0,0};
 
-		ECALL_RECV(1, msg);
+		ECALL_RECV(2, msg);
 
 		if (msg[0]){
 
@@ -397,8 +397,8 @@ void print_pmp_ranges(void){
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
-			case 'p' : write(1, "\rZ1 > pong\r\n", 12); break;
-			default  : write(1, "\rZ1 > ???\r\n", 11); break;
+			case 'p' : write(1, "\rZ2 > pong\r\n", 12); break;
+			default  : write(1, "\rZ2 > ???\r\n", 11); break;
 			}
 
 			write(1, "\nZ4 > ", 6);
@@ -428,17 +428,18 @@ void print_pmp_ranges(void){
 			write(1, "\e[2B", 4); // curs down down
 		}
 
-		ECALL_RECV(2, msg);
+		ECALL_RECV(1, msg);
 		if (msg[0]){
 
 			write(1, "\e7", 2); // save curs pos
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
-			case 201 : write(1, "\rZ2 > PLIC  IRQ 11 [BTN0]\r\n", 27); break;
-			case 211 : write(1, "\rZ2 > CLINT IRQ 17 [BTN1]\r\n", 27); break;
-			case 221 : write(1, "\rZ2 > CLINT IRQ 18 [BTN2]\r\n", 27); break;
-			default  : write(1, "\rZ2 > ???\r\n", 11); break;
+			case 216 : write(1, "\rZ1 > CLINT IRQ 16 [BTN0]\r\n", 27); break;
+			case 217 : write(1, "\rZ1 > CLINT IRQ 17 [BTN1]\r\n", 27); break;
+			case 218 : write(1, "\rZ1 > CLINT IRQ 18 [BTN2]\r\n", 27); break;
+			case 'p' : write(1, "\rZ1 > pong\r\n", 12); break;
+			default  : write(1, "\rZ1 > ???\r\n", 11); break;
 			}
 
 			write(1, "\nZ4 > ", 6);
