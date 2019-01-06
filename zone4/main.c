@@ -55,7 +55,7 @@ void trap_0x3_handler(void){
 	printf("\e[2A"); 	// curs up 2 lines
 	printf("\e[2L"); 	// insert 2 lines
 
-	printf("\rZ1 > timer expired : %lu", (unsigned long)(T*1000/RTC_FREQ));
+	printf("\rZ4 > timer expired : %lu", (unsigned long)(T*1000/RTC_FREQ));
 
 	printf("\e8");   	// restore curs pos
 
@@ -356,7 +356,7 @@ void print_pmp_ranges(void){
 					p=strlen(history);
 					strcpy(cmd_line, history);
 					write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-					write(1, "\rZ1 > ", 6);
+					write(1, "\rZ4 > ", 6);
 					write(1, &cmd_line[0], strlen(cmd_line));
 				}
 
@@ -396,11 +396,11 @@ void print_pmp_ranges(void){
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
-			case 'p' : write(1, "\rZ4 > pong\r\n", 12); break;
-			default  : write(1, "\rZ4 > ???\r\n", 11); break;
+			case 'p' : write(1, "\rZ3 > pong\r\n", 12); break;
+			default  : write(1, "\rZ3 > ???\r\n", 11); break;
 			}
 
-			write(1, "\nZ1 > ", 6);
+			write(1, "\nZ4 > ", 6);
 			write(1, &cmd_line[0], strlen(cmd_line));
 			write(1, "\e8", 2);   // restore curs pos
 			write(1, "\e[2B", 4); // curs down down
@@ -414,11 +414,11 @@ void print_pmp_ranges(void){
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
-			case 'p' : write(1, "\rZ3 > pong\r\n", 12); break;
-			default  : write(1, "\rZ3 > ???\r\n", 11); break;
+			case 'p' : write(1, "\rZ2 > pong\r\n", 12); break;
+			default  : write(1, "\rZ2 > ???\r\n", 11); break;
 			}
 
-			write(1, "\nZ1 > ", 6);
+			write(1, "\nZ4 > ", 6);
 			write(1, &cmd_line[0], strlen(cmd_line));
 			write(1, "\e8", 2);   // restore curs pos
 			write(1, "\e[2B", 4); // curs down down
@@ -431,14 +431,14 @@ void print_pmp_ranges(void){
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
-			case 201 : write(1, "\rZ2 > PLIC  IRQ 11 [BTN0]\r\n", 27); break;
-			case 211 : write(1, "\rZ2 > CLINT IRQ 21 [BTN1]\r\n", 27); break;
-			case 221 : write(1, "\rZ2 > CLINT IRQ 22 [BTN2]\r\n", 27); break;
-			case 'p' : write(1, "\rZ2 > pong\r\n", 12); break;
-			default  : write(1, "\rZ2 > ???\r\n", 11); break;
+			case 216 : write(1, "\rZ1 > CLINT IRQ 16 [BTN0]\r\n", 27); break;
+			case 217 : write(1, "\rZ1 > CLINT IRQ 17 [BTN1]\r\n", 27); break;
+			case 218 : write(1, "\rZ1 > CLINT IRQ 18 [BTN2]\r\n", 27); break;
+			case 'p' : write(1, "\rZ1 > pong\r\n", 12); break;
+			default  : write(1, "\rZ1 > ???\r\n", 11); break;
 			}
 
-			write(1, "\nZ1 > ", 6);
+			write(1, "\nZ4 > ", 6);
 			write(1, &cmd_line[0], strlen(cmd_line));
 			write(1, "\e8", 2);   // restore curs pos
 			write(1, "\e[2B", 4); // curs down down
@@ -495,7 +495,7 @@ int main (void) {
 
 	while(1){
 
-		write(1, "\n\rZ1 > ", 7);
+		write(1, "\n\rZ4 > ", 7);
 
 		readline(cmd_line);
 
