@@ -51,14 +51,14 @@ all: clean
 	$(MAKE) -C zone1
 	$(MAKE) -C zone2
 	$(MAKE) -C zone3
-	$(MAKE) -C multizone
+	java -jar multizone.jar zone1/zone1.hex zone2/zone2.hex zone3/zone3.hex --arch=$(BOARD)
 
 .PHONY: clean
 clean: 
 	$(MAKE) -C zone1 clean
 	$(MAKE) -C zone2 clean
 	$(MAKE) -C zone3 clean
-	$(MAKE) -C multizone clean
+	rm -f multizone.hex
 
 
 #############################################################
@@ -90,5 +90,5 @@ GDB_LOAD_CMDS += -ex "quit"
 
 load:
 	$(OPENOCD) $(OPENOCDARGS) & \
-	$(GDB) multizone/multizone.hex $(GDB_LOAD_ARGS) $(GDB_LOAD_CMDS)
+	$(GDB) multizone.hex $(GDB_LOAD_ARGS) $(GDB_LOAD_CMDS)
 
