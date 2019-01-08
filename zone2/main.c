@@ -76,34 +76,71 @@ void cb_ping(struct pico_icmp4_stats *s)
     }
 }
 
+#define IAC "\xff"
+
+#define WILL "\xfb"
+#define DONT "\xfe"
+
+#define ECHO "\x01"
+#define SUPRESS_GO_AHEAD "\x03"
+#define LINEMODE "\x22"
+
 void cb_telnet(uint16_t ev, struct pico_socket *s)
 {
-    struct pico_ip4 ipaddr;
-    uint16_t port;
     static uint8_t buf[16];
     static int bytes = 0;
+    static int sent_mode = 0;
 
     if (ev & PICO_SOCK_EV_CONN) {
-        pico_socket_accept(s, &ipaddr.addr, &port);
+        struct pico_ip4 ipaddr;
+        uint16_t port;
+        struct pico_socket *sock_a;
+        uint32_t yes = 1;
+
+        sock_a = pico_socket_accept(s, &ipaddr.addr, &port);
+        pico_socket_setoption(sock_a, PICO_TCP_NODELAY, &yes);
+        sent_mode = 0;
     }
 
-    if (ev & PICO_SOCK_EV_RD) {
+    if ((ev & PICO_SOCK_EV_RD) && sent_mode) {
         bytes = pico_socket_read(s, buf, sizeof(buf));
+
+        if (buf[0] == '\xff') {
+            bytes = 0;
+        } else if (buf[0] == '\x0a') {
+            bytes = 2;
+            buf[0] = '\x0d';
+            buf[1] = '\x0a';
+        } else if (buf[0] == '\x0d') {
+            bytes = 2;
+            buf[0] = '\x0d';
+            buf[1] = '\x0a';
+        }
     }
 
-    if ((ev & PICO_SOCK_EV_WR) && bytes > 0) {
-        pico_socket_write(s, buf, bytes);
-        bytes = 0;
+    if (ev & PICO_SOCK_EV_WR) {
+        if (bytes > 0 && sent_mode) {
+            pico_socket_write(s, buf, bytes);
+            bytes = 0;
+        } else if (!sent_mode) {
+            const char mode[] = IAC DONT LINEMODE
+                                IAC WILL SUPRESS_GO_AHEAD
+                                IAC WILL ECHO;
+
+            pico_socket_write(s, mode, sizeof(mode));
+            sent_mode = 1;
+        }
     }
 
-    if (ev & PICO_SOCK_EV_CLOSE) {
-        pico_socket_close(s);
+    if ((ev & PICO_SOCK_EV_CLOSE) && (ev & PICO_SOCK_EV_RD)) {
+        pico_socket_shutdown(s, PICO_SHUT_WR);
     }
 }
 
 int main(int argc, char *argv[]){
     int id;
     uint16_t port = short_be(23);
+    uint32_t yes = 1;
     struct pico_ip4 ipaddr, netmask;
     struct pico_socket* socket;
     struct pico_device* dev;
@@ -137,6 +174,8 @@ int main(int argc, char *argv[]){
         printf("Could not open socket!\n");
         return -1;
     }
+
+    pico_socket_setoption(socket, PICO_TCP_NODELAY, &yes);
 
     if (pico_socket_bind(socket, &ipaddr, &port) != 0) {
         printf("Could not bind!\n");
