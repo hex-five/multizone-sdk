@@ -364,7 +364,7 @@ void print_pmp_ranges(void){
 			} else if (esc==2 && c=='B'){ // down arrow
 				esc=0;
 
-			} else if (c=='\b' && p>0 && esc==0){ // backspace
+			} else if ((c=='\b' || c=='\x7f') && p>0 && esc==0){ // backspace
 				p--;
 				for (int i=p; i<strlen(cmd_line); i++) cmd_line[i]=cmd_line[i+1];
 				write(1, "\e[D", 3);
