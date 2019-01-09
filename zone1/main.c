@@ -23,6 +23,7 @@ here. */
 #include "plic_driver.h"
 
 #include <libhexfive.h>
+#include <comm.h>
 
 
 
@@ -32,12 +33,13 @@ extern void _interrupt_entry();
 static void prvSetupHardware( void );
 static void ledFadeTask( void *pvParameters );
 static void pingTask( void *pvParameters );
+static void cliEchoTask( void *pvParameters);
 
 TaskHandle_t ledfade_task;
 TimerHandle_t ledfade_timer;
 EventGroupHandle_t ledfade_event;
 
-
+struct mz_channel cli;
 
 void ledfade_callback( TimerHandle_t xTimer );
 
@@ -94,6 +96,9 @@ int main(void)
             &ledfade_task);
     xTaskCreate(pingTask, "pingTask", configMINIMAL_STACK_SIZE, NULL, 0x00, /* must have idle priority */
             NULL);
+    xTaskCreate(cliEchoTask, "cliEchoTask", configMINIMAL_STACK_SIZE, NULL, 0x02,
+            NULL);
+
 
     /* Start the tasks and timer running. */
     vTaskStartScheduler();
@@ -117,16 +122,35 @@ static void pingTask( void *pvParameters )
 	while(1){
 
 		int msg[4]={0,0,0,0};
-
 		ECALL_RECV(4, msg);
-
 		if (msg[0]) ECALL_SEND(4, msg);
+
+        mz_channel_update(&cli);
 
 		taskYIELD();
 
 	}
 }
 
+static void cliEchoTask( void *pvParameters){
+
+    char c = 0;
+
+    mz_channel_init(&cli, 2);
+
+    mz_channel_write(&cli, "Zone 1 echo terminal\r\n\r\n", 23);
+
+    while(1){
+        mz_channel_read(&cli, &c, 1);
+        mz_channel_write(&cli, &c, 1);
+        if(c == '\r'){
+            mz_channel_write(&cli, &c, 1);
+            c = '\n';
+            mz_channel_write(&cli, &c, 1);
+        }
+    }
+
+}
 
 static void ledFadeTask( void *pvParameters )
 {

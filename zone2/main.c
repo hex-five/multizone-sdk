@@ -30,6 +30,13 @@
 
 #define NUM_PING 10
 
+#define ACK         0
+#define IND         1
+#define CTL         2
+#define DAT         3
+#define CTL_ACK     (1 << 0)
+#define CTL_DAT     (1 << 1)
+
 static int finished = 0;
 
 void *pico_zalloc(size_t size)
@@ -91,6 +98,11 @@ void cb_telnet(uint16_t ev, struct pico_socket *s)
     static int bytes = 0;
     static int sent_mode = 0;
 
+    static int ack_pending = 0;
+    static int ack_index = 0;
+    static int flush = 0;
+    static int msg_out[4] = {-1,0,0,0};
+
     if (ev & PICO_SOCK_EV_CONN) {
         struct pico_ip4 ipaddr;
         uint16_t port;
@@ -102,33 +114,58 @@ void cb_telnet(uint16_t ev, struct pico_socket *s)
         sent_mode = 0;
     }
 
-    if ((ev & PICO_SOCK_EV_RD) && sent_mode) {
-        bytes = pico_socket_read(s, buf, sizeof(buf));
+    if ((ev & PICO_SOCK_EV_WR) && !sent_mode) {
+        const char mode[] = IAC DONT LINEMODE
+                            IAC WILL SUPRESS_GO_AHEAD
+                            IAC WILL ECHO;
 
-        if (buf[0] == '\xff') {
-            bytes = 0;
-        } else if (buf[0] == '\x0a') {
-            bytes = 2;
-            buf[0] = '\x0d';
-            buf[1] = '\x0a';
-        } else if (buf[0] == '\x0d') {
-            bytes = 2;
-            buf[0] = '\x0d';
-            buf[1] = '\x0a';
+        pico_socket_write(s, mode, sizeof(mode));
+        sent_mode = 1;
+    } else if (sent_mode) {
+        if (ev & PICO_SOCK_EV_WR) {
+            int msg[4] = {0,0,0,0};
+
+            ECALL_RECV(1, (void*)msg);
+
+            if ((msg[CTL] & CTL_DAT) != 0) {
+                if (msg[IND] == (msg_out[ACK] + 1)) {
+                    char c = msg[DAT];
+                    pico_socket_write(s, &c, 1);
+                    msg_out[CTL] |= CTL_ACK;
+                    msg_out[ACK] = msg[IND];
+                    flush = 1;
+                }
+            }
+
+            if ((msg[CTL] & CTL_ACK != 0) & ack_pending) {
+                if (msg[ACK] == ack_index) {
+                    ack_index++;
+                }
+
+                ack_pending = 0;
+            }
         }
-    }
 
-    if (ev & PICO_SOCK_EV_WR) {
-        if (bytes > 0 && sent_mode) {
-            pico_socket_write(s, buf, bytes);
-            bytes = 0;
-        } else if (!sent_mode) {
-            const char mode[] = IAC DONT LINEMODE
-                                IAC WILL SUPRESS_GO_AHEAD
-                                IAC WILL ECHO;
+        if (ev & PICO_SOCK_EV_RD) {
+            if (!ack_pending) {
+                bytes = pico_socket_read(s, buf, 1);
+                if (bytes > 0) {
+                    if (buf[0] == '\xff') { // swallow IAC sequences
+                        pico_socket_read(s, buf, 16);
+                    } else {
+                        msg_out[CTL] |= CTL_DAT;
+                        msg_out[IND] = ack_index;
+                        msg_out[DAT] = buf[0];
+                        flush = 1;
+                        ack_pending = 1;
+                    }
+                }
+            }
+        }
 
-            pico_socket_write(s, mode, sizeof(mode));
-            sent_mode = 1;
+        if (flush != 0) {
+            flush = 0;
+            ECALL_SEND(1, (void*)msg_out);
         }
     }
 

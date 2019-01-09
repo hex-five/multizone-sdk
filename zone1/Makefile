@@ -11,8 +11,8 @@ NEWLIB_DIR := $(PLATFORM_DIR)/newlib
 
 LINKER_SCRIPT := flash.lds
 
-C_SRCS += main.c
-HEADERS += FreeRTOSConfig.h
+C_SRCS += main.c comm.c
+HEADERS += FreeRTOSConfig.h comm.h
 
 FREERTOS_SRC_DIR := ./Source
 C_SRCS += \
