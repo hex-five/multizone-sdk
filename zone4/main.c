@@ -14,7 +14,7 @@ void trap_0x0_handler(void)__attribute__((interrupt("user")));
 void trap_0x0_handler(void){
 
 	int msg[4]={0,0,0,0};
-	ECALL_RECV(1, msg);
+	ECALL_RECV(4, msg);
 	printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
 	printf("\nPress any key to restart");
@@ -26,7 +26,7 @@ void trap_0x1_handler(void)__attribute__((interrupt("user")));
 void trap_0x1_handler(void){
 
 	int msg[4]={0,0,0,0};
-	ECALL_RECV(1, msg);
+	ECALL_RECV(4, msg);
 	printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 	
 	printf("\nPress any key to restart");
@@ -38,7 +38,7 @@ void trap_0x2_handler(void)__attribute__((interrupt("user")));
 void trap_0x2_handler(void){
 
 	int msg[4]={0,0,0,0};
-	ECALL_RECV(1, msg);
+	ECALL_RECV(4, msg);
 	printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
 }
@@ -55,7 +55,7 @@ void trap_0x3_handler(void){
 	printf("\e[2A"); 	// curs up 2 lines
 	printf("\e[2L"); 	// insert 2 lines
 
-	printf("\rZ1 > timer expired : %lu", (unsigned long)(T*1000/RTC_FREQ));
+	printf("\rZ4 > timer expired : %lu", (unsigned long)(T*1000/RTC_FREQ));
 
 	printf("\e8");   	// restore curs pos
 
@@ -65,7 +65,7 @@ void trap_0x4_handler(void)__attribute__((interrupt("user")));
 void trap_0x4_handler(void){
 
 	int msg[4]={0,0,0,0};
-	ECALL_RECV(1, msg);
+	ECALL_RECV(4, msg);
 	printf("Load address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
 }
@@ -74,7 +74,7 @@ void trap_0x5_handler(void)__attribute__((interrupt("user")));
 void trap_0x5_handler(void){
 
 	int msg[4]={0,0,0,0};
-	ECALL_RECV(1, msg);
+	ECALL_RECV(4, msg);
 	printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
 }
@@ -83,7 +83,7 @@ void trap_0x6_handler(void)__attribute__((interrupt("user")));
 void trap_0x6_handler(void){
 
 	int msg[4]={0,0,0,0};
-	ECALL_RECV(1, msg);
+	ECALL_RECV(4, msg);
 	printf("Store/AMO address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
 }
@@ -92,7 +92,7 @@ void trap_0x7_handler(void)__attribute__((interrupt("user")));
 void trap_0x7_handler(void){
 
 	int msg[4]={0,0,0,0};
-	ECALL_RECV(1, msg);
+	ECALL_RECV(4, msg);
 	printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
 }
@@ -357,7 +357,7 @@ void print_pmp_ranges(void){
 					p=strlen(history);
 					strcpy(cmd_line, history);
 					write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-					write(1, "\rZ1 > ", 6);
+					write(1, "\rZ4 > ", 6);
 					write(1, &cmd_line[0], strlen(cmd_line));
 				}
 
@@ -389,7 +389,7 @@ void print_pmp_ranges(void){
 		// poll & print incoming messages
 		int msg[4]={0,0,0,0};
 
-		ECALL_RECV(4, msg);
+		ECALL_RECV(1, msg);
 
 		if (msg[0]){
 
@@ -397,11 +397,11 @@ void print_pmp_ranges(void){
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
-			case 'p' : write(1, "\rZ4 > pong\r\n", 12); break;
-			default  : write(1, "\rZ4 > ???\r\n", 11); break;
+			case 'p' : write(1, "\rZ1 > pong\r\n", 12); break;
+			default  : write(1, "\rZ1 > ???\r\n", 11); break;
 			}
 
-			write(1, "\nZ1 > ", 6);
+			write(1, "\nZ4 > ", 6);
 			write(1, &cmd_line[0], strlen(cmd_line));
 			write(1, "\e8", 2);   // restore curs pos
 			write(1, "\e[2B", 4); // curs down down
@@ -422,7 +422,7 @@ void print_pmp_ranges(void){
 			default  : write(1, "\rZ3 > ???\r\n", 11); break;
 			}
 
-			write(1, "\nZ1 > ", 6);
+			write(1, "\nZ4 > ", 6);
 			write(1, &cmd_line[0], strlen(cmd_line));
 			write(1, "\e8", 2);   // restore curs pos
 			write(1, "\e[2B", 4); // curs down down
@@ -436,12 +436,12 @@ void print_pmp_ranges(void){
 
 			switch (msg[0]) {
 			case 201 : write(1, "\rZ2 > PLIC  IRQ 11 [BTN0]\r\n", 27); break;
-			case 211 : write(1, "\rZ2 > CLINT IRQ 21 [BTN1]\r\n", 27); break;
-			case 221 : write(1, "\rZ2 > CLINT IRQ 22 [BTN2]\r\n", 27); break;
+			case 211 : write(1, "\rZ2 > CLINT IRQ 17 [BTN1]\r\n", 27); break;
+			case 221 : write(1, "\rZ2 > CLINT IRQ 18 [BTN2]\r\n", 27); break;
 			default  : write(1, "\rZ2 > ???\r\n", 11); break;
 			}
 
-			write(1, "\nZ1 > ", 6);
+			write(1, "\nZ4 > ", 6);
 			write(1, &cmd_line[0], strlen(cmd_line));
 			write(1, "\e8", 2);   // restore curs pos
 			write(1, "\e[2B", 4); // curs down down
@@ -498,7 +498,7 @@ int main (void) {
 
 	while(1){
 
-		write(1, "\n\rZ1 > ", 7);
+		write(1, "\n\rZ4 > ", 7);
 
 		readline(cmd_line);
 
