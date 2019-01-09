@@ -4,15 +4,15 @@
 #include <plic_driver.h>
 #include <libhexfive.h>
 
-#define BTN0  4
-#define BTN1  5
-#define BTN2  6
+#define BTN0  15
+#define BTN1  30
+#define BTN2  31
 
-#define LOCAL_INT_BTN_0  4
-#define LOCAL_INT_BTN_1  5
-#define LOCAL_INT_BTN_2  6
+#define LOCAL_INT_BTN_0  0
+#define LOCAL_INT_BTN_1  1
+#define LOCAL_INT_BTN_2  2
 
-#define GPIO_INT_BASE 7
+#define GPIO_INT_BASE 22
 #define INT_DEVICE_BUTTON_0 (GPIO_INT_BASE + BTN0)
 #define INT_DEVICE_BUTTON_1 (GPIO_INT_BASE + BTN1)
 #define INT_DEVICE_BUTTON_2 (GPIO_INT_BASE + BTN2)
@@ -61,6 +61,8 @@ void button_1_handler(void){ // local interrupt
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
 
+	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
+
 }
 
 void button_2_handler(void)__attribute__((interrupt("user")));
@@ -74,6 +76,8 @@ void button_2_handler(void){ // local interrupt
 	while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
+
+	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
 
 }
 
@@ -148,6 +152,9 @@ int main (void){
   uint16_t r=0x3F;
   uint16_t g=0;
   uint16_t b=0;
+
+  GPIO_REG(GPIO_IOF_EN) |= IOF1_PWM1_MASK;
+  GPIO_REG(GPIO_IOF_SEL) |= IOF1_PWM1_MASK;
 
   PWM_REG(PWM_CFG)   = 0;
   PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS) | (PWM_CFG_ZEROCMP) | (PWM_CFG_DEGLITCH);

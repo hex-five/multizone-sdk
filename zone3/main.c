@@ -12,8 +12,8 @@
 #define SPI_TDO  9  // out
 #define SPI_SYN  8  // out - not used
 
-#define LED_RED   0
-#define LED_GREEN 1
+#define LED_RED   1
+#define LED_GREEN 2
 
 uint8_t CRC8(uint8_t bytes[]){
 
