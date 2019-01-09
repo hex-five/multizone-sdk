@@ -32,7 +32,7 @@ plic_instance_t g_plic;
 void button_0_handler(void)__attribute__((interrupt("user")));
 void button_0_handler(void){ // global interrupt
 
-	ECALL_SEND(1, (int[4]){201,0,0,0});
+	ECALL_SEND(4, (int[4]){201,0,0,0});
 
 	plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
 
@@ -52,7 +52,7 @@ void button_0_handler(void){ // global interrupt
 void button_1_handler(void)__attribute__((interrupt("user")));
 void button_1_handler(void){ // local interrupt
 
-	ECALL_SEND(1, (int[4]){211,0,0,0} );
+	ECALL_SEND(4, (int[4]){211,0,0,0} );
 
 	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -68,7 +68,7 @@ void button_1_handler(void){ // local interrupt
 void button_2_handler(void)__attribute__((interrupt("user")));
 void button_2_handler(void){ // local interrupt
 
-	ECALL_SEND(1, (int[4]){221,0,0,0});
+	ECALL_SEND(4, (int[4]){221,0,0,0});
 
 	LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
 

@@ -81,7 +81,7 @@ int main (void){
 
 	while(1){
 
-		int msg[4]={0,0,0,0}; ECALL_RECV(1, msg);
+		int msg[4]={0,0,0,0}; ECALL_RECV(4, msg);
 
 		if (msg[0]>1 && usb_state==0x12670000 && cmd_timer==0){
 
@@ -125,9 +125,9 @@ int main (void){
 	    // update USB state & trigger event for Zone1
 	    if (rx_data != usb_state){
 	    	if (rx_data==0x12670000)
-	    		ECALL_SEND(1, ((int[]){1,0,0,0}));
+	    		ECALL_SEND(4, ((int[]){1,0,0,0}));
 	    	else if (rx_data==0x00000000){
-	    		ECALL_SEND(1, ((int[]){2,0,0,0}));
+	    		ECALL_SEND(4, ((int[]){2,0,0,0}));
 	    		owi_task_stop_request();
 	    	}
 	    	usb_state=rx_data;
