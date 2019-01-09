@@ -13,6 +13,7 @@ INCLUDES += -I$(PLATFORM_DIR)
 LDFLAGS += -T $(LINKER_SCRIPT)
 LDFLAGS += --specs=nano.specs
 LDFLAGS += -nostartfiles
+LDFLAGS += -Xlinker --gc-sections
 
 ASM_OBJS := $(ASM_SRCS:.S=.o)
 C_OBJS := $(C_SRCS:.c=.o)
@@ -23,6 +24,7 @@ LINK_DEPS += $(LINKER_SCRIPT)
 CLEAN_OBJS += $(TARGET) $(LINK_OBJS)
 
 CFLAGS += -g
+CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -march=$(RISCV_ARCH)
 CFLAGS += -mabi=$(RISCV_ABI)
 CFLAGS += -mcmodel=medany

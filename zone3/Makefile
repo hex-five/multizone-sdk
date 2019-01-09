@@ -2,9 +2,6 @@
 
 TARGET = zone3.elf
 
-CFLAGS += -O2 -ffunction-sections -fdata-sections
-LDFLAGS += -Xlinker --gc-sections
-
 BSP_BASE := ../bsp
 PLATFORM_DIR := $(BSP_BASE)/$(BOARD)
 NEWLIB_DIR := $(PLATFORM_DIR)/newlib
