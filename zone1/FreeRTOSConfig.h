@@ -44,12 +44,12 @@ your application. */
 #define configUSE_TICKLESS_IDLE                 0
 #define configCPU_CLOCK_HZ                      CPU_FREQ
 #define configRTC_CLOCK_HZ						RTC_FREQ
-#define configTICK_RATE_HZ                      50 // 20 ms period
+#define configTICK_RATE_HZ                      500 // 20 ms period
 #define configMAX_PRIORITIES                    3
 #define configMINIMAL_STACK_SIZE                256
 #define configMAX_TASK_NAME_LEN                 16
 #define configUSE_16_BIT_TICKS                  0
-#define configIDLE_SHOULD_YIELD                 0
+#define configIDLE_SHOULD_YIELD                 1
 #define configUSE_TASK_NOTIFICATIONS            1
 #define configUSE_MUTEXES                       1
 #define configUSE_RECURSIVE_MUTEXES             0

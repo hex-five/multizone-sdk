@@ -94,9 +94,9 @@ int main(void)
     /* Create the task. */
 	xTaskCreate(ledFadeTask, "ledFadeTask", configMINIMAL_STACK_SIZE, NULL, 0x02,
             &ledfade_task);
-    xTaskCreate(pingTask, "pingTask", configMINIMAL_STACK_SIZE, NULL, 0x00, /* must have idle priority */
-            NULL);
-    xTaskCreate(cliEchoTask, "cliEchoTask", configMINIMAL_STACK_SIZE, NULL, 0x02,
+    // xTaskCreate(pingTask, "pingTask", configMINIMAL_STACK_SIZE, NULL, 0x00, /* must have idle priority */
+    //         NULL);
+    xTaskCreate(cliEchoTask, "cliEchoTask", configMINIMAL_STACK_SIZE, NULL, 0x00,
             NULL);
 
 
@@ -164,8 +164,8 @@ static void cliEchoTask( void *pvParameters){
                 ECALL_SEND(2, (void*)msg_out);
         }
 
-        portYIELD();
-            
+        //portYIELD();
+        ECALL_YIELD();  
     }
 
 }
@@ -191,7 +191,7 @@ static void ledFadeTask( void *pvParameters )
 
         // const uint64_t T1 = ECALL_CSRR_MTIME() + 400; //12*RTC_FREQ/1000;
         // while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
-        vTaskDelay(20/portTICK_PERIOD_MS);
+        vTaskDelay(6/portTICK_PERIOD_MS);
 
         xEventGroupWaitBits(ledfade_event, 1, pdFALSE, pdFALSE, portMAX_DELAY );
 
