@@ -132,22 +132,40 @@ static void pingTask( void *pvParameters )
 	}
 }
 
+#define ACK    0
+#define IND    1
+#define CTL    2
+#define DAT    3
+
+#define CTL_ACK    (1 << 0)
+#define CTL_DAT    (1 << 1)
+
 static void cliEchoTask( void *pvParameters){
 
-    char c = 0;
+    static int ack_pending = 0;
+    static int ack_index = 0;
+    static int resend = 0;
+    static int msg_out[4] = {-1,0,0,0};
 
-    mz_channel_init(&cli, 2);
+    int msg[4] = {0,0,0,0};
 
-    mz_channel_write(&cli, "Zone 1 echo terminal\r\n\r\n", 23);
 
     while(1){
-        mz_channel_read(&cli, &c, 1);
-        mz_channel_write(&cli, &c, 1);
-        if(c == '\r'){
-            mz_channel_write(&cli, &c, 1);
-            c = '\n';
-            mz_channel_write(&cli, &c, 1);
+
+        ECALL_RECV(2, (void*)msg);
+
+        if((msg[CTL] & CTL_DAT) != 0){
+
+                msg_out[DAT] = msg[DAT];
+                msg_out[IND] =  msg[IND];
+                msg_out[ACK] = msg[IND];
+                msg_out[CTL] |= CTL_ACK | CTL_DAT;
+
+                ECALL_SEND(2, (void*)msg_out);
         }
+
+        portYIELD();
+            
     }
 
 }
