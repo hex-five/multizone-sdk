@@ -44,7 +44,7 @@ your application. */
 #define configUSE_TICKLESS_IDLE                 0
 #define configCPU_CLOCK_HZ                      CPU_FREQ
 #define configRTC_CLOCK_HZ						RTC_FREQ
-#define configTICK_RATE_HZ                      500 // 20 ms period
+#define configTICK_RATE_HZ                      50 // 20 ms period
 #define configMAX_PRIORITIES                    3
 #define configMINIMAL_STACK_SIZE                256
 #define configMAX_TASK_NAME_LEN                 16
@@ -104,22 +104,22 @@ your application. */
 //#define configINCLUDE_APPLICATION_DEFINED_PRIVILEGED_FUNCTIONS 0
 
 /* Optional functions - most linkers will remove unused functions anyway. */
-#define INCLUDE_vTaskPrioritySet                1
-#define INCLUDE_uxTaskPriorityGet               1
-#define INCLUDE_vTaskDelete                     1
+#define INCLUDE_vTaskPrioritySet                0
+#define INCLUDE_uxTaskPriorityGet               0
+#define INCLUDE_vTaskDelete                     0
 #define INCLUDE_vTaskSuspend                    1
 #define INCLUDE_xResumeFromISR                  1
-#define INCLUDE_vTaskDelayUntil                 1
+#define INCLUDE_vTaskDelayUntil                 0
 #define INCLUDE_vTaskDelay                      1
-#define INCLUDE_xTaskGetSchedulerState          1
-#define INCLUDE_xTaskGetCurrentTaskHandle       1
-#define INCLUDE_uxTaskGetStackHighWaterMark     1
-#define INCLUDE_xTaskGetIdleTaskHandle          1
+#define INCLUDE_xTaskGetSchedulerState          0
+#define INCLUDE_xTaskGetCurrentTaskHandle       0
+#define INCLUDE_uxTaskGetStackHighWaterMark     0
+#define INCLUDE_xTaskGetIdleTaskHandle          0
 #define INCLUDE_eTaskGetState                   0
 #define INCLUDE_xEventGroupSetBitFromISR        1
 #define INCLUDE_xTimerPendFunctionCall          1
 #define INCLUDE_xTaskAbortDelay                 0
-#define INCLUDE_xTaskGetHandle                  1
+#define INCLUDE_xTaskGetHandle                  0
 #define INCLUDE_xTaskResumeFromISR              1
 
 /* A header file that defines trace macro can be included here. */
