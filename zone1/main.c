@@ -25,7 +25,7 @@ here. */
 #include <libhexfive.h>
 #include <mzmsg.h>
 #include <cli.h>
-
+#include <robot.h>
 
 /*-----------------------------------------------------------*/
 
@@ -33,8 +33,10 @@ extern void _interrupt_entry();
 static void prvSetupHardware( void );
 static void ledFadeTask( void *pvParameters );
 static void pingTask( void *pvParameters );
+static void rawEchoTask(void *pvParameters);
 
 TaskHandle_t ledfade_task;
+TaskHandle_t robot_task;
 TimerHandle_t ledfade_timer;
 EventGroupHandle_t ledfade_event;
 
@@ -79,6 +81,13 @@ plic_instance_t g_plic;
 int main(void)
 {
 
+    // while(1){
+    //     int msg[4]={0,0,0,0};
+    //     ECALL_RECV(4, msg);
+    //     if (msg[0]) ECALL_SEND(4, msg);
+    //     ECALL_YIELD();
+    // }
+
 	/* Setup platform-specific hardware. */
     prvSetupHardware();
 
@@ -88,14 +97,20 @@ int main(void)
     ledfade_event = xEventGroupCreate();
     xEventGroupSetBits( ledfade_event, 1);
 
+    robot_queue = xQueueCreate(5, sizeof(char));
+
     /* Create the task. */
 	xTaskCreate(ledFadeTask, "ledFadeTask", configMINIMAL_STACK_SIZE, NULL, 0x02,
-            &ledfade_task);
+        &ledfade_task);
     xTaskCreate(pingTask, "pingTask", configMINIMAL_STACK_SIZE, NULL, 0x01,
         NULL);
     xTaskCreate(cliTask, "cliTask", configMINIMAL_STACK_SIZE, NULL, 0x01,  /* must have lowest priority */
-            NULL);
+        NULL);
+    xTaskCreate(robotTask, "robotTask", configMINIMAL_STACK_SIZE, NULL, 0x1,
+    	&robot_task);
 
+    // xTaskCreate(rawEchoTask, "rawEchoTask", configMINIMAL_STACK_SIZE, NULL, 0x1,
+    // 	&robot_task);
 
     /* Start the tasks and timer running. */
     vTaskStartScheduler();
@@ -108,6 +123,7 @@ int main(void)
     for( ;; );
 }
 /*-----------------------------------------------------------*/
+
 
 void ledfade_callback( TimerHandle_t xTimer ){
     xEventGroupSetBits(ledfade_event, 1);
@@ -128,43 +144,43 @@ static void pingTask( void *pvParameters )
 }
 
 
-// static void rawEchoTask( void *pvParameters){
+static void rawEchoTask( void *pvParameters){
 
-// #define ACK    0
-// #define IND    1
-// #define CTL    2
-// #define DAT    3
+#define ACK    0
+#define IND    1
+#define CTL    2
+#define DAT    3
 
-// #define CTL_ACK    (1 << 0)
-// #define CTL_DAT    (1 << 1)
+#define CTL_ACK    (1 << 0)
+#define CTL_DAT    (1 << 1)
 
-//     static int ack_pending = 0;
-//     static int ack_index = 0;
-//     static int resend = 0;
-//     static int msg_out[4] = {-1,0,0,0};
+    static int ack_pending = 0;
+    static int ack_index = 0;
+    static int resend = 0;
+    static int msg_out[4] = {-1,0,0,0};
 
-//     int msg[4] = {0,0,0,0};
+    int msg[4] = {0,0,0,0};
 
 
-//     while(1){
+    while(1){
 
-//         ECALL_RECV(2, (void*)msg);
+        ECALL_RECV(2, (void*)msg);
 
-//         if((msg[CTL] & CTL_DAT) != 0){
+        if((msg[CTL] & CTL_DAT) != 0){
 
-//                 msg_out[DAT] = msg[DAT];
-//                 msg_out[IND] =  msg[IND];
-//                 msg_out[ACK] = msg[IND];
-//                 msg_out[CTL] |= CTL_ACK | CTL_DAT;
+                msg_out[DAT] = msg[DAT];
+                msg_out[IND] =  msg[IND];
+                msg_out[ACK] = msg[IND];
+                msg_out[CTL] |= CTL_ACK | CTL_DAT;
 
-//                 ECALL_SEND(2, (void*)msg_out);
-//         }
+                ECALL_SEND(2, (void*)msg_out);
+        }
 
-//         //taskYIELD();
-//         ECALL_YIELD();  
-//     }
+        //taskYIELD();
+        ECALL_YIELD();  
+    }
 
-// }
+}
 
 
 

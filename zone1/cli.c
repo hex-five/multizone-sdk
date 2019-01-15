@@ -1,6 +1,7 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
 #include <cli.h>
+#include <robot.h>
 
 #define PRINT_BUFFER_SIZE   64
 static char print_buffer[PRINT_BUFFER_SIZE] = "";
@@ -189,10 +190,10 @@ void cliTask( void *pvParameters){
     char cmd_line[CMD_LINE_SIZE+1]="";
 
     while(1){
+
 	    mzmsg_write("\n\rZ1 > ", 7);
         readline(cmd_line);
         mzmsg_write("\n", 1);
-
 
 		char * tk1 = strtok (cmd_line, " ");
 		char * tk2 = strtok (NULL, " ");
@@ -200,6 +201,14 @@ void cliTask( void *pvParameters){
 
 		if (tk1 != NULL && strcmp(tk1, "pmp")==0){
             print_pmp_ranges();
-        }
+        } else if(tk1 != NULL && strcmp(tk1, "robot")==0){
+			char c = (char) *tk2;
+			// mzmsg_write("\n\rZ1> robot command ", 20);
+			// mzmsg_write(&c, 1);
+			// mzmsg_write("\n",1);
+			xQueueSend( robot_queue, &c, 0 );
+		}
+
+		ECALL_YIELD();
     }
 }
