@@ -2,6 +2,7 @@
 
 #include <cli.h>
 #include <robot.h>
+#include <mzmsg.h>
 
 #define PRINT_BUFFER_SIZE   128
 static char print_buffer[PRINT_BUFFER_SIZE] = "";
@@ -19,6 +20,8 @@ static const char welcome_msg[] =
 	" not have these restrictions.\n"
 	"======================================================================\n"
 ;
+
+static mzmsg_t zone2;
 
 void restart(){
 	ECALL_CSRC_MIE();
@@ -61,12 +64,12 @@ unsigned long handle_syncexception(unsigned long mcause, unsigned long mtval, un
             break;
     }
 
-	mzmsg_write(print_buffer, strlen(print_buffer));
+	mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 	
 	if(rst){
 		sprintf(print_buffer, "\nPress any key to restart");
-		mzmsg_write(print_buffer, strlen(print_buffer));
-		char c='\0'; while(mzmsg_read(&c, 1) == 0);
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
+		char c='\0'; while(mzmsg_read(&zone2, &c, 1) == 0);
 	}
 
 	mepc += 4;
@@ -91,33 +94,33 @@ void print_cpu_info(void) {
 		}
 
 	sprintf(print_buffer, "Machine ISA   : 0x%08x RV%d %s \n", (int)misa, xlen, misa_str);
-	mzmsg_write(print_buffer, strlen(print_buffer));
+	mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 
 	// mvendorid
 	const uint64_t mvendorid = ECALL_CSRR_MVENDID();
 	char *mvendorid_str = (mvendorid==0x10e31913 ? "SiFive, Inc.\0" : "Unknown\0");
 	sprintf(print_buffer, "Vendor        : 0x%08x %s \n", (int)mvendorid, mvendorid_str);
-	mzmsg_write(print_buffer, strlen(print_buffer));
+	mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 
 	// marchid
 	const uint64_t marchid = ECALL_CSRR_MARCHID();
 	sprintf(print_buffer, "Architecture  : 0x%08x \n", (int)marchid );
-	mzmsg_write(print_buffer, strlen(print_buffer));
+	mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 
 	// mimpid
 	const uint64_t mimpid = ECALL_CSRR_MIMPID();
 	sprintf(print_buffer, "Implementation: 0x%08x \n", (int)mimpid );
-	mzmsg_write(print_buffer, strlen(print_buffer));
+	mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 
 	// mhartid
 	const uint64_t mhartid = ECALL_CSRR_MHARTID();
 	sprintf(print_buffer, "Hart ID       : 0x%08x \n", (int)mhartid );
-	mzmsg_write(print_buffer, strlen(print_buffer));
+	mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 
 	// CPU Clock
 	const int cpu_clk = round(CPU_FREQ/1E+6);
 	sprintf(print_buffer, "CPU clock     : %d MHz \n", cpu_clk );
-	mzmsg_write(print_buffer, strlen(print_buffer));
+	mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 
 } // print_cpu_info()
 
@@ -178,18 +181,18 @@ void print_stats(void){
 		char str[16]; sprintf(str, "%d", max_cycle); const int max_col = strlen(str);
 		for (int i=0; i<COUNT; i++){
 			sprintf(print_buffer, "%*d cycles in %*d us \n", max_col, cycles[i], max_col-2, (int)(cycles[i]*1000/MHZ));
-			mzmsg_write(print_buffer, strlen(print_buffer));
+			mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		}
 
 		qsort(cycles, COUNT, sizeof(int), cmpfunc);
 
 		sprintf(print_buffer, "------------------------------------------------\n");
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		int min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
 		sprintf(print_buffer, "cycles  min/med/max = %d/%d/%d \n", min, med, max);
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		sprintf(print_buffer, "time    min/med/max = %d/%d/%d us \n", (int)min*1000/MHZ, (int)med*1000/MHZ, (int)max*1000/MHZ);
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 	}
 
 	if (ctxsw_instr[0]>0 && cycles[0]>0){
@@ -198,28 +201,28 @@ void print_stats(void){
 		qsort(ctxsw_instr, COUNT, sizeof(int), cmpfunc);
 
 		sprintf(print_buffer, "\n");
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		int min = ctxsw_instr[0], med = ctxsw_instr[COUNT/2], max = ctxsw_instr[COUNT-1];
 		sprintf(print_buffer, "ctx sw instr  min/med/max = %d/%d/%d \n", min, med, max);
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		min = ctxsw_cycle[0], med = ctxsw_cycle[COUNT/2], max = ctxsw_cycle[COUNT-1];
 		sprintf(print_buffer, "ctx sw cycles min/med/max = %d/%d/%d \n", min, med, max);
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		sprintf(print_buffer, "ctx sw time   min/med/max = %d/%d/%d us \n", (int)min*1000/MHZ, (int)med*1000/MHZ, (int)max*1000/MHZ);
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 	} else if (ctxsw_instr[0]>0 && cycles[0]==0){
 
 		sprintf(print_buffer, "ctx sw instr  = %d \n", ctxsw_instr[0]);
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		sprintf(print_buffer, "ctx sw cycles = %d \n", ctxsw_cycle[0]);
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		sprintf(print_buffer, "ctx sw time   = %d us \n", (int)ctxsw_cycle[0]*1000/MHZ);
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 	}
 
 	if (cycles[0]==0 && ctxsw_instr[0]==0){
 		sprintf(print_buffer, "stats : n/a \n");
-		mzmsg_write(print_buffer, strlen(print_buffer));
+		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 	}
 
 }
@@ -294,7 +297,7 @@ void print_pmp_ranges(void){
 #else
 		sprintf(print_buffer, "0x%08" PRIX64 " 0x%08" PRIX64 " %s \n", start, end, rwx);
 #endif
-        mzmsg_write(print_buffer, strlen(print_buffer));
+        mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 	}
 
 } // print_pmpcfg()
@@ -313,7 +316,7 @@ static char history[CMD_LINE_SIZE+1]="";
 
 	while(c!='\r'){
 
-		if ( mzmsg_read(&c, 1) >0 ) {
+		if ( mzmsg_read(&zone2, &c, 1) >0 ) {
 
 			if (c=='\e'){
 				esc=1;
@@ -326,24 +329,24 @@ static char history[CMD_LINE_SIZE+1]="";
 
 			} else if (esc==3 && c=='~'){ // del key
 				for (int i=p; i<strlen(cmd_line); i++) cmd_line[i]=cmd_line[i+1];
-				// mzmsg_write( "\e7", 2); // save curs pos
-				// mzmsg_write( "\e[K", 3); // clear line from curs pos
-				// mzmsg_write( &cmd_line[p], strlen(cmd_line)-p);
-				// mzmsg_write( "\e8", 2); // restore curs pos
+				// mzmsg_write(&zone2,  "\e7", 2); // save curs pos
+				// mzmsg_write(&zone2,  "\e[K", 3); // clear line from curs pos
+				// mzmsg_write(&zone2,  &cmd_line[p], strlen(cmd_line)-p);
+				// mzmsg_write(&zone2,  "\e8", 2); // restore curs pos
 				esc=0;
 
 			} else if (esc==2 && c=='C'){ // right arrow
 				esc=0;
 				if (p < strlen(cmd_line)){
 					p++;
-					mzmsg_write("\e[C", 3);
+					mzmsg_write(&zone2, "\e[C", 3);
 				}
 
 			} else if (esc==2 && c=='D'){ // left arrow
 				esc=0;
 				if (p>0){
 					p--;
-					mzmsg_write("\e[D", 3);
+					mzmsg_write(&zone2, "\e[D", 3);
 				}
 
 			} else if (esc==2 && c=='A'){ // up arrow
@@ -351,9 +354,9 @@ static char history[CMD_LINE_SIZE+1]="";
 				if (strlen(history)>0){
 					p=strlen(history);
 					strcpy(cmd_line, history);
-					mzmsg_write("\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-					mzmsg_write("\rZ1 > ", 6);
-					mzmsg_write(&cmd_line[0], strlen(cmd_line));
+					mzmsg_write(&zone2, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
+					mzmsg_write(&zone2, "\rZ1 > ", 6);
+					mzmsg_write(&zone2, &cmd_line[0], strlen(cmd_line));
 				}
 
 			} else if (esc==2 && c=='B'){ // down arrow
@@ -364,25 +367,25 @@ static char history[CMD_LINE_SIZE+1]="";
 					p--;
 					for (int i=p; i<strlen(cmd_line); i++) cmd_line[i]=cmd_line[i+1];
 
-					// mzmsg_write("\e[D", 3);
-					// mzmsg_write("\e7", 2);
-					// mzmsg_write("\e[K", 3);
-					// mzmsg_write(&cmd_line[p], strlen(cmd_line)-p);
-					// mzmsg_write("\e8", 2);
+					// mzmsg_write(&zone2, "\e[D", 3);
+					// mzmsg_write(&zone2, "\e7", 2);
+					// mzmsg_write(&zone2, "\e[K", 3);
+					// mzmsg_write(&zone2, &cmd_line[p], strlen(cmd_line)-p);
+					// mzmsg_write(&zone2, "\e8", 2);
 
-					mzmsg_write("\b \b", 3);
+					mzmsg_write(&zone2, "\b \b", 3);
 				}
 
 			} else if (c>=' ' && c<='~' && p < CMD_LINE_SIZE && esc==0){
 				for (int i = CMD_LINE_SIZE-1; i > p; i--) cmd_line[i]=cmd_line[i-1]; // make room for 1 ch
 				cmd_line[p]=c;
-                // mzmsg_write("\e7", 2); // save curs pos
-				// mzmsg_write("\e[K", 3); // clear line from curs pos
-				// mzmsg_write(&cmd_line[p], strlen(cmd_line)-p); p++;
-				// mzmsg_write("\e8", 2); // restore curs pos
-				// mzmsg_write("\e[C", 3); // move curs right 1 pos
+                // mzmsg_write(&zone2, "\e7", 2); // save curs pos
+				// mzmsg_write(&zone2, "\e[K", 3); // clear line from curs pos
+				// mzmsg_write(&zone2, &cmd_line[p], strlen(cmd_line)-p); p++;
+				// mzmsg_write(&zone2, "\e8", 2); // restore curs pos
+				// mzmsg_write(&zone2, "\e[C", 3); // move curs right 1 pos
                 p++;
-                mzmsg_write(&c, 1);
+                mzmsg_write(&zone2, &c, 1);
 			} else{
  //               sprintf(print_buffer, "Not recognized char 0x%x\n", c);
 				esc=0;
@@ -407,9 +410,10 @@ static char history[CMD_LINE_SIZE+1]="";
 void cliTask( void *pvParameters){
 
     char c = 0;
+	mzmsg_init(&zone2, 2);
 
-	mzmsg_write("\nFreeRTOS CLI\n",16);
-	// mzmsg_write(welcome_msg, sizeof(welcome_msg));
+	mzmsg_write(&zone2, "\nFreeRTOS CLI\n",16);
+	// mzmsg_write(&zone2, welcome_msg, sizeof(welcome_msg));
 	// print_cpu_info();
 
     char cmd_line[CMD_LINE_SIZE+1]="";
@@ -417,9 +421,9 @@ void cliTask( void *pvParameters){
 
     while(1){
 
-	    mzmsg_write("\nZ1 > ", 7);
+	    mzmsg_write(&zone2, "\nZ1 > ", 7);
         readline(cmd_line);
-        mzmsg_write("\n", 2);
+        mzmsg_write(&zone2, "\n", 2);
 
 		char * tk1 = strtok (cmd_line, " ");
 		char * tk2 = strtok (NULL, " ");
@@ -436,10 +440,10 @@ void cliTask( void *pvParameters){
 				const uint64_t addr = strtoull(tk2, NULL, 16);
 				asm ("lbu %0, (%1)" : "+r"(data) : "r"(addr));
 				sprintf(print_buffer, "0x%08x : 0x%02x \n", (unsigned int)addr, data);
-				mzmsg_write(print_buffer, strlen(print_buffer));
+				mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 			} else {
 				sprintf(print_buffer, "Syntax: load address \n");
-				mzmsg_write(print_buffer, strlen(print_buffer));
+				mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 			}
 		} else if (tk1 != NULL && strcmp(tk1, "store")==0){
 			if (tk2 != NULL && tk3 != NULL){
@@ -454,10 +458,10 @@ void cliTask( void *pvParameters){
 					asm ( "sw %0, (%1)" : : "r"(data), "r"(addr));
 
 				sprintf(print_buffer, "0x%08x : 0x%02x \n", (unsigned int)addr, (unsigned int)data);
-				mzmsg_write(print_buffer, strlen(print_buffer));
+				mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 			} else { 
 				sprintf(print_buffer, "Syntax: store address data \n");
-				mzmsg_write(print_buffer, strlen(print_buffer));
+				mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 			} 
 
 		} else if (tk1 != NULL && strcmp(tk1, "send")==0){
@@ -466,16 +470,16 @@ void cliTask( void *pvParameters){
 				ECALL_SEND(tk2[0]-'0', msg);
 			} else {
 				sprintf(print_buffer, "Syntax: send {1|2|3|4} message \n");
-				mzmsg_write(print_buffer, strlen(print_buffer));
+				mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 			}
 		} else if (tk1 != NULL && strcmp(tk1, "recv")==0){
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
 				ECALL_RECV(tk2[0]-'0', msg);
 				sprintf(print_buffer, "msg : 0x%08x 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2], msg[3]);
-				mzmsg_write(print_buffer, strlen(print_buffer));
+				mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 			} else {
 				sprintf(print_buffer, "Syntax: recv {1|2|3|4} \n");
-				mzmsg_write(print_buffer, strlen(print_buffer));
+				mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 			}
 		} else if (tk1 != NULL && strcmp(tk1, "yield")==0){
 			uint64_t C1 = ECALL_CSRR_MCYCLE();
@@ -483,7 +487,7 @@ void cliTask( void *pvParameters){
 			uint64_t C2 = ECALL_CSRR_MCYCLE();
 			const int T = ((C2-C1)*1000000)/CPU_FREQ;
 			sprintf(print_buffer, (T>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), T);
-			mzmsg_write(print_buffer, strlen(print_buffer));
+			mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		} else if (tk1 != NULL && strcmp(tk1, "stats")==0){
 			print_stats();
 		} else if (tk1 != NULL && strcmp(tk1, "restart")==0){
@@ -491,7 +495,7 @@ void cliTask( void *pvParameters){
 		} else {
 			sprintf(print_buffer,
 				"Commands: load store send recv yield pmp robot stats restart\n");
-			mzmsg_write(print_buffer, strlen(print_buffer));
+			mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		}
 
 		ECALL_YIELD();

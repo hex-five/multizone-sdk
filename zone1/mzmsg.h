@@ -1,11 +1,21 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
-#ifndef MZSG_H
-#define MZSG_H
+#ifndef MZMSG_H
+#define MZMSG_H
 
 #include <stddef.h>
 
-int mzmsg_read(char *buf, size_t len);
-int mzmsg_write(char *buf, size_t len);
+typedef struct {
+    int zone;
+    int out[4];
+    int in[4];
+    int ack_pending;
+    int ack_index;
+    int last_index;
+} mzmsg_t;
 
-#endif /* MZSG_H */
+void mzmsg_init(mzmsg_t *mzmsg, int zone);
+int mzmsg_read(mzmsg_t *mzmsg, char *buf, size_t len);
+int mzmsg_write(mzmsg_t *mzmsg, char *buf, size_t len);
+
+#endif /* MZMSG_H */
