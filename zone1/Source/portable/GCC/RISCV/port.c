@@ -260,17 +260,18 @@ extern void xPortStartFirstTask( void );
 	 * TODO: if more exceptions become available in the API they should be 
 	 * added here.
 	 *
-	 * TODO: once identified nanokernel bug is removed, uncomment Exceptions
-	 * installation
 	 */
 
-	// ECALL_TRP_VECT(0x0, _syncexception_entry); // 0x0 Instruction address misaligned
-	// ECALL_TRP_VECT(0x1, _syncexception_entry); // 0x1 Instruction access fault
-	// ECALL_TRP_VECT(0x2, _syncexception_entry); // 0x2 Illegal Instruction
-    // ECALL_TRP_VECT(0x4, _syncexception_entry); // 0x4 Load address misaligned
-    // ECALL_TRP_VECT(0x5, _syncexception_entry); // 0x5 Load access fault
-    // ECALL_TRP_VECT(0x6, _syncexception_entry); // 0x6 Store/AMO address misaligned
-	// ECALL_TRP_VECT(0x7, _syncexception_entry); // 0x7 Store access fault
+	ECALL_TRP_VECT(0x0, _syncexception_entry); // 0x0 Instruction address misaligned
+	ECALL_TRP_VECT(0x1, _syncexception_entry); // 0x1 Instruction access fault
+	ECALL_TRP_VECT(0x2, _syncexception_entry); // 0x2 Illegal Instruction
+	ECALL_TRP_VECT(0x4, _syncexception_entry); // 0x4 Load address misaligned
+	ECALL_TRP_VECT(0x5, _syncexception_entry); // 0x5 Load access fault
+	ECALL_TRP_VECT(0x6, _syncexception_entry); // 0x6 Store/AMO address misaligned
+	ECALL_TRP_VECT(0x7, _syncexception_entry); // 0x7 Store access fault
+
+	/* Make sure all previously registered interrupts are enabled */
+	ECALL_CSRS_MIE();
 
 	vPortSetupTimerInterrupt();
 

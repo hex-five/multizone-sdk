@@ -103,8 +103,7 @@ int mzmsg_write(char *buf, size_t len){
             
             mzmsg_flush();
         } 
-
-        for(int i = 0; i < 9999; i++);
+        
     }
 
     return count;

@@ -14,5 +14,6 @@
 #include <libhexfive.h>
 
 void cliTask( void *pvParameters);
+void cli_exceptions(unsigned long mcause, unsigned long mtval, unsigned long mepc);
 
 #endif /* CLI_H */

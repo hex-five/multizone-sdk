@@ -102,8 +102,8 @@ int main(void)
     /* Create the task. */
 	xTaskCreate(ledFadeTask, "ledFadeTask", configMINIMAL_STACK_SIZE, NULL, 0x02,
         &ledfade_task);
-    xTaskCreate(pingTask, "pingTask", configMINIMAL_STACK_SIZE, NULL, 0x01,
-        NULL);
+    // xTaskCreate(pingTask, "pingTask", configMINIMAL_STACK_SIZE, NULL, 0x01,
+    //     NULL);
     xTaskCreate(cliTask, "cliTask", configMINIMAL_STACK_SIZE, NULL, 0x01,  /* must have lowest priority */
         NULL);
     xTaskCreate(robotTask, "robotTask", configMINIMAL_STACK_SIZE, NULL, 0x1,
@@ -288,7 +288,7 @@ void handle_interrupt(unsigned long mcause){
 }
 
 /*-----------------------------------------------------------*/
-
+__attribute__((weak))
 unsigned long handle_syncexception(unsigned long mcause, unsigned long mtval, unsigned long mepc){
 
     switch(mcause){

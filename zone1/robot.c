@@ -247,7 +247,7 @@ uint32_t spi_rw(uint8_t cmd[]){
 	}
 
 	GPIO_REG(GPIO_OUTPUT_VAL) |=  (0x1 << (rx_data==0x12670000 ? LED_GREEN : LED_RED));
-	volatile int w3=0; while(w3<25000) w3++;
+	vTaskDelay(60/portTICK_PERIOD_MS);
 	GPIO_REG(GPIO_OUTPUT_VAL) ^=  (0x1 << (rx_data==0x12670000 ? LED_GREEN : LED_RED));
 
 	return rx_data;
@@ -266,7 +266,7 @@ void robotTask( void *pvParameters )
 	#define CMD_DUMMY ((uint8_t[]){0xFF, 0xFF, 0xFF})
 	#define CMD_TIME  RTC_FREQ*250/1000 // 250ms
 	#define PING_TIME RTC_FREQ // 1000ms
-	#define SYS_TIME  RTC_REG(RTC_MTIME)
+	#define SYS_TIME  ECALL_CSRR_MTIME() //RTC_REG(RTC_MTIME)
 
 	uint64_t cmd_timer=0, ping_timer=0;
 	uint32_t rx_data = 0, usb_state = 0;
