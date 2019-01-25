@@ -92,85 +92,96 @@ void cb_ping(struct pico_icmp4_stats *s)
 #define SUPRESS_GO_AHEAD "\x03"
 #define LINEMODE "\x22"
 
+struct pico_socket *sock_client = NULL;
+
 void cb_telnet(uint16_t ev, struct pico_socket *s)
 {
-    static uint8_t buf[16];
-    static int bytes = 0;
-    static int sent_mode = 0;
-
-    static int ack_pending = 0;
-    static int ack_index = 0;
-    static int flush = 0;
-    static int msg_out[4] = {-1,0,0,0};
-
     if (ev & PICO_SOCK_EV_CONN) {
         struct pico_ip4 ipaddr;
         uint16_t port;
-        struct pico_socket *sock_a;
         uint32_t yes = 1;
-
-        sock_a = pico_socket_accept(s, &ipaddr.addr, &port);
-        pico_socket_setoption(sock_a, PICO_TCP_NODELAY, &yes);
-        sent_mode = 0;
-    }
-
-    if ((ev & PICO_SOCK_EV_WR) && !sent_mode) {
         const char mode[] = IAC DONT LINEMODE
                             IAC WILL SUPRESS_GO_AHEAD
                             IAC WILL ECHO;
 
-        pico_socket_write(s, mode, sizeof(mode));
-        sent_mode = 1;
-    } else if (sent_mode) {
-        if (ev & PICO_SOCK_EV_WR) {
-            int msg[4] = {0,0,0,0};
+        sock_client = pico_socket_accept(s, &ipaddr.addr, &port);
+        pico_socket_setoption(sock_client, PICO_TCP_NODELAY, &yes);
+        pico_socket_write(sock_client, mode, sizeof(mode));
+    }
 
-            ECALL_RECV(1, (void*)msg);
-
-            if ((msg[CTL] & CTL_DAT) != 0) {
-                if (msg[IND] == (msg_out[ACK] + 1)) {
-                    char c = msg[DAT];
-                    pico_socket_write(s, &c, 1);
-                    msg_out[CTL] |= CTL_ACK;
-                    msg_out[ACK] = msg[IND];
-                    flush = 1;
-                }
-            }
-
-            if ((msg[CTL] & CTL_ACK != 0) & ack_pending) {
-                if (msg[ACK] == ack_index) {
-                    ack_index++;
-                }
-
-                ack_pending = 0;
-            }
-        }
+    if (ev & PICO_SOCK_EV_CLOSE) {
+        sock_client = NULL;
 
         if (ev & PICO_SOCK_EV_RD) {
-            if (!ack_pending) {
-                bytes = pico_socket_read(s, buf, 1);
-                if (bytes > 0) {
-                    if (buf[0] == '\xff') { // swallow IAC sequences
-                        pico_socket_read(s, buf, 16);
-                    } else {
-                        msg_out[CTL] |= CTL_DAT;
-                        msg_out[IND] = ack_index;
-                        msg_out[DAT] = buf[0];
-                        flush = 1;
-                        ack_pending = 1;
-                    }
-                }
-            }
+            pico_socket_shutdown(s, PICO_SHUT_WR);
         }
+    }
+}
 
-        if (flush != 0) {
-            flush = 0;
-            ECALL_SEND(1, (void*)msg_out);
+void telnet_client(struct pico_socket *client)
+{
+    static uint8_t buf[16];
+    static int bytes = 0;
+    static int sent_mode = 0;
+    static int ack_pending = 0;
+    static int ack_index = 0;
+    static int flush = 0;
+    static int resend = 0;
+    static int msg[4] = {0,0,0,0};
+    static int msg_out[4] = {-1,0,0,0};
+    int tmp_msg[4] = {0,0,0,0};
+
+    ECALL_RECV(1, (void*)tmp_msg);
+
+    if (!(tmp_msg[0] == 0 && tmp_msg[1] == 0 && tmp_msg[2] == 0 && tmp_msg[3] == 0)) {
+        msg[0] = tmp_msg[0];
+        msg[1] = tmp_msg[1];
+        msg[2] = tmp_msg[2];
+        msg[3] = tmp_msg[3];
+    }
+
+    if ((msg[CTL] & CTL_DAT) != 0) {
+        if (msg[IND] == (msg_out[ACK] + 1)) {
+            buf[0] = msg[DAT];
+            bytes = 1;
+            if (buf[0] == '\n') {
+                buf[0] = '\r';
+                buf[1] = '\n';
+                bytes = 2;
+            }
+            if (pico_socket_write(sock_client, buf, bytes) > 0) {
+                msg_out[CTL] |= CTL_ACK;
+                msg_out[ACK] = msg[IND];
+                flush = 1;
+            }
         }
     }
 
-    if ((ev & PICO_SOCK_EV_CLOSE) && (ev & PICO_SOCK_EV_RD)) {
-        pico_socket_shutdown(s, PICO_SHUT_WR);
+    if (!ack_pending) {
+        bytes = pico_socket_read(sock_client, buf, 1);
+        if (bytes > 0) {
+            if (buf[0] == '\xff') { // swallow IAC sequences
+                pico_socket_read(sock_client, buf, sizeof(buf));
+            } else {
+                msg_out[CTL] |= CTL_DAT;
+                msg_out[IND] = ack_index;
+                msg_out[DAT] = buf[0];
+                flush = 1;
+                ack_pending = 1;
+            }
+        }
+    }
+
+    if (((msg[CTL] & CTL_ACK) != 0) & ack_pending) {
+        if (msg[ACK] >= ack_index) {
+            ack_index = msg[ACK] + 1;
+            ack_pending = 0;
+        }
+    }
+
+    if (flush != 0) {
+        flush = 0;
+        ECALL_SEND(1, (void*)msg_out);
     }
 }
 
@@ -230,7 +241,15 @@ int main(int argc, char *argv[]){
      * you don't go overboard with the delays). */
     while (finished != 1)
     {
+        int msg[4] = {0,0,0,0};
+
+        if (sock_client) {
+            telnet_client(sock_client);
+        }
         pico_stack_tick();
+
+        ECALL_RECV(4, msg);
+        if (msg[0]) ECALL_SEND(4, msg);
         ECALL_YIELD();
     }
 
