@@ -120,7 +120,7 @@ void cb_telnet(uint16_t ev, struct pico_socket *s)
 
 void telnet_client(struct pico_socket *client)
 {
-    static uint8_t buf[16];
+    static uint8_t buf[32];
     static int bytes = 0;
     static int sent_mode = 0;
     static int ack_pending = 0;
