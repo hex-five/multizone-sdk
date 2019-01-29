@@ -279,7 +279,7 @@ _syncexception_entry:
 
 	/* the value returned by the handler is the new mepc. update it on the stack */
 	//STORE	a0, 33*portWORD_SIZE(sp)
-	STORE	a0, MCAUSE_OFFSET(sp)
+	STORE	a0, MEPC_OFFSET(sp)
 
 	/* restore preempted context */
 	popREGFILE
