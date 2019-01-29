@@ -477,9 +477,17 @@ void cliTask( void *pvParameters){
 			print_stats();
 		} else if (tk1 != NULL && strcmp(tk1, "restart")==0){
 			restart();
+		} else if (tk1 != NULL && strcmp(tk1, "exec")==0){
+			if (tk2 != NULL){
+				const uint64_t addr = strtoull(tk2, NULL, 16);
+			    asm ( "jr (%0)" : : "r"(addr));
+			} else {
+				sprintf(print_buffer, "Syntax: exec address \n");
+				mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
+			}
 		} else {
 			sprintf(print_buffer,
-				"Commands: load store send recv yield pmp robot stats restart\r\n");
+				"Commands: load store exec send recv yield pmp robot stats restart\n");
 			mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		}
 
