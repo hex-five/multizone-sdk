@@ -8,7 +8,7 @@ NEWLIB_DIR := $(PLATFORM_DIR)/newlib
 
 LINKER_SCRIPT := flash.lds
 
-C_SRCS += main.c owi_task.c
+C_SRCS += main.c 
 
 INCLUDES += -I../libhexfive
 LDFLAGS += -L../libhexfive

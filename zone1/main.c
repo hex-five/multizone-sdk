@@ -23,23 +23,20 @@ here. */
 #include "plic_driver.h"
 
 #include <libhexfive.h>
-#include <comm.h>
-
-
+#include <mzmsg.h>
+#include <cli.h>
+#include <robot.h>
 
 /*-----------------------------------------------------------*/
 
 extern void _interrupt_entry();
 static void prvSetupHardware( void );
 static void ledFadeTask( void *pvParameters );
-static void pingTask( void *pvParameters );
-static void cliEchoTask( void *pvParameters);
 
 TaskHandle_t ledfade_task;
+TaskHandle_t robot_task;
 TimerHandle_t ledfade_timer;
 EventGroupHandle_t ledfade_event;
-
-struct mz_channel cli;
 
 void ledfade_callback( TimerHandle_t xTimer );
 
@@ -91,14 +88,15 @@ int main(void)
     ledfade_event = xEventGroupCreate();
     xEventGroupSetBits( ledfade_event, 1);
 
+    robot_queue = xQueueCreate(5, sizeof(char));
+
     /* Create the task. */
 	xTaskCreate(ledFadeTask, "ledFadeTask", configMINIMAL_STACK_SIZE, NULL, 0x02,
-            &ledfade_task);
-    xTaskCreate(pingTask, "pingTask", configMINIMAL_STACK_SIZE, NULL, 0x00, /* must have idle priority */
-            NULL);
-    xTaskCreate(cliEchoTask, "cliEchoTask", configMINIMAL_STACK_SIZE, NULL, 0x02,
-            NULL);
-
+        &ledfade_task);
+    xTaskCreate(cliTask, "cliTask", configMINIMAL_STACK_SIZE, NULL, 0x01,  /* must have lowest priority */
+        NULL);
+    xTaskCreate(robotTask, "robotTask", configMINIMAL_STACK_SIZE, NULL, 0x1,
+    	&robot_task);
 
     /* Start the tasks and timer running. */
     vTaskStartScheduler();
@@ -114,42 +112,6 @@ int main(void)
 
 void ledfade_callback( TimerHandle_t xTimer ){
     xEventGroupSetBits(ledfade_event, 1);
-    //vTaskResume(ledfade_task);
-}
-
-static void pingTask( void *pvParameters )
-{
-	while(1){
-
-		int msg[4]={0,0,0,0};
-		ECALL_RECV(4, msg);
-		if (msg[0]) ECALL_SEND(4, msg);
-
-        mz_channel_update(&cli);
-
-		taskYIELD();
-
-	}
-}
-
-static void cliEchoTask( void *pvParameters){
-
-    char c = 0;
-
-    mz_channel_init(&cli, 2);
-
-    mz_channel_write(&cli, "Zone 1 echo terminal\r\n\r\n", 23);
-
-    while(1){
-        mz_channel_read(&cli, &c, 1);
-        mz_channel_write(&cli, &c, 1);
-        if(c == '\r'){
-            mz_channel_write(&cli, &c, 1);
-            c = '\n';
-            mz_channel_write(&cli, &c, 1);
-        }
-    }
-
 }
 
 static void ledFadeTask( void *pvParameters )
@@ -199,7 +161,6 @@ void button_0_handler(void){ // local interrupt
 	LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
 
     xEventGroupClearBitsFromISR(ledfade_event, 1);
-    //vTaskSuspend(ledfade_task);
     xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
 
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -217,7 +178,6 @@ void button_1_handler(void){ // local interrupt
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
 
     xEventGroupClearBitsFromISR(ledfade_event, 1);
-    //vTaskSuspend(ledfade_task);
     xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
     
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -235,7 +195,6 @@ void button_2_handler(void){ // local interrupt
 	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 
     xEventGroupClearBitsFromISR(ledfade_event, 1);
-    //vTaskSuspend(ledfade_task);
     xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
 
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -256,7 +215,7 @@ void handle_interrupt(unsigned long mcause){
 }
 
 /*-----------------------------------------------------------*/
-
+__attribute__((weak))
 unsigned long handle_syncexception(unsigned long mcause, unsigned long mtval, unsigned long mepc){
 
     switch(mcause){

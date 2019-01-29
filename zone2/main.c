@@ -36,6 +36,7 @@
 #define DAT         3
 #define CTL_ACK     (1 << 0)
 #define CTL_DAT     (1 << 1)
+#define CTL_RST     (1 << 2)
 
 static int finished = 0;
 
@@ -134,10 +135,14 @@ void telnet_client(struct pico_socket *client)
     ECALL_RECV(1, (void*)tmp_msg);
 
     if (!(tmp_msg[0] == 0 && tmp_msg[1] == 0 && tmp_msg[2] == 0 && tmp_msg[3] == 0)) {
-        msg[0] = tmp_msg[0];
-        msg[1] = tmp_msg[1];
-        msg[2] = tmp_msg[2];
-        msg[3] = tmp_msg[3];
+        memcpy(msg, tmp_msg, 4*sizeof(int));
+    }
+
+    if ((msg[CTL] & CTL_RST) != 0) {
+        ack_pending = 0;
+        ack_index = 0;
+        memcpy(msg_out, (int[]){-1,0,0,0}, 4*sizeof(int));
+        ECALL_SEND(1, (int[]){0,0,CTL_RST,0});
     }
 
     if ((msg[CTL] & CTL_DAT) != 0) {
@@ -163,11 +168,13 @@ void telnet_client(struct pico_socket *client)
             if (buf[0] == '\xff') { // swallow IAC sequences
                 pico_socket_read(sock_client, buf, sizeof(buf));
             } else {
-                msg_out[CTL] |= CTL_DAT;
-                msg_out[IND] = ack_index;
-                msg_out[DAT] = buf[0];
-                flush = 1;
-                ack_pending = 1;
+                if (buf[0] != 0) {
+                    msg_out[CTL] |= CTL_DAT;
+                    msg_out[IND] = ack_index;
+                    msg_out[DAT] = buf[0];
+                    flush = 1;
+                    ack_pending = 1;
+                }
             }
         }
     }

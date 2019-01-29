@@ -415,8 +415,6 @@ void print_pmp_ranges(void){
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
-			case 1   : write(1, "\rZ3 > USB DEVICE ATTACH VID=0x1267 PID=0x0000\r\n", 47); break;
-			case 2   : write(1, "\rZ3 > USB DEVICE DETACH\r\n", 25); break;
 			case 331 : write(1, "\rZ3 > CLINT IRQ 23 [BTN3]\r\n", 27); break;
 			case 'p' : write(1, "\rZ3 > pong\r\n", 12); break;
 			default  : write(1, "\rZ3 > ???\r\n", 11); break;
@@ -435,6 +433,8 @@ void print_pmp_ranges(void){
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
+			case 1   : write(1, "\rZ1 > USB DEVICE ATTACH VID=0x1267 PID=0x0000\r\n", 47); break;
+			case 2   : write(1, "\rZ1 > USB DEVICE DETACH\r\n", 25); break;
 			case 216 : write(1, "\rZ1 > CLINT IRQ 16 [BTN0]\r\n", 27); break;
 			case 217 : write(1, "\rZ1 > CLINT IRQ 17 [BTN1]\r\n", 27); break;
 			case 218 : write(1, "\rZ1 > CLINT IRQ 18 [BTN2]\r\n", 27); break;
