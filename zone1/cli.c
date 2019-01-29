@@ -331,10 +331,6 @@ static char history[CMD_LINE_SIZE+1]="";
 
 			} else if (esc==3 && c=='~'){ // del key
 				for (int i=p; i<strlen(cmd_line); i++) cmd_line[i]=cmd_line[i+1];
-				// mzmsg_write(&zone2,  "\e7", 2); // save curs pos
-				// mzmsg_write(&zone2,  "\e[K", 3); // clear line from curs pos
-				// mzmsg_write(&zone2,  &cmd_line[p], strlen(cmd_line)-p);
-				// mzmsg_write(&zone2,  "\e8", 2); // restore curs pos
 				esc=0;
 
 			} else if (esc==2 && c=='C'){ // right arrow
@@ -369,27 +365,15 @@ static char history[CMD_LINE_SIZE+1]="";
 					p--;
 					for (int i=p; i<strlen(cmd_line); i++) cmd_line[i]=cmd_line[i+1];
 
-					// mzmsg_write(&zone2, "\e[D", 3);
-					// mzmsg_write(&zone2, "\e7", 2);
-					// mzmsg_write(&zone2, "\e[K", 3);
-					// mzmsg_write(&zone2, &cmd_line[p], strlen(cmd_line)-p);
-					// mzmsg_write(&zone2, "\e8", 2);
-
 					mzmsg_write(&zone2, "\b \b", 3);
 				}
 
 			} else if (c>=' ' && c<='~' && p < CMD_LINE_SIZE && esc==0){
 				for (int i = CMD_LINE_SIZE-1; i > p; i--) cmd_line[i]=cmd_line[i-1]; // make room for 1 ch
 				cmd_line[p]=c;
-                // mzmsg_write(&zone2, "\e7", 2); // save curs pos
-				// mzmsg_write(&zone2, "\e[K", 3); // clear line from curs pos
-				// mzmsg_write(&zone2, &cmd_line[p], strlen(cmd_line)-p); p++;
-				// mzmsg_write(&zone2, "\e8", 2); // restore curs pos
-				// mzmsg_write(&zone2, "\e[C", 3); // move curs right 1 pos
                 p++;
                 mzmsg_write(&zone2, &c, 1);
 			} else{
- //               sprintf(print_buffer, "Not recognized char 0x%x\n", c);
 				esc=0;
             }
 		}
@@ -404,7 +388,6 @@ static char history[CMD_LINE_SIZE+1]="";
 	if (strlen(cmd_line)>0)
 		strcpy(history, cmd_line);
 
-//    sprintf(print_buffer, "%s\n", cmd_line);
 	return strlen(cmd_line);
 
 } // readline()
@@ -414,9 +397,10 @@ void cliTask( void *pvParameters){
     char c = 0;
 	mzmsg_init(&zone2, 2);
 
+    // TODO: Uncomment after we devise a faster mzmsg protocol
+    // mzmsg_write(&zone2, welcome_msg, sizeof(welcome_msg));
+    // print_cpu_info();
 	mzmsg_write(&zone2, "\nFreeRTOS CLI\n",16);
-	// mzmsg_write(&zone2, welcome_msg, sizeof(welcome_msg));
-	// print_cpu_info();
 
     char cmd_line[CMD_LINE_SIZE+1]="";
 	int msg[4]={0,0,0,0};
