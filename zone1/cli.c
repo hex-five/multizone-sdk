@@ -25,6 +25,7 @@ static mzmsg_t zone2;
 
 void restart(){
 	ECALL_CSRC_MIE();
+	mzmsg_reset(&zone2);
 	asm ("j _start");
 }
 
@@ -70,6 +71,7 @@ unsigned long handle_syncexception(unsigned long mcause, unsigned long mtval, un
 		sprintf(print_buffer, "\nPress any key to restart");
 		mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		char c='\0'; while(mzmsg_read(&zone2, &c, 1) == 0);
+		restart();
 	}
 
 	mepc += 4;

@@ -15,6 +15,7 @@ typedef struct {
 } mzmsg_t;
 
 void mzmsg_init(mzmsg_t *mzmsg, int zone);
+void mzmsg_reset(mzmsg_t *mzmsg);
 int mzmsg_read(mzmsg_t *mzmsg, char *buf, size_t len);
 int mzmsg_write(mzmsg_t *mzmsg, char *buf, size_t len);
 

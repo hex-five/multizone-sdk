@@ -10,7 +10,22 @@
 
 #define CTL_ACK    (1 << 0)
 #define CTL_DAT    (1 << 1)
+#define CTL_RST    (1 << 2)
 
+void mzmsg_reset(mzmsg_t *mzmsg){
+
+    int msg[4] = {0,0,CTL_RST,0};
+
+    mzmsg->ack_pending = 0;
+    mzmsg->ack_index = 0;
+    mzmsg->last_index = -1;
+
+    ECALL_SEND(mzmsg->zone, msg);
+    do {
+        ECALL_YIELD();
+        ECALL_RECV(mzmsg->zone, msg);
+    } while(!(msg[CTL] &= CTL_RST));
+}
 
 void mzmsg_init(mzmsg_t *mzmsg, int zone){
     mzmsg->zone = zone;
@@ -21,12 +36,20 @@ void mzmsg_init(mzmsg_t *mzmsg, int zone){
     mzmsg->last_index = -1;
 }
 
-
 static void mzmsg_update(mzmsg_t *mzmsg){
     
     int msg[4] = {0,0,0,0};
 
     ECALL_RECV(mzmsg->zone, (void*)msg);
+
+    if(msg[CTL] & CTL_RST){
+        mzmsg->ack_pending = 0;
+        mzmsg->ack_index = 0;
+        mzmsg->last_index = -1;
+        memcpy(mzmsg->out, (int[]){-1,0,0,0}, 4*sizeof(int));
+        ECALL_SEND(1, (int[]){0,0,CTL_RST,0});
+        return;
+    }
 
     if(msg[CTL] & CTL_ACK){
         mzmsg->in[ACK] = msg[ACK];
