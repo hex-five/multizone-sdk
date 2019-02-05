@@ -397,9 +397,8 @@ void cliTask( void *pvParameters){
     char c = 0;
 	mzmsg_init(&zone2, 2);
 
-    // TODO: Uncomment after we devise a faster mzmsg protocol
-    // mzmsg_write(&zone2, welcome_msg, sizeof(welcome_msg));
-    // print_cpu_info();
+    mzmsg_write(&zone2, welcome_msg, sizeof(welcome_msg));
+    print_cpu_info();
 	mzmsg_write(&zone2, "\nFreeRTOS CLI\n",16);
 
     char cmd_line[CMD_LINE_SIZE+1]="";

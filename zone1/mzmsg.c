@@ -11,6 +11,7 @@
 #define CTL_ACK    (1 << 0)
 #define CTL_DAT    (1 << 1)
 #define CTL_RST    (1 << 2)
+#define CTL_PSH    (1 << 3)
 
 void mzmsg_reset(mzmsg_t *mzmsg){
 
@@ -123,10 +124,14 @@ int mzmsg_write(mzmsg_t *mzmsg, char *buf, size_t len){
             mzmsg->out[DAT] = *buf++;
             mzmsg->out[IND] = ack_index;
             count++;
+            if (count == len)
+                mzmsg->out[CTL] |= CTL_PSH;
 
             ack_pending = 1;
             
             mzmsg_flush(mzmsg);
+
+            mzmsg->out[CTL] &= ~CTL_PSH;
         } 
         
     }
