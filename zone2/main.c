@@ -17,6 +17,8 @@
  * along with multizone-sdk/zone2. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <limits.h>
+
 #include <platform.h>
 #include <libhexfive.h>
 
@@ -37,6 +39,68 @@
 #define CTL_ACK     (1 << 0)
 #define CTL_DAT     (1 << 1)
 #define CTL_RST     (1 << 2)
+#define CTL_PSH     (1 << 3)
+
+#define MAX_QUEUE_LEN 64
+
+struct queue {
+    uint8_t wp;
+    uint8_t rp;
+    char data[MAX_QUEUE_LEN];
+};
+
+void qinit(struct queue *q)
+{
+    q->rp = 0;
+    q->wp = 0;
+}
+
+uint32_t qtaken(struct queue *q)
+{
+    if (q->wp < q->rp) {
+        return q->wp + UCHAR_MAX + 1 - q->rp;
+    } else {
+        return q->wp - q->rp;
+    }
+}
+
+uint32_t qfree(struct queue *q)
+{
+    return MAX_QUEUE_LEN - qtaken(q);
+}
+
+uint8_t qfull(struct queue *q)
+{
+    return qtaken(q) == MAX_QUEUE_LEN;
+}
+
+uint8_t qempty(struct queue *q)
+{
+    return qtaken(q) == 0;
+}
+
+void qinsert(struct queue *q, char e)
+{
+    q->data[q->wp % MAX_QUEUE_LEN] = e;
+    q->wp++;
+}
+
+char *qfront(struct queue *q)
+{
+    return &q->data[q->rp % MAX_QUEUE_LEN];
+}
+
+uint32_t qcontlen(struct queue *q)
+{
+    uint32_t rdp = q->rp % MAX_QUEUE_LEN;
+    uint32_t wdp = q->wp % MAX_QUEUE_LEN;
+
+    if (wdp <= rdp && q->wp != q->rp) {
+        return MAX_QUEUE_LEN - rdp;
+    } else {
+        return wdp - rdp;
+    }
+}
 
 static int finished = 0;
 
@@ -119,11 +183,10 @@ void cb_telnet(uint16_t ev, struct pico_socket *s)
     }
 }
 
-void telnet_client(struct pico_socket *client)
+void telnet_client(struct pico_socket *client, struct queue *q)
 {
-    static uint8_t buf[32];
-    static int bytes = 0;
-    static int sent_mode = 0;
+    char buf[32];
+    int bytes = 0;
     static int ack_pending = 0;
     static int ack_index = 0;
     static int flush = 0;
@@ -145,19 +208,37 @@ void telnet_client(struct pico_socket *client)
         ECALL_SEND(1, (int[]){0,0,CTL_RST,0});
     }
 
+    if (qfree(q) < 2) {
+        bytes = pico_socket_write(sock_client, qfront(q), qcontlen(q));
+        q->rp += bytes;
+        if (qcontlen(q) > 0) {
+            bytes = pico_socket_write(sock_client, qfront(q), qcontlen(q));
+            q->rp += bytes;
+        }
+    }
+
     if ((msg[CTL] & CTL_DAT) != 0) {
         if (msg[IND] == (msg_out[ACK] + 1)) {
-            buf[0] = msg[DAT];
-            bytes = 1;
-            if (buf[0] == '\n') {
-                buf[0] = '\r';
-                buf[1] = '\n';
-                bytes = 2;
-            }
-            if (pico_socket_write(sock_client, buf, bytes) > 0) {
+            if (qfree(q) >= 2) {
+                if (msg[DAT] == '\n') {
+                    qinsert(q, '\r');
+                    qinsert(q, '\n');
+                } else {
+                    qinsert(q, (char)msg[DAT]);
+                }
+
                 msg_out[CTL] |= CTL_ACK;
                 msg_out[ACK] = msg[IND];
                 flush = 1;
+
+                if ((msg[CTL] & CTL_PSH) != 0) {
+                    bytes = pico_socket_write(sock_client, qfront(q), qcontlen(q));
+                    q->rp += bytes;
+                    if (qcontlen(q) > 0) {
+                        bytes = pico_socket_write(sock_client, qfront(q), qcontlen(q));
+                        q->rp += bytes;
+                    }
+                }
             }
         }
     }
@@ -199,12 +280,14 @@ int main(int argc, char *argv[]){
     struct pico_ip4 ipaddr, netmask;
     struct pico_socket* socket;
     struct pico_device* dev;
-
+    struct queue mzmsg_q;
     uint16_t bmsr = 0;
 
     while ((bmsr & 0x4) == 0) {
         bmsr = pico_xemaclite_mdio_read(0x01, 0x01);
     }
+
+    qinit(&mzmsg_q);
 
     /* initialise the stack. Super important if you don't want ugly stuff like
      * segfaults and such! */
@@ -251,7 +334,7 @@ int main(int argc, char *argv[]){
         int msg[4] = {0,0,0,0};
 
         if (sock_client) {
-            telnet_client(sock_client);
+            telnet_client(sock_client, &mzmsg_q);
         }
         pico_stack_tick();
 
