@@ -16,6 +16,7 @@
 
 /* TODO Add any manufacture supplied header files can be included
 here. */
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -35,10 +36,7 @@ static void ledFadeTask( void *pvParameters );
 
 TaskHandle_t ledfade_task;
 TaskHandle_t robot_task;
-TimerHandle_t ledfade_timer;
-EventGroupHandle_t ledfade_event;
 
-void ledfade_callback( TimerHandle_t xTimer );
 
 /*-----------------------------------------------------------*/
 
@@ -82,12 +80,6 @@ int main(void)
 	/* Setup platform-specific hardware. */
     prvSetupHardware();
 
-    ledfade_timer = xTimerCreate("ledfade_timer", 3000/portTICK_PERIOD_MS, 
-                pdFALSE, ( void * ) 0, ledfade_callback);
-
-    ledfade_event = xEventGroupCreate();
-    xEventGroupSetBits( ledfade_event, 1);
-
     robot_queue = xQueueCreate(5, sizeof(char));
 
     /* Create the task. */
@@ -110,13 +102,8 @@ int main(void)
 }
 /*-----------------------------------------------------------*/
 
-void ledfade_callback( TimerHandle_t xTimer ){
-    xEventGroupSetBits(ledfade_event, 1);
-}
-
 static void ledFadeTask( void *pvParameters )
 {
-
     uint16_t r=0x3F;
     uint16_t g=0;
     uint16_t b=0;
@@ -131,22 +118,36 @@ static void ledFadeTask( void *pvParameters )
     // The LEDs are intentionally left somewhat dim.
     PWM_REG(PWM_CMP0)  = 0xFE;
 
+    uint32_t ulNotificationValue, ulTicksToWait = 20/portTICK_PERIOD_MS;
+   BaseType_t xEvent;
     while(1){
+        xEvent = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotificationValue, ulTicksToWait);
 
-        // const uint64_t T1 = ECALL_CSRR_MTIME() + 400; //12*RTC_FREQ/1000;
-        // while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
-        vTaskDelay(20/portTICK_PERIOD_MS);
+        if(xEvent == pdTRUE) {        
+            ulTicksToWait = 3000/portTICK_PERIOD_MS;
+            switch (ulNotificationValue)
+            {
+                case 216: LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
+                    break;
+                case 217: LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
+                    break;
+                case 218: LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
+                    break;
+            }
+            ECALL_SEND(4, (int[4]){ulNotificationValue,0,0,0} );
 
-        xEventGroupWaitBits(ledfade_event, 1, pdFALSE, pdFALSE, portMAX_DELAY );
+        }
+        else {
+            ulTicksToWait = 20/portTICK_PERIOD_MS;
 
-        if(r > 0 && b == 0){ r--; g++; }
-        if(g > 0 && r == 0){ g--; b++; }
-        if(b > 0 && g == 0){ r++; b--; }
+            if(r > 0 && b == 0){ r--; g++; }
+            if(g > 0 && r == 0){ g--; b++; }
+            if(b > 0 && g == 0){ r++; b--; }
 
-        PWM_REG(PWM_CMP1)  = 0xFF - (r >> 2);
-        PWM_REG(PWM_CMP2)  = 0xFF - (g >> 2);
-        PWM_REG(PWM_CMP3)  = 0xFF - (b >> 2);
-
+            PWM_REG(PWM_CMP1)  = 0xFF - (r >> 2);
+            PWM_REG(PWM_CMP2)  = 0xFF - (g >> 2);
+            PWM_REG(PWM_CMP3)  = 0xFF - (b >> 2);
+        }
     }// While (1)
 }
 
@@ -158,15 +159,10 @@ void button_0_handler(void){ // local interrupt
 
 	GPIO_REG(GPIO_RISE_IP)  |= (1<<BUTTON_0_OFFSET);
 
-	LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
-
-    xEventGroupClearBitsFromISR(ledfade_event, 1);
-    xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
+    xTaskNotifyFromISR( ledfade_task, 216, eSetValueWithOverwrite, &xHigherPriorityTaskWoken );
 
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-   
-    ECALL_SEND(4, (int[4]){216,0,0,0} );
-   
+
 }
 
 void button_1_handler(void){ // local interrupt
@@ -175,15 +171,10 @@ void button_1_handler(void){ // local interrupt
 
 	GPIO_REG(GPIO_RISE_IP)  |= (1<<BUTTON_1_OFFSET);
 
-	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
-
-    xEventGroupClearBitsFromISR(ledfade_event, 1);
-    xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
+    xTaskNotifyFromISR( ledfade_task, 217, eSetValueWithOverwrite, &xHigherPriorityTaskWoken );
     
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-   
-    ECALL_SEND(4, (int[4]){217,0,0,0} );
-    
+
 }
 
 void button_2_handler(void){ // local interrupt
@@ -192,15 +183,10 @@ void button_2_handler(void){ // local interrupt
 
 	GPIO_REG(GPIO_RISE_IP)  |= (1<<BUTTON_2_OFFSET);
 
-	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
-
-    xEventGroupClearBitsFromISR(ledfade_event, 1);
-    xTimerResetFromISR(ledfade_timer, &xHigherPriorityTaskWoken);
+    xTaskNotifyFromISR( ledfade_task, 218, eSetValueWithOverwrite, &xHigherPriorityTaskWoken );
 
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-   
-    ECALL_SEND(4, (int[4]){218,0,0,0} );
-    
+ 
 }
 
 /*-----------------------------------------------------------*/

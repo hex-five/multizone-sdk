@@ -483,6 +483,6 @@ void cliTask( void *pvParameters){
 			mzmsg_write(&zone2, print_buffer, strlen(print_buffer));
 		}
 
-		ECALL_YIELD();
+		taskYIELD();
     }
 }

@@ -41,6 +41,7 @@ static void mzmsg_update(mzmsg_t *mzmsg){
     
     int msg[4] = {0,0,0,0};
 
+    ECALL_YIELD();
     ECALL_RECV(mzmsg->zone, (void*)msg);
 
     if(msg[CTL] & CTL_RST){
@@ -67,6 +68,7 @@ static void mzmsg_update(mzmsg_t *mzmsg){
 
 static void mzmsg_flush(mzmsg_t *mzmsg){
     ECALL_SEND(mzmsg->zone, (void*)mzmsg->out);
+    ECALL_YIELD();
 }
 
 int mzmsg_read(mzmsg_t *mzmsg, char *buf, size_t len){
