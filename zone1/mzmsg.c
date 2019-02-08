@@ -120,10 +120,18 @@ int mzmsg_write(mzmsg_t *mzmsg, char *buf, size_t len){
         }
 
         if(!ack_pending){
+            int written;
             mzmsg->out[CTL] |= CTL_DAT;
-            mzmsg->out[DAT] = *buf++;
+            memset(&mzmsg->out[DAT], 0, 4);
+            if (len - count > 4) {
+                written = 4;
+            } else {
+                written = len - count;
+            }
+            memcpy(&mzmsg->out[DAT], buf, written);
             mzmsg->out[IND] = ack_index;
-            count++;
+            count += written;
+            buf += written;
             if (count == len)
                 mzmsg->out[CTL] |= CTL_PSH;
 
