@@ -208,7 +208,7 @@ void telnet_client(struct pico_socket *client, struct queue *q)
         ECALL_SEND(1, (int[]){0,0,CTL_RST,0});
     }
 
-    if (qfree(q) < 2) {
+    if (qfree(q) < 4) {
         bytes = pico_socket_write(sock_client, qfront(q), qcontlen(q));
         q->rp += bytes;
         if (qcontlen(q) > 0) {
@@ -219,12 +219,14 @@ void telnet_client(struct pico_socket *client, struct queue *q)
 
     if ((msg[CTL] & CTL_DAT) != 0) {
         if (msg[IND] == (msg_out[ACK] + 1)) {
-            if (qfree(q) >= 2) {
-                if (msg[DAT] == '\n') {
-                    qinsert(q, '\r');
-                    qinsert(q, '\n');
-                } else {
-                    qinsert(q, (char)msg[DAT]);
+            if (qfree(q) >= 4) {
+                int ack = 0;
+                char *data = &msg[DAT];
+
+                while (*data != 0 && ack < 4) {
+                    qinsert(q, *data);
+                    ack++;
+                    data++;
                 }
 
                 msg_out[CTL] |= CTL_ACK;
@@ -252,7 +254,7 @@ void telnet_client(struct pico_socket *client, struct queue *q)
                 if (buf[0] != 0) {
                     msg_out[CTL] |= CTL_DAT;
                     msg_out[IND] = ack_index;
-                    msg_out[DAT] = buf[0];
+                    memcpy(&msg_out[DAT], buf, 1);
                     flush = 1;
                     ack_pending = 1;
                 }
