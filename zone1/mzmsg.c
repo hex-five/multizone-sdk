@@ -84,7 +84,8 @@ int mzmsg_read(mzmsg_t *mzmsg, char *buf, size_t len){
         }
 
         if((mzmsg->in[CTL] & CTL_DAT) != 0){
-            *buf++ = (char)mzmsg->in[DAT];
+            memcpy(buf, &mzmsg->in[DAT], 1);
+            buf++;
             count++;
             mzmsg->last_index = mzmsg->in[IND];
             mzmsg->out[ACK] = mzmsg->in[IND];

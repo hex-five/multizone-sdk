@@ -254,7 +254,7 @@ void telnet_client(struct pico_socket *client, struct queue *q)
                 if (buf[0] != 0) {
                     msg_out[CTL] |= CTL_DAT;
                     msg_out[IND] = ack_index;
-                    msg_out[DAT] = buf[0];
+                    memcpy(&msg_out[DAT], buf, 1);
                     flush = 1;
                     ack_pending = 1;
                 }
