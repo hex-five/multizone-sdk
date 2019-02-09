@@ -46,7 +46,7 @@ your application. */
 #define configRTC_CLOCK_HZ						RTC_FREQ
 #define configTICK_RATE_HZ                      50 // 20 ms period
 #define configMAX_PRIORITIES                    3
-#define configMINIMAL_STACK_SIZE                256
+#define configMINIMAL_STACK_SIZE                512
 #define configMAX_TASK_NAME_LEN                 16
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
@@ -64,7 +64,7 @@ your application. */
 /* Memory allocation related definitions. */
 #define configSUPPORT_STATIC_ALLOCATION         0
 #define configSUPPORT_DYNAMIC_ALLOCATION        1
-#define configTOTAL_HEAP_SIZE                   10*1024
+#define configTOTAL_HEAP_SIZE                   12*1024
 #define configAPPLICATION_ALLOCATED_HEAP        0
 
 /* Hook function related definitions. */
