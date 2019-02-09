@@ -58,7 +58,7 @@ static struct sequence_step main_sequence[] = {
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
 	{ .command = STOP, 				.duration_ms = T_STOP },
 	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
-	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -360},
+	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -200},
 	{ .command = ARM_UP, 			.duration_ms = T_ARM  },
     { .command = SHOULDER_UP, 		.duration_ms =   +175 },
     { .command = ELBOW_UP, 			.duration_ms =   +120 },
