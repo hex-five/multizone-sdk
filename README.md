@@ -66,7 +66,8 @@ make clean
 make
 ```
 
-This will result in a HEX file that is now ready to upload to the Arty board.  The first time you push this HEX file up it takes about 2 minutes, on subsequent passes it goes much faster.  
+This will result in a HEX file that is now ready to upload to the Arty board.
+
 ```
 make load
 ```
