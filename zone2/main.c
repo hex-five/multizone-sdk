@@ -32,7 +32,7 @@ plic_instance_t g_plic;
 void button_0_handler(void)__attribute__((interrupt("user")));
 void button_0_handler(void){ // global interrupt
 
-	ECALL_SEND(1, (int[4]){201,0,0,0});
+	int sent = ECALL_SEND(1, (int[4]){201,0,0,0});
 
 	plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
 
@@ -156,6 +156,8 @@ int main (void){
   // The LEDs are intentionally left somewhat dim.
   PWM_REG(PWM_CMP0)  = 0xFE;
 
+  int msg[4]={0,0,0,0};
+
   while(1){
 
 	const uint64_t T1 = ECALL_CSRR_MTIME() + 400; //12*RTC_FREQ/1000;
@@ -169,9 +171,12 @@ int main (void){
 	PWM_REG(PWM_CMP2)  = 0xFF - (g >> 2);
 	PWM_REG(PWM_CMP3)  = 0xFF - (b >> 2);
 
-	int msg[4]={0,0,0,0}; ECALL_RECV(1, msg);
-	if (msg[0]=='1') ECALL_CSRS_MIE();
-	if (msg[0]=='0') ECALL_CSRC_MIE();
+	if (ECALL_RECV(1, msg)){
+		switch (msg[0]){
+			case '1' : ECALL_CSRS_MIE(); break;
+			case '0' : ECALL_CSRC_MIE(); break;
+		}
+	}
 
   }// While (1)
 

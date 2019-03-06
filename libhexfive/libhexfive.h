@@ -8,8 +8,8 @@
 void ECALL_YIELD();
 void ECALL_WFI();
 
-void ECALL_SEND(int, void *);
-void ECALL_RECV(int, void *);
+int ECALL_SEND(int, void *);
+int ECALL_RECV(int, void *);
 
 void ECALL_TRP_VECT(int, void *);
 void ECALL_IRQ_VECT(int, void *);
