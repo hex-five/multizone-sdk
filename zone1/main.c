@@ -468,16 +468,16 @@ int main (void) {
 	open("UART", 0, 0);
 
 	printf("\e[2J\e[H"); // clear terminal screen
-	printf("======================================================================\n");
-	printf("      	       Hex Five MultiZone(TM) Security v.0.1.1                \n");
-	printf("    Copyright (C) 2018 Hex Five Security Inc. All Rights Reserved     \n");
-	printf("======================================================================\n");
-	printf(" This version of MultiZone(TM) is meant for evaluation purposes only. \n");
-	printf(" As such, use of this software is governed by your Evaluation License.\n");
-	printf(" There may be other functional limitations as described in the        \n");
-	printf(" evaluation kit documentation. The full version of the software does  \n");
-	printf(" not have these restrictions.                                         \n");
-	printf("======================================================================\n");
+	printf("=====================================================================\n");
+	printf("      	           Hex Five MultiZone(TM) Security                   \n");
+	printf("    Copyright (C) 2018 Hex Five Security Inc. All Rights Reserved    \n");
+	printf("=====================================================================\n");
+	printf("This version of MultiZone(TM) is meant for evaluation purposes only. \n");
+	printf("As such, use of this software is governed by your Evaluation License.\n");
+	printf("There may be other functional limitations as described in the        \n");
+	printf("evaluation kit documentation. The full version of the software does  \n");
+	printf("not have these restrictions.                                         \n");
+	printf("=====================================================================\n");
 
     print_cpu_info();
 
