@@ -144,12 +144,14 @@ int main (void){
 			ping_timer = SYS_TIME + PING_TIME;
 		}
 
+		// Ping Pong
+	    if (msg[0]=='p') ECALL_SEND(1, (int[4]){'p','o','n','g'});
+
 		ECALL_YIELD();
 
 	}
 
-} // main
-
+}
 
 
 

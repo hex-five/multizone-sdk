@@ -34,11 +34,11 @@ struct sequence_step{
 	int duration_ms;
 };
 
-// R5 02-DEC-2018
-#define T_STOP 	1000
-#define T_GRIP 	1400
-#define T_WRIST 2500
-#define T_ARM  	1600
+/* // R1 27-NOV-2018
+#define T_STOP 	 500
+#define T_GRIP 	1500
+#define T_WRIST 1700
+#define T_ARM  	2000
 #define T_BASE	3000
 static struct sequence_step main_sequence[] = {
 	{ .command = STOP, 				.duration_ms = T_STOP },
@@ -49,35 +49,12 @@ static struct sequence_step main_sequence[] = {
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
 	{ .command = STOP, 				.duration_ms = T_STOP },
 	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
-	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -360},
+	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -675 }, // -700 -825 -750
 	{ .command = ARM_UP, 			.duration_ms = T_ARM  },
-    { .command = SHOULDER_UP, 		.duration_ms =   +175 },
-    { .command = ELBOW_UP, 			.duration_ms =   +120 },
-	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST -260},
-	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP  -200},
-};
-
-/*// R4 01-DEC-2018
-#define T_STOP 	1000
-#define T_GRIP 	1400
-#define T_WRIST 2500
-#define T_ARM  	1600
-#define T_BASE	3000
-static struct sequence_step main_sequence[] = {
-	{ .command = STOP, 				.duration_ms = T_STOP },
-	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
-	{ .command = WRIST_UP, 			.duration_ms = T_WRIST},
-	{ .command = ARM_DOWN, 			.duration_ms = T_ARM  },
-	{ .command = BASE_CLOCKWISE,	.duration_ms = T_BASE },
+    { .command = SHOULDER_UP, 		.duration_ms =   +140 }, // +250
+    { .command = ELBOW_UP, 			.duration_ms =    +50 }, // +75 +50 +100
+	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST -200}, // -150
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
-	{ .command = STOP, 				.duration_ms = T_STOP },
-	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
-	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -330},
-	{ .command = ARM_UP, 			.duration_ms = T_ARM  },
-    { .command = SHOULDER_UP, 		.duration_ms =   +175 },
-    { .command = ELBOW_UP, 			.duration_ms =   +100 },
-	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST -200},
-	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP  -200},
 };*/
 
 /* // R3 28-NOV-2018
@@ -103,11 +80,11 @@ static struct sequence_step main_sequence[] = {
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP  -200},
 }; */
 
-/* // R1 27-NOV-2018
-#define T_STOP 	 500
-#define T_GRIP 	1500
-#define T_WRIST 1700
-#define T_ARM  	2000
+// R4 09-MAR-2019
+#define T_STOP 	1000
+#define T_GRIP 	1400
+#define T_WRIST 2500
+#define T_ARM  	1600
 #define T_BASE	3000
 static struct sequence_step main_sequence[] = {
 	{ .command = STOP, 				.duration_ms = T_STOP },
@@ -118,12 +95,35 @@ static struct sequence_step main_sequence[] = {
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
 	{ .command = STOP, 				.duration_ms = T_STOP },
 	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
-	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -675 }, // -700 -825 -750
+	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -200}, // -330
 	{ .command = ARM_UP, 			.duration_ms = T_ARM  },
-    { .command = SHOULDER_UP, 		.duration_ms =   +140 }, // +250
-    { .command = ELBOW_UP, 			.duration_ms =    +50 }, // +75 +50 +100
-	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST -200}, // -150
+    { .command = SHOULDER_UP, 		.duration_ms =   +175 },
+    { .command = ELBOW_UP, 			.duration_ms =   +100 },
+	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST -200},
+	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP  -200},
+};
+
+/*// R5 02-DEC-2018
+#define T_STOP 	1000
+#define T_GRIP 	1400
+#define T_WRIST 2500
+#define T_ARM  	1600
+#define T_BASE	3000
+static struct sequence_step main_sequence[] = {
+	{ .command = STOP, 				.duration_ms = T_STOP },
+	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
+	{ .command = WRIST_UP, 			.duration_ms = T_WRIST},
+	{ .command = ARM_DOWN, 			.duration_ms = T_ARM  },
+	{ .command = BASE_CLOCKWISE,	.duration_ms = T_BASE },
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
+	{ .command = STOP, 				.duration_ms = T_STOP },
+	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
+	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -360},
+	{ .command = ARM_UP, 			.duration_ms = T_ARM  },
+    { .command = SHOULDER_UP, 		.duration_ms =   +175 },
+    { .command = ELBOW_UP, 			.duration_ms =   +120 },
+	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST -260},
+	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP  -200},
 };*/
 
 #define T_FOLD 4500

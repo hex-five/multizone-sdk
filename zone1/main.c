@@ -102,7 +102,8 @@ void print_cpu_info(void) {
 // ------------------------------------------------------------------------
 
 	// misa
-	const uint64_t misa = ECALL_CSRR_MISA();
+	uint64_t misa = 0x0; asm volatile("csrr %0, misa" : "=r"(misa)); // trap & emulate example
+	//const uint64_t misa = ECALL_CSRR_MISA();
 
 	const int xlen = ((misa >> __riscv_xlen-2)&0b11)==1 ?  32 :
 					 ((misa >> __riscv_xlen-2)&0b11)==2 ?  64 :
@@ -118,12 +119,19 @@ void print_cpu_info(void) {
 
 	// mvendorid
 	const uint64_t mvendorid = ECALL_CSRR_MVENDID();
-	char *mvendorid_str = (mvendorid==0x10e31913 ? "SiFive, Inc.\0" : "Unknown\0");
+	const char *mvendorid_str = (mvendorid==0x10e31913 ? "SiFive, Inc.\0" :
+						         mvendorid==0x489      ? "SiFive, Inc.\0" :
+								 mvendorid==0x57c      ? "Hex Five, Inc.\0" :
+												         "\0");
 	printf("Vendor        : 0x%08x %s \n", (int)mvendorid, mvendorid_str);
 
 	// marchid
 	const uint64_t marchid = ECALL_CSRR_MARCHID();
-	printf("Architecture  : 0x%08x \n", (int)marchid );
+	const char *marchid_str = (mvendorid==0x489 && (int)misa==0x40101105    && marchid==0x1 ? "E31\0" :
+						       mvendorid==0x489 && misa==0x8000000000101105 && marchid==0x1 ? "S51\0" :
+						       mvendorid==0x57c && (int)misa==0x40101105    && marchid==0x1 ? "X300\0" :
+								 	 	 	 	 	 	 	 	 	 	 	 	 	 		  "\0");
+	printf("Architecture  : 0x%08x %s \n", (int)marchid, marchid_str);
 
 	// mimpid
 	const uint64_t mimpid = ECALL_CSRR_MIMPID();
@@ -137,7 +145,7 @@ void print_cpu_info(void) {
 	const int cpu_clk = round(CPU_FREQ/1E+6);
 	printf("CPU clock     : %d MHz \n", cpu_clk );
 
-} // print_cpu_info()
+}
 
 // ------------------------------------------------------------------------
 int cmpfunc(const void* a , const void* b){
@@ -303,7 +311,7 @@ void print_pmp_ranges(void){
 
 	}
 
-} // print_pmpcfg()
+}
 
 // ------------------------------------------------------------------------
  int readline(char *cmd_line) {
@@ -389,27 +397,7 @@ void print_pmp_ranges(void){
 		// poll & print incoming messages
 		int msg[4]={0,0,0,0};
 
-		ECALL_RECV(4, msg);
-
-		if (msg[0]){
-
-			write(1, "\e7", 2); // save curs pos
-			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-
-			switch (msg[0]) {
-			case 'p' : write(1, "\rZ4 > pong\r\n", 12); break;
-			default  : write(1, "\rZ4 > ???\r\n", 11); break;
-			}
-
-			write(1, "\nZ1 > ", 6);
-			write(1, &cmd_line[0], strlen(cmd_line));
-			write(1, "\e8", 2);   // restore curs pos
-			write(1, "\e[2B", 4); // curs down down
-		}
-
-		ECALL_RECV(3, msg);
-
-		if (msg[0]){
+		if (ECALL_RECV(3, msg)){
 
 			write(1, "\e7", 2); // save curs pos
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
@@ -428,16 +416,16 @@ void print_pmp_ranges(void){
 			write(1, "\e[2B", 4); // curs down down
 		}
 
-		ECALL_RECV(2, msg);
-		if (msg[0]){
+		if (ECALL_RECV(2, msg)){
 
-			write(1, "\e7", 2); // save curs pos
+			write(1, "\e7", 2);   // save curs pos
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
 			case 201 : write(1, "\rZ2 > PLIC  IRQ 11 [BTN0]\r\n", 27); break;
 			case 211 : write(1, "\rZ2 > CLINT IRQ 21 [BTN1]\r\n", 27); break;
 			case 221 : write(1, "\rZ2 > CLINT IRQ 22 [BTN2]\r\n", 27); break;
+			case 'p' : write(1, "\rZ2 > pong\r\n", 12); break;
 			default  : write(1, "\rZ2 > ???\r\n", 11); break;
 			}
 
@@ -449,7 +437,7 @@ void print_pmp_ranges(void){
 
 		ECALL_YIELD();
 
-	} // while(1)
+	}
 
 	for (int i = CMD_LINE_SIZE-1; i > 0; i--)
 		if (cmd_line[i]==' ') cmd_line[i]='\0';	else break;
@@ -459,7 +447,7 @@ void print_pmp_ranges(void){
 
 	return strlen(cmd_line);
 
-} // readline()
+}
 
 // ------------------------------------------------------------------------
 int main (void) {
@@ -580,4 +568,4 @@ int main (void) {
 
 	}
 
-} // main()
+}
