@@ -10,10 +10,13 @@
 #include <platform.h>
 #include <libhexfive.h>
 
+#define CMD_LINE_SIZE 32
+#define MSG_SIZE 4
+
 void trap_0x0_handler(void)__attribute__((interrupt("user")));
 void trap_0x0_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -25,7 +28,7 @@ void trap_0x0_handler(void){
 void trap_0x1_handler(void)__attribute__((interrupt("user")));
 void trap_0x1_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 	
@@ -37,7 +40,7 @@ void trap_0x1_handler(void){
 void trap_0x2_handler(void)__attribute__((interrupt("user")));
 void trap_0x2_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -64,7 +67,7 @@ void trap_0x3_handler(void){
 void trap_0x4_handler(void)__attribute__((interrupt("user")));
 void trap_0x4_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Load address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -73,7 +76,7 @@ void trap_0x4_handler(void){
 void trap_0x5_handler(void)__attribute__((interrupt("user")));
 void trap_0x5_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -82,7 +85,7 @@ void trap_0x5_handler(void){
 void trap_0x6_handler(void)__attribute__((interrupt("user")));
 void trap_0x6_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Store/AMO address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -91,7 +94,7 @@ void trap_0x6_handler(void){
 void trap_0x7_handler(void)__attribute__((interrupt("user")));
 void trap_0x7_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -316,8 +319,6 @@ void print_pmp_ranges(void){
 // ------------------------------------------------------------------------
  int readline(char *cmd_line) {
 // ------------------------------------------------------------------------
-	#define CMD_LINE_SIZE 32
-
 	int p=0;
 	char c='\0';
 	int esc=0;
@@ -395,7 +396,7 @@ void print_pmp_ranges(void){
 		}
 
 		// poll & print incoming messages
-		int msg[4]={0,0,0,0};
+		int msg[MSG_SIZE]={0,0,0,0};
 
 		if (ECALL_RECV(3, msg)){
 
@@ -482,7 +483,7 @@ int main (void) {
     print_cpu_info();
 
 	char cmd_line[CMD_LINE_SIZE+1]="";
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 
 	while(1){
 
@@ -527,14 +528,18 @@ int main (void) {
 
 		} else if (tk1 != NULL && strcmp(tk1, "send")==0){
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
-				msg[0]=(unsigned int)*tk3; msg[1]=0; msg[2]=0; msg[3]=0;
-				ECALL_SEND(tk2[0]-'0', msg);
+				for (int i=0; i<MSG_SIZE; i++)
+					msg[i] = i<strlen(tk3) ? (unsigned int)*(tk3+i) : 0x0;
+				if (!ECALL_SEND(tk2[0]-'0', msg))
+					printf("Error: Inbox full.\n");
 			} else printf("Syntax: send {1|2|3|4} message \n");
 
 		} else if (tk1 != NULL && strcmp(tk1, "recv")==0){
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
-				ECALL_RECV(tk2[0]-'0', msg);
-				printf("msg : 0x%08x 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2], msg[3]);
+				if (ECALL_RECV(tk2[0]-'0', msg))
+					printf("msg : 0x%08x 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2], msg[3]);
+				else
+					printf("Error: Inbox empty.\n");
 			} else printf("Syntax: recv {1|2|3|4} \n");
 
 		} else if (tk1 != NULL && strcmp(tk1, "yield")==0){
