@@ -62,6 +62,7 @@
 // GPIO
 // ------------------------------------------------------------------------------
 #define GPIO_BASE 	0x20002000
+#define GPIO_INT_BASE 7
 
 #define GPIO_INPUT_VAL  0x00
 #define GPIO_INPUT_EN   0x04
@@ -80,6 +81,17 @@
 #define GPIO_IOF_EN     0x38
 #define GPIO_IOF_SEL    0x3C
 #define GPIO_OUTPUT_XOR 0x40
+
+// -----------------------------------------------------------------------------
+// Buttons (GPIO and IRQ assignments)
+// ------------------------------------------------------------------------------
+#define BTN0  4
+#define BTN1  5
+#define BTN2  6
+
+#define LOCAL_INT_BTN_0  4
+#define LOCAL_INT_BTN_1  5
+#define LOCAL_INT_BTN_2  6
 
 // -----------------------------------------------------------------------------
 // PLIC
