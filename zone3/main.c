@@ -12,10 +12,6 @@
 #define SPI_TDO  9  // out
 #define SPI_SYN  8  // out - not used
 
-#define LED_RED   1<<0
-#define LED_GREEN 1<<1
-#define LED_BLUE  1<<2
-
 uint8_t CRC8(uint8_t bytes[]){
 
     const uint8_t generator = 0x1D;
@@ -64,7 +60,7 @@ int main (void){
 
 	GPIO_REG(GPIO_INPUT_EN)  |= (0x1 << SPI_TDI);
 	GPIO_REG(GPIO_PULLUP_EN) |= (0x1 << SPI_TDI);
-	GPIO_REG(GPIO_OUTPUT_EN) |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO) | (0x1 << LED_RED) | (0x1 << LED_GREEN));
+	GPIO_REG(GPIO_OUTPUT_EN) |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO) | LED_RED | LED_GREEN | LED_BLUE);
     GPIO_REG(GPIO_DRIVE)     |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO)) ;
 
 	#define CMD_STOP  ((uint8_t[]){0x00, 0x00, 0x00})
