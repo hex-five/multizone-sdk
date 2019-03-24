@@ -4,14 +4,6 @@
 #include <plic_driver.h>
 #include <libhexfive.h>
 
-#define BTN0  4
-#define BTN1  5
-#define BTN2  6
-
-#define LOCAL_INT_BTN_0  4
-#define LOCAL_INT_BTN_1  5
-#define LOCAL_INT_BTN_2  6
-
 #define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x00;
 #define LD1_GRN_ON PWM_REG(PWM_CMP2)  = 0x00;
 #define LD1_BLU_ON PWM_REG(PWM_CMP3)  = 0x00;
@@ -100,7 +92,7 @@ void b0_irq_init()  {
     if (mvendid == 0x489 && mimpid > 0x20190000) {
         irqnum = 1 + BTN0;
     } else {
-        irqnum = 7 + BTN0;
+        irqnum = GPIO_INT_BASE + BTN0;
     }
 
     PLIC_enable_interrupt (&g_plic, irqnum);
