@@ -4,9 +4,17 @@ OUTPUT_ARCH( "riscv" )
 
 ENTRY( _start )
 
+zone-flash-offset = 0x20000;
+zone-flash-size   = 64K;
+zone-ram-offset   = 0x2000;
+zone-ram-size     = 4K;
+
+zone-flash = flash + zone-flash-offset;
+zone-ram   = ram   + zone-ram-offset;
+
 MEMORY {
-  flash (rxai!w) : ORIGIN = 0x40420000, LENGTH = 64K
-  ram   (wxa!ri) : ORIGIN = 0x80002000, LENGTH =  4K
+  flash (rxai!w) : ORIGIN = zone-flash, LENGTH = zone-flash-size
+  ram   (wxa!ri) : ORIGIN = zone-ram,   LENGTH = zone-ram-size
 }
 
 PHDRS {
