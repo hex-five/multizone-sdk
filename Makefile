@@ -28,6 +28,9 @@ ifeq ($(BOARD),E31)
 else ifeq ($(BOARD),E51)
 	RISCV_ARCH := rv64imac
 	RISCV_ABI := lp64
+else ifeq ($(BOARD),S51)
+	RISCV_ARCH := rv64imac
+	RISCV_ABI := lp64
 else
 	$(error Unsupported board $(BOARD))
 endif

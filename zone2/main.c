@@ -158,26 +158,27 @@ int main (void){
 
   int msg[4]={0,0,0,0};
 
-  while(1){
+	while(1){
 
-	const uint64_t T1 = ECALL_CSRR_MTIME() + 400; //12*RTC_FREQ/1000;
-	while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
+		const uint64_t T1 = ECALL_CSRR_MTIME() + 12*RTC_FREQ/1000;
+		while (ECALL_CSRR_MTIME() < T1)	ECALL_YIELD();
 
-	if(r > 0 && b == 0){ r--; g++; }
-	if(g > 0 && r == 0){ g--; b++; }
-	if(b > 0 && g == 0){ r++; b--; }
+		if (r > 0 && b == 0) {r--; g++;}
+		if (g > 0 && r == 0) {g--; b++;}
+		if (b > 0 && g == 0) {r++; b--;}
 
-	PWM_REG(PWM_CMP1)  = 0xFF - (r >> 2);
-	PWM_REG(PWM_CMP2)  = 0xFF - (g >> 2);
-	PWM_REG(PWM_CMP3)  = 0xFF - (b >> 2);
+		PWM_REG(PWM_CMP1) = 0xFF - (r >> 2);
+		PWM_REG(PWM_CMP2) = 0xFF - (g >> 2);
+		PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
-	if (ECALL_RECV(1, msg)){
-		switch (msg[0]){
-			case '1' : ECALL_CSRS_MIE(); break;
-			case '0' : ECALL_CSRC_MIE(); break;
+		if (ECALL_RECV(1, msg)) {
+			switch (msg[0]) {
+			case '1': ECALL_CSRS_MIE();	break;
+			case '0': ECALL_CSRC_MIE();	break;
+			case 'p': ECALL_SEND(1, (int[4] ) {'p','o','n','g'}); break;
+			}
 		}
-	}
 
-  }// While (1)
+	}
 
 }

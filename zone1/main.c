@@ -10,10 +10,13 @@
 #include <platform.h>
 #include <libhexfive.h>
 
+#define CMD_LINE_SIZE 32
+#define MSG_SIZE 4
+
 void trap_0x0_handler(void)__attribute__((interrupt("user")));
 void trap_0x0_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -25,7 +28,7 @@ void trap_0x0_handler(void){
 void trap_0x1_handler(void)__attribute__((interrupt("user")));
 void trap_0x1_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 	
@@ -37,7 +40,7 @@ void trap_0x1_handler(void){
 void trap_0x2_handler(void)__attribute__((interrupt("user")));
 void trap_0x2_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -64,7 +67,7 @@ void trap_0x3_handler(void){
 void trap_0x4_handler(void)__attribute__((interrupt("user")));
 void trap_0x4_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Load address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -73,7 +76,7 @@ void trap_0x4_handler(void){
 void trap_0x5_handler(void)__attribute__((interrupt("user")));
 void trap_0x5_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -82,7 +85,7 @@ void trap_0x5_handler(void){
 void trap_0x6_handler(void)__attribute__((interrupt("user")));
 void trap_0x6_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Store/AMO address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -91,7 +94,7 @@ void trap_0x6_handler(void){
 void trap_0x7_handler(void)__attribute__((interrupt("user")));
 void trap_0x7_handler(void){
 
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 	ECALL_RECV(1, msg);
 	printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
 
@@ -102,7 +105,8 @@ void print_cpu_info(void) {
 // ------------------------------------------------------------------------
 
 	// misa
-	const uint64_t misa = ECALL_CSRR_MISA();
+	uint64_t misa = 0x0; asm volatile("csrr %0, misa" : "=r"(misa)); // trap & emulate example
+	//const uint64_t misa = ECALL_CSRR_MISA();
 
 	const int xlen = ((misa >> __riscv_xlen-2)&0b11)==1 ?  32 :
 					 ((misa >> __riscv_xlen-2)&0b11)==2 ?  64 :
@@ -118,12 +122,19 @@ void print_cpu_info(void) {
 
 	// mvendorid
 	const uint64_t mvendorid = ECALL_CSRR_MVENDID();
-	char *mvendorid_str = (mvendorid==0x10e31913 ? "SiFive, Inc.\0" : "Unknown\0");
+	const char *mvendorid_str = (mvendorid==0x10e31913 ? "SiFive, Inc.\0" :
+						         mvendorid==0x489      ? "SiFive, Inc.\0" :
+								 mvendorid==0x57c      ? "Hex Five, Inc.\0" :
+												         "\0");
 	printf("Vendor        : 0x%08x %s \n", (int)mvendorid, mvendorid_str);
 
 	// marchid
 	const uint64_t marchid = ECALL_CSRR_MARCHID();
-	printf("Architecture  : 0x%08x \n", (int)marchid );
+	const char *marchid_str = (mvendorid==0x489 && (int)misa==0x40101105    && marchid==0x1 ? "E31\0" :
+						       mvendorid==0x489 && misa==0x8000000000101105 && marchid==0x1 ? "S51\0" :
+						       mvendorid==0x57c && (int)misa==0x40101105    && marchid==0x1 ? "X300\0" :
+								 	 	 	 	 	 	 	 	 	 	 	 	 	 		  "\0");
+	printf("Architecture  : 0x%08x %s \n", (int)marchid, marchid_str);
 
 	// mimpid
 	const uint64_t mimpid = ECALL_CSRR_MIMPID();
@@ -137,7 +148,7 @@ void print_cpu_info(void) {
 	const int cpu_clk = round(CPU_FREQ/1E+6);
 	printf("CPU clock     : %d MHz \n", cpu_clk );
 
-} // print_cpu_info()
+}
 
 // ------------------------------------------------------------------------
 int cmpfunc(const void* a , const void* b){
@@ -303,13 +314,11 @@ void print_pmp_ranges(void){
 
 	}
 
-} // print_pmpcfg()
+}
 
 // ------------------------------------------------------------------------
  int readline(char *cmd_line) {
 // ------------------------------------------------------------------------
-	#define CMD_LINE_SIZE 32
-
 	int p=0;
 	char c='\0';
 	int esc=0;
@@ -387,29 +396,9 @@ void print_pmp_ranges(void){
 		}
 
 		// poll & print incoming messages
-		int msg[4]={0,0,0,0};
+		int msg[MSG_SIZE]={0,0,0,0};
 
-		ECALL_RECV(4, msg);
-
-		if (msg[0]){
-
-			write(1, "\e7", 2); // save curs pos
-			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-
-			switch (msg[0]) {
-			case 'p' : write(1, "\rZ4 > pong\r\n", 12); break;
-			default  : write(1, "\rZ4 > ???\r\n", 11); break;
-			}
-
-			write(1, "\nZ1 > ", 6);
-			write(1, &cmd_line[0], strlen(cmd_line));
-			write(1, "\e8", 2);   // restore curs pos
-			write(1, "\e[2B", 4); // curs down down
-		}
-
-		ECALL_RECV(3, msg);
-
-		if (msg[0]){
+		if (ECALL_RECV(3, msg)){
 
 			write(1, "\e7", 2); // save curs pos
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
@@ -428,16 +417,16 @@ void print_pmp_ranges(void){
 			write(1, "\e[2B", 4); // curs down down
 		}
 
-		ECALL_RECV(2, msg);
-		if (msg[0]){
+		if (ECALL_RECV(2, msg)){
 
-			write(1, "\e7", 2); // save curs pos
+			write(1, "\e7", 2);   // save curs pos
 			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 
 			switch (msg[0]) {
 			case 201 : write(1, "\rZ2 > PLIC  IRQ 11 [BTN0]\r\n", 27); break;
 			case 211 : write(1, "\rZ2 > CLINT IRQ 21 [BTN1]\r\n", 27); break;
 			case 221 : write(1, "\rZ2 > CLINT IRQ 22 [BTN2]\r\n", 27); break;
+			case 'p' : write(1, "\rZ2 > pong\r\n", 12); break;
 			default  : write(1, "\rZ2 > ???\r\n", 11); break;
 			}
 
@@ -449,7 +438,7 @@ void print_pmp_ranges(void){
 
 		ECALL_YIELD();
 
-	} // while(1)
+	}
 
 	for (int i = CMD_LINE_SIZE-1; i > 0; i--)
 		if (cmd_line[i]==' ') cmd_line[i]='\0';	else break;
@@ -459,7 +448,7 @@ void print_pmp_ranges(void){
 
 	return strlen(cmd_line);
 
-} // readline()
+}
 
 // ------------------------------------------------------------------------
 int main (void) {
@@ -480,21 +469,21 @@ int main (void) {
 	open("UART", 0, 0);
 
 	printf("\e[2J\e[H"); // clear terminal screen
-	printf("======================================================================\n");
-	printf("      	       Hex Five MultiZone(TM) Security v.0.1.1                \n");
-	printf("    Copyright (C) 2018 Hex Five Security Inc. All Rights Reserved     \n");
-	printf("======================================================================\n");
-	printf(" This version of MultiZone(TM) is meant for evaluation purposes only. \n");
-	printf(" As such, use of this software is governed by your Evaluation License.\n");
-	printf(" There may be other functional limitations as described in the        \n");
-	printf(" evaluation kit documentation. The full version of the software does  \n");
-	printf(" not have these restrictions.                                         \n");
-	printf("======================================================================\n");
+	printf("=====================================================================\n");
+	printf("      	           Hex Five MultiZone(TM) Security                   \n");
+	printf("    Copyright (C) 2018 Hex Five Security Inc. All Rights Reserved    \n");
+	printf("=====================================================================\n");
+	printf("This version of MultiZone(TM) is meant for evaluation purposes only. \n");
+	printf("As such, use of this software is governed by your Evaluation License.\n");
+	printf("There may be other functional limitations as described in the        \n");
+	printf("evaluation kit documentation. The full version of the software does  \n");
+	printf("not have these restrictions.                                         \n");
+	printf("=====================================================================\n");
 
     print_cpu_info();
 
 	char cmd_line[CMD_LINE_SIZE+1]="";
-	int msg[4]={0,0,0,0};
+	int msg[MSG_SIZE]={0,0,0,0};
 
 	while(1){
 
@@ -539,14 +528,18 @@ int main (void) {
 
 		} else if (tk1 != NULL && strcmp(tk1, "send")==0){
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
-				msg[0]=(unsigned int)*tk3; msg[1]=0; msg[2]=0; msg[3]=0;
-				ECALL_SEND(tk2[0]-'0', msg);
+				for (int i=0; i<MSG_SIZE; i++)
+					msg[i] = i<strlen(tk3) ? (unsigned int)*(tk3+i) : 0x0;
+				if (!ECALL_SEND(tk2[0]-'0', msg))
+					printf("Error: Inbox full.\n");
 			} else printf("Syntax: send {1|2|3|4} message \n");
 
 		} else if (tk1 != NULL && strcmp(tk1, "recv")==0){
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
-				ECALL_RECV(tk2[0]-'0', msg);
-				printf("msg : 0x%08x 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2], msg[3]);
+				if (ECALL_RECV(tk2[0]-'0', msg))
+					printf("msg : 0x%08x 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2], msg[3]);
+				else
+					printf("Error: Inbox empty.\n");
 			} else printf("Syntax: recv {1|2|3|4} \n");
 
 		} else if (tk1 != NULL && strcmp(tk1, "yield")==0){
@@ -580,4 +573,4 @@ int main (void) {
 
 	}
 
-} // main()
+}
