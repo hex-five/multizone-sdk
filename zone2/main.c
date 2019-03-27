@@ -12,11 +12,6 @@
 #define LOCAL_INT_BTN_1  5
 #define LOCAL_INT_BTN_2  6
 
-#define GPIO_INT_BASE 7
-#define INT_DEVICE_BUTTON_0 (GPIO_INT_BASE + BTN0)
-#define INT_DEVICE_BUTTON_1 (GPIO_INT_BASE + BTN1)
-#define INT_DEVICE_BUTTON_2 (GPIO_INT_BASE + BTN2)
-
 #define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x00;
 #define LD1_GRN_ON PWM_REG(PWM_CMP2)  = 0x00;
 #define LD1_BLU_ON PWM_REG(PWM_CMP3)  = 0x00;
@@ -80,6 +75,10 @@ void button_2_handler(void){ // local interrupt
 /*configures Button0 as a global gpio irq*/
 void b0_irq_init()  {
 
+    uint64_t mvendid;
+    uint64_t mimpid;
+    uint32_t irqnum;
+
     //dissable hw io function
     GPIO_REG(GPIO_IOF_EN )    &=  ~(1 << BTN0);
 
@@ -95,8 +94,17 @@ void b0_irq_init()  {
   	    PLIC_NUM_INTERRUPTS,
   	    PLIC_NUM_PRIORITIES);
 
-    PLIC_enable_interrupt (&g_plic, INT_DEVICE_BUTTON_0);
-    PLIC_set_priority(&g_plic, INT_DEVICE_BUTTON_0, 2);
+    mvendid = ECALL_CSRR_MVENDID();
+    mimpid = ECALL_CSRR_MIMPID();
+    // GPIO irq offset depends on the core version
+    if (mvendid == 0x489 && mimpid > 0x20190000) {
+        irqnum = 1 + BTN0;
+    } else {
+        irqnum = 7 + BTN0;
+    }
+
+    PLIC_enable_interrupt (&g_plic, irqnum);
+    PLIC_set_priority(&g_plic, irqnum, 2);
 
     ECALL_IRQ_VECT(11, button_0_handler);
 
