@@ -39,7 +39,7 @@ void button_0_handler(void){ // global interrupt
 void button_1_handler(void)__attribute__((interrupt("user")));
 void button_1_handler(void){ // local interrupt
 
-	ECALL_SEND(1, (int[4]){211,0,0,0} );
+	ECALL_SEND(1, (int[4]){190+16+LOCAL_INT_BTN_1,0,0,0} );
 
 	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -48,12 +48,14 @@ void button_1_handler(void){ // local interrupt
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
 
+	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
+
 }
 
 void button_2_handler(void)__attribute__((interrupt("user")));
 void button_2_handler(void){ // local interrupt
 
-	ECALL_SEND(1, (int[4]){221,0,0,0});
+	ECALL_SEND(1, (int[4]){190+16+LOCAL_INT_BTN_2,0,0,0});
 
 	LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
 
@@ -61,6 +63,8 @@ void button_2_handler(void){ // local interrupt
 	while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
+
+	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
 
 }
 
@@ -148,6 +152,11 @@ int main (void){
   uint16_t r=0x3F;
   uint16_t g=0;
   uint16_t b=0;
+
+  #ifdef IOF1_PWM1_MASK
+    GPIO_REG(GPIO_IOF_EN) |= IOF1_PWM1_MASK;
+    GPIO_REG(GPIO_IOF_SEL) |= IOF1_PWM1_MASK;
+  #endif
 
   PWM_REG(PWM_CFG)   = 0;
   PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS) | (PWM_CFG_ZEROCMP) | (PWM_CFG_DEGLITCH);
