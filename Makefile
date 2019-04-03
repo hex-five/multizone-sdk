@@ -26,6 +26,10 @@ ifeq ($(BOARD),E31)
 	ARCH := rv32
 	RISCV_ARCH := $(ARCH)imac
 	RISCV_ABI := ilp32
+else ifeq ($(BOARD),X300)
+	ARCH := rv32
+	RISCV_ARCH := $(ARCH)imac
+	RISCV_ABI := ilp32
 else ifeq ($(BOARD),E51)
 	ARCH := rv64
 	RISCV_ARCH := $(ARCH)imac
