@@ -130,10 +130,11 @@ void print_cpu_info(void) {
 
 	// marchid
 	const uint64_t marchid = ECALL_CSRR_MARCHID();
-	const char *marchid_str = (mvendorid==0x489 && (int)misa==0x40101105    && marchid==0x1 ? "E31\0" :
-						       mvendorid==0x489 && misa==0x8000000000101105 && marchid==0x1 ? "S51\0" :
-						       mvendorid==0x57c && (int)misa==0x40101105    && marchid==0x1 ? "X300\0" :
-								 	 	 	 	 	 	 	 	 	 	 	 	 	 		  "\0");
+	const char *marchid_str = (mvendorid==0x489 && (int)misa==0x40101105    && marchid==0x80000002 ? "E21\0"  :
+							   mvendorid==0x489 && (int)misa==0x40101105    && marchid==0x00000001 ? "E31\0"  :
+						       mvendorid==0x489 && misa==0x8000000000101105 && marchid==0x00000001 ? "S51\0"  :
+						       mvendorid==0x57c && (int)misa==0x40101105    && marchid==0x00000001 ? "X300\0" :
+						       "\0");
 	printf("Architecture  : 0x%08x %s \n", (int)marchid, marchid_str);
 
 	// mimpid
@@ -217,21 +218,23 @@ void print_stats(void){
 
 	}
 
-	if (ctxsw_instr[0]>0 && cycles[0]>0){
+	if (ctxsw_cycle[0]>0 && cycles[0]>0){
 
 		qsort(ctxsw_cycle, COUNT, sizeof(int), cmpfunc);
 		qsort(ctxsw_instr, COUNT, sizeof(int), cmpfunc);
 
 		printf("\n");
+
 		int min = ctxsw_instr[0], med = ctxsw_instr[COUNT/2], max = ctxsw_instr[COUNT-1];
-		printf("ctx sw instr  min/med/max = %d/%d/%d \n", min, med, max);
+		if (ctxsw_instr[0]>0) printf("ctx sw instr  min/med/max = %d/%d/%d \n", min, med, max);
+
 		min = ctxsw_cycle[0], med = ctxsw_cycle[COUNT/2], max = ctxsw_cycle[COUNT-1];
 		printf("ctx sw cycles min/med/max = %d/%d/%d \n", min, med, max);
 		printf("ctx sw time   min/med/max = %d/%d/%d us \n", (int)min*1000/MHZ, (int)med*1000/MHZ, (int)max*1000/MHZ);
 
-	} else if (ctxsw_instr[0]>0 && cycles[0]==0){
+	} else if (ctxsw_cycle[0]>0 && cycles[0]==0){
 
-		printf("ctx sw instr  = %d \n", ctxsw_instr[0]);
+		if (ctxsw_instr[0]>0) printf("ctx sw instr  = %d \n", ctxsw_instr[0]);
 		printf("ctx sw cycles = %d \n", ctxsw_cycle[0]);
 		printf("ctx sw time   = %d us \n", (int)ctxsw_cycle[0]*1000/MHZ);
 	}
@@ -241,9 +244,8 @@ void print_stats(void){
 }
 
 // ------------------------------------------------------------------------
-void print_pmp_ranges(void){
+void print_pmp(void){
 // ------------------------------------------------------------------------
-
 
 	#define TOR   0b00001000
 	#define NA4   0b00010000
@@ -286,13 +288,17 @@ void print_pmp_ranges(void){
 
 		uint64_t start=0, end=0;
 
+		char type[5+1]="";
+
 		if ( (cfg & (TOR | NA4 | NAPOT)) == TOR){
 			start = pmpaddr[i-1]<<2;
 			end =  (pmpaddr[i]<<2) -1;
+			strcpy(type, "TOR");
 
 		} else if ( (cfg & (TOR | NA4 | NAPOT)) == NA4){
 			start = pmpaddr[i]<<2;
 			end =  start+4 -1;
+			strcpy(type, "NA4");
 
 		} else if ( (cfg & (TOR | NA4 | NAPOT)) == NAPOT){
 			for (int j=0; j<__riscv_xlen; j++){
@@ -300,6 +306,7 @@ void print_pmp_ranges(void){
 					const uint64_t size = 1 << (3+j);
 					start = (pmpaddr[i] >>j) <<(j+2);
 					end = start + size -1;
+					strcpy(type, "NAPOT");
 					break;
 				}
 			}
@@ -307,9 +314,9 @@ void print_pmp_ranges(void){
 		} else break;
 
 #if __riscv_xlen==32
-		printf("0x%08x 0x%08x %s \n", (unsigned int)start, (unsigned int)end, rwx);
+		printf("0x%08x 0x%08x %s %s \n", (unsigned int)start, (unsigned int)end, rwx, type);
 #else
-		printf("0x%08" PRIX64 " 0x%08" PRIX64 " %s \n", start, end, rwx);
+		printf("0x%08" PRIX64 " 0x%08" PRIX64 " %s %s \n", start, end, rwx, type);
 #endif
 
 	}
@@ -568,7 +575,7 @@ int main (void) {
 			} else printf("Syntax: timer ms \n");
 
 		} else if (tk1 != NULL && strcmp(tk1, "pmp")==0){
-			print_pmp_ranges();
+			print_pmp();
 
 		} else
 			printf("Commands: load store exec send recv yield pmp stats timer restart \n");
