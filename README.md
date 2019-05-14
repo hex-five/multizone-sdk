@@ -6,6 +6,7 @@ MultiZone Security provides policy-based hardware-enforced separation for an unl
 MultiZone Security SDK supports the following cores / boards:
  - Hex Five X300 - RV32ACIMU Core for Xilinx Arty A7-35T FPGA
  - Andes  N25 - RV32ACIMU Core for GOWIN GW2A-55K FPGA
+ - SiFive E21 - RV32ACIMU Core for Xilinx Arty A7-35T FPGA 
  - SiFive E31 - RV32ACIMU Core for Xilinx Arty A7-35T FPGA
  - SiFIve E51 - RV64ACIMU Core for Xilinx Arty A7-35T FPGA
  - SiFIve S51 - RV64ACIMU Core for Xilinx Arty A7-35T FPGA
