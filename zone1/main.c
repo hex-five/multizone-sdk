@@ -163,83 +163,44 @@ int cmpfunc(const void* a , const void* b){
 void print_stats(void){
 // ------------------------------------------------------------------------
 
-	const int COUNT = 10+1; // odd values for med
-	const int MHZ = CPU_FREQ/1000;
+	#define COUNT (10+1) // odd values for median
+	#define MHZ (CPU_FREQ/1000000)
 
-	int cycles[COUNT], ctxsw_cycle[COUNT], ctxsw_instr[COUNT]; cycles[0]=0; ctxsw_instr[0]=0;
+	int cycles[COUNT];
 
 	for (int i=0, first=1; i<COUNT; i++){
 
-		uint32_t r0, r1, r2;
+		volatile unsigned long C1 = ECALL_CSRR_MCYCLE();
+		ECALL_YIELD();
+		volatile unsigned long C2 = ECALL_CSRR_MCYCLE();
 
-		asm volatile (
+		cycles[i] = C2-C1;
 
-			"   li %1, 150; li %2, 300000;"
-			"   li a0, 6; ecall; mv %0, a0; "
-
-			"0: li a0, 6; ecall;  "
-			"   sub %0, a0, %0; bgeu %0, %1, 2f; "
-			"   addi %2, %2, -1; beqz %2, 1f; "
-			"	mv %0, a0; "
-			"   j 0b; "
-
-			"1: li %0, 0x0;"
-			"2: "
-
-			"li a0, 8; ecall; mv %1, a0; " // mhpmcounter3 (cycle)
-			"li a0, 9; ecall; mv %2, a0; " // mhpmcounter4 (instr)
-
-		: "=r"(r0), "=r"(r1), "=r"(r2) : : "a0", "a1" );
-
-		cycles[i] 	   = (int)r0;
-		ctxsw_cycle[i] = (int)r1;
-		ctxsw_instr[i] = (int)r2;
-
-
-		if (r0==0) break;
-
-		if (first) {first=0; i--;} // ignore 1st reading (cache?)
+		if (first) {first=0; i--;} // ignore 1st reading (prime cache)
 
 	}
 
-	if (cycles[0]>0){
+	int max_cycle = 0; for (int i=0; i<COUNT; i++)
+		max_cycle = cycles[i] > max_cycle ? cycles[i] : max_cycle;
+	char str[16]; sprintf(str, "%lu", max_cycle); const int max_col = strlen(str);
+	for (int i=0; i<COUNT; i++)
+		printf("%*d cycles in %*d us \n", max_col, cycles[i], max_col-2, (int)(cycles[i]/MHZ));
 
-		int max_cycle = 0; for (int i=0; i<COUNT; i++){max_cycle = cycles[i] > max_cycle ? cycles[i] : max_cycle;}
-		char str[16]; sprintf(str, "%d", max_cycle); const int max_col = strlen(str);
-		for (int i=0; i<COUNT; i++)
-			printf("%*d cycles in %*d us \n", max_col, cycles[i], max_col-2, (int)(cycles[i]*1000/MHZ));
+	qsort(cycles, COUNT, sizeof(int), cmpfunc);
 
-		qsort(cycles, COUNT, sizeof(int), cmpfunc);
+	printf("------------------------------------------------\n");
+	int min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
+	printf("cycles  min/med/max = %d/%d/%d \n", min, med, max);
+	printf("time    min/med/max = %d/%d/%d us \n", (int)min/MHZ, (int)med/MHZ, (int)max/MHZ);
 
-		printf("------------------------------------------------\n");
-		int min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
-		printf("cycles  min/med/max = %d/%d/%d \n", min, med, max);
-		printf("time    min/med/max = %d/%d/%d us \n", (int)min*1000/MHZ, (int)med*1000/MHZ, (int)max*1000/MHZ);
-
-	}
-
-	if (ctxsw_cycle[0]>0 && cycles[0]>0){
-
-		qsort(ctxsw_cycle, COUNT, sizeof(int), cmpfunc);
-		qsort(ctxsw_instr, COUNT, sizeof(int), cmpfunc);
-
+	volatile unsigned ctxsw_cycle = ECALL_CSRR_MHPMC3();
+	volatile unsigned ctxsw_instr = ECALL_CSRR_MHPMC4();
+	if (ctxsw_instr>0 && cycles>0){ // mhpmcounters might not be implemented
 		printf("\n");
-
-		int min = ctxsw_instr[0], med = ctxsw_instr[COUNT/2], max = ctxsw_instr[COUNT-1];
-		if (ctxsw_instr[0]>0) printf("ctx sw instr  min/med/max = %d/%d/%d \n", min, med, max);
-
-		min = ctxsw_cycle[0], med = ctxsw_cycle[COUNT/2], max = ctxsw_cycle[COUNT-1];
-		printf("ctx sw cycles min/med/max = %d/%d/%d \n", min, med, max);
-		printf("ctx sw time   min/med/max = %d/%d/%d us \n", (int)min*1000/MHZ, (int)med*1000/MHZ, (int)max*1000/MHZ);
-
-	} else if (ctxsw_cycle[0]>0 && cycles[0]==0){
-
-		if (ctxsw_instr[0]>0) printf("ctx sw instr  = %d \n", ctxsw_instr[0]);
-		printf("ctx sw cycles = %d \n", ctxsw_cycle[0]);
-		printf("ctx sw time   = %d us \n", (int)ctxsw_cycle[0]*1000/MHZ);
+		printf("ctx sw instr  = %lu \n", ctxsw_instr);
+		printf("ctx sw cycles = %lu \n", ctxsw_cycle);
+		printf("ctx sw time   = %d us \n", (int)(ctxsw_cycle/MHZ));
 	}
-
-	if (cycles[0]==0 && ctxsw_instr[0]==0) printf("stats : n/a \n");
 
 }
 
@@ -552,11 +513,11 @@ int main (void) {
 			} else printf("Syntax: recv {1|2|3|4} \n");
 
 		} else if (tk1 != NULL && strcmp(tk1, "yield")==0){
-			uint64_t C1 = ECALL_CSRR_MCYCLE();
+			volatile unsigned long C1 = ECALL_CSRR_MCYCLE();
 			ECALL_YIELD();
-			uint64_t C2 = ECALL_CSRR_MCYCLE();
-			const int T = ((C2-C1)*1000000)/CPU_FREQ;
-			printf( (T>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), T);
+			volatile unsigned long C2 = ECALL_CSRR_MCYCLE();
+			const int TC = (C2-C1)/(CPU_FREQ/1000000);
+			printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
 
 		} else if (tk1 != NULL && strcmp(tk1, "stats")==0){
 			print_stats();

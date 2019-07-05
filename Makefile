@@ -2,22 +2,6 @@
 
 
 #############################################################
-# Toolchain definitions
-#############################################################
-
-ifndef RISCV
-$(error RISCV not set)
-endif
-
-export CROSS_COMPILE := $(abspath $(RISCV))/bin/riscv64-unknown-elf-
-export CC      := $(CROSS_COMPILE)gcc
-export OBJDUMP := $(CROSS_COMPILE)objdump
-export OBJCOPY := $(CROSS_COMPILE)objcopy
-export GDB     := $(CROSS_COMPILE)gdb
-export AR      := $(CROSS_COMPILE)ar
-
-
-#############################################################
 # Platform definitions
 #############################################################
 
@@ -41,7 +25,11 @@ else ifeq ($(BOARD),S51)
 else ifeq ($(BOARD),X300)
 	ARCH := rv32
 	RISCV_ARCH := $(ARCH)imac
-	RISCV_ABI := ilp32	
+	RISCV_ABI := ilp32
+else ifeq ($(BOARD),E902)
+	ARCH := rv32
+	RISCV_ARCH := $(ARCH)emac
+	RISCV_ABI := ilp32e		
 else
 	$(error Unsupported board $(BOARD))
 endif
@@ -54,6 +42,22 @@ endif
 export BOARD
 export RISCV_ARCH
 export RISCV_ABI
+
+
+#############################################################
+# Toolchain definitions
+#############################################################
+
+ifndef RISCV
+$(error RISCV not set)
+endif
+
+export CROSS_COMPILE := $(abspath $(RISCV))/bin/riscv64-unknown-elf-
+export CC      := $(CROSS_COMPILE)gcc
+export OBJDUMP := $(CROSS_COMPILE)objdump
+export OBJCOPY := $(CROSS_COMPILE)objcopy
+export GDB     := $(CROSS_COMPILE)gdb
+export AR      := $(CROSS_COMPILE)ar
 
 
 #############################################################
@@ -106,4 +110,4 @@ GDB_LOAD_CMDS += -ex "quit"
 load:
 	$(OPENOCD) $(OPENOCDARGS) & \
 	$(GDB) multizone.hex $(GDB_LOAD_ARGS) $(GDB_LOAD_CMDS)
-
+	

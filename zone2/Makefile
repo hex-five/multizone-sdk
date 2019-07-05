@@ -12,7 +12,7 @@ C_SRCS += main.c
 
 INCLUDES += -I../libhexfive
 LDFLAGS += -L../libhexfive
-LDFLAGS += $(if $(findstring rv64, $(RISCV_ARCH)), -lhexfive64, -lhexfive32)
+LDFLAGS += $(if $(findstring rv64, $(RISCV_ARCH)), -lhexfive64,  $(if $(findstring rv32e, $(RISCV_ARCH)), -lhexfive32e, -lhexfive32))
 
 include $(NEWLIB_DIR)/newlib.mk
 
