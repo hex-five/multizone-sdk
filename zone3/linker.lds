@@ -38,8 +38,6 @@ SECTIONS {
     *(.gnu.linkonce.r.*)
   } >itim AT>flash
 
-  
-
   .preinit_array  :  ALIGN(8)  {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array))

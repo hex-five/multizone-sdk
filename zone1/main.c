@@ -10,93 +10,57 @@
 #include <platform.h>
 #include <libhexfive.h>
 
-#define CMD_LINE_SIZE 32
-#define MSG_SIZE 4
+__attribute__((interrupt())) void trap_handler(void){
 
-void trap_0x0_handler(void)__attribute__((interrupt("user")));
-void trap_0x0_handler(void){
+	unsigned long mcause = 0; asm volatile("csrr %0, mcause" : "=r"(mcause));
+	unsigned long mepc   = 0; asm volatile("csrr %0, mepc"   : "=r"(mepc));
+	unsigned long mtval  = 0; asm volatile("csrr %0, mtval"  : "=r"(mtval));
 
-	int msg[MSG_SIZE]={0,0,0,0};
-	ECALL_RECV(1, msg);
-	printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
+	char c='\0';
 
-	printf("\nPress any key to restart");
-	char c='\0'; while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+	switch(mcause){
 
-}
+	case 0 : printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 printf("\nPress any key to restart this zone");
+			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+			 break;
 
-void trap_0x1_handler(void)__attribute__((interrupt("user")));
-void trap_0x1_handler(void){
+	case 1 : printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 printf("\nPress any key to restart this zone");
+			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+			 break;
 
-	int msg[MSG_SIZE]={0,0,0,0};
-	ECALL_RECV(1, msg);
-	printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
-	
-	printf("\nPress any key to restart");
-	char c='\0'; while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+	case 2 : printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 printf("\nPress any key to restart this zone");
+			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+			 break;
 
-}
+	case 3 : printf("Breakpoint : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 printf("\nPress any key to restart this zone");
+			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+			 break;
 
-void trap_0x2_handler(void)__attribute__((interrupt("user")));
-void trap_0x2_handler(void){
+	case 4 : printf("Load address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
+			 break;
 
-	int msg[MSG_SIZE]={0,0,0,0};
-	ECALL_RECV(1, msg);
-	printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
+	case 5 : printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
+			 break;
 
-}
+	case 6 : printf("Store/AMO address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
+			 break;
 
-void trap_0x3_handler(void)__attribute__((interrupt("user")));
-void trap_0x3_handler(void){
+	case 7 : printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
+			 break;
 
-	const uint64_t T = ECALL_CSRR_MTIME();
+	default: printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 printf("\nPress any key to restart this zone");
+			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 
-	printf("\e7"); 		// save curs pos
-	printf("\e[r"); 	// scroll all screen
-	printf("\e[2M"); 	// scroll up up
-	printf("\e8");   	// restore curs pos
-	printf("\e[2A"); 	// curs up 2 lines
-	printf("\e[2L"); 	// insert 2 lines
-
-	printf("\rZ1 > timer expired : %lu", (unsigned long)(T*1000/RTC_FREQ));
-
-	printf("\e8");   	// restore curs pos
-
-}
-
-void trap_0x4_handler(void)__attribute__((interrupt("user")));
-void trap_0x4_handler(void){
-
-	int msg[MSG_SIZE]={0,0,0,0};
-	ECALL_RECV(1, msg);
-	printf("Load address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
-
-}
-
-void trap_0x5_handler(void)__attribute__((interrupt("user")));
-void trap_0x5_handler(void){
-
-	int msg[MSG_SIZE]={0,0,0,0};
-	ECALL_RECV(1, msg);
-	printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
-
-}
-
-void trap_0x6_handler(void)__attribute__((interrupt("user")));
-void trap_0x6_handler(void){
-
-	int msg[MSG_SIZE]={0,0,0,0};
-	ECALL_RECV(1, msg);
-	printf("Store/AMO address misaligned : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
-
-}
-
-void trap_0x7_handler(void)__attribute__((interrupt("user")));
-void trap_0x7_handler(void){
-
-	int msg[MSG_SIZE]={0,0,0,0};
-	ECALL_RECV(1, msg);
-	printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2]);
+	}
 
 }
 
@@ -105,31 +69,28 @@ void print_cpu_info(void) {
 // ------------------------------------------------------------------------
 
 	// misa
-	uint64_t misa = 0x0; asm volatile("csrr %0, misa" : "=r"(misa)); // trap & emulate example
-	//const uint64_t misa = ECALL_CSRR_MISA();
-
+	const unsigned long misa = CSRR(misa);
 	const int xlen = ((misa >> __riscv_xlen-2)&0b11)==1 ?  32 :
 					 ((misa >> __riscv_xlen-2)&0b11)==2 ?  64 :
-					 ((misa >> __riscv_xlen-2)&0b11)==1 ? 128 : 0;
-
+					 ((misa >> __riscv_xlen-2)&0b11)==1 ? 128 :
+							 	 	 	 	 	 	 	 	0 ;
 	char misa_str[26+1]="";
 	for (int i=0, j=0; i<26; i++)
 		if ( (misa & (1ul << i)) !=0){
 			misa_str[j++]=(char)('A'+i); misa_str[j]='\0';
 		}
-
 	printf("Machine ISA   : 0x%08x RV%d %s \n", (int)misa, xlen, misa_str);
 
-	// mvendorid
-	const uint64_t mvendorid = ECALL_CSRR_MVENDID();
+	// mvendid
+	const unsigned long  mvendorid = CSRR(mvendorid);
 	const char *mvendorid_str = (mvendorid==0x10e31913 ? "SiFive, Inc.\0" :
-						         mvendorid==0x489      ? "SiFive, Inc.\0" :
-								 mvendorid==0x57c      ? "Hex Five, Inc.\0" :
-												         "\0");
+							     mvendorid==0x489      ? "SiFive, Inc.\0" :
+							     mvendorid==0x57c      ? "Hex Five, Inc.\0" :
+							    		 	 	 	 	 "\0");
 	printf("Vendor        : 0x%08x %s \n", (int)mvendorid, mvendorid_str);
 
 	// marchid
-	const uint64_t marchid = ECALL_CSRR_MARCHID();
+	const unsigned long  marchid = CSRR(marchid);
 	const char *marchid_str = (mvendorid==0x489 && (int)misa==0x40101105    && marchid==0x80000002 ? "E21\0"  :
 							   mvendorid==0x489 && (int)misa==0x40101105    && marchid==0x00000001 ? "E31\0"  :
 						       mvendorid==0x489 && misa==0x8000000000101105 && marchid==0x00000001 ? "S51\0"  :
@@ -138,21 +99,21 @@ void print_cpu_info(void) {
 	printf("Architecture  : 0x%08x %s \n", (int)marchid, marchid_str);
 
 	// mimpid
-	const uint64_t mimpid = ECALL_CSRR_MIMPID();
-	printf("Implementation: 0x%08x \n", (int)mimpid );
+	printf("Implementation: 0x%08x \n", CSRR(mimpid) );
 
 	// mhartid
-	const uint64_t mhartid = ECALL_CSRR_MHARTID();
-	printf("Hart ID       : 0x%08x \n", (int)mhartid );
+	printf("Hart id       : 0x%1x \n", CSRR(mhartid) );
 
-	// CPU Clock
-	const int cpu_clk = round(CPU_FREQ/1E+6);
-	printf("CPU clock     : %d MHz \n", cpu_clk );
+	// CPU clk
+	printf("CPU clock     : %d MHz \n", (int)(CPU_FREQ/1E+6) );
+
+	// RTC clk
+	printf("RTC clock     : %d KHz \n", (int)(RTC_FREQ/1E+3) );
 
 }
 
 // ------------------------------------------------------------------------
-int cmpfunc(const void* a , const void* b){
+int cmpfunc(const void* a, const void* b){
 // ------------------------------------------------------------------------
     const int ai = *(const int* )a;
     const int bi = *(const int* )b;
@@ -170,13 +131,13 @@ void print_stats(void){
 
 	for (int i=0, first=1; i<COUNT; i++){
 
-		volatile unsigned long C1 = ECALL_CSRR_MCYCLE();
+		volatile unsigned long C1 = CSRR(cycle);
 		ECALL_YIELD();
-		volatile unsigned long C2 = ECALL_CSRR_MCYCLE();
+		volatile unsigned long C2 = CSRR(cycle);
 
 		cycles[i] = C2-C1;
 
-		if (first) {first=0; i--;} // ignore 1st reading (prime cache)
+		//if (first) {first=0; i--;} // ignore 1st reading (prime cache)
 
 	}
 
@@ -193,8 +154,8 @@ void print_stats(void){
 	printf("cycles  min/med/max = %d/%d/%d \n", min, med, max);
 	printf("time    min/med/max = %d/%d/%d us \n", (int)min/MHZ, (int)med/MHZ, (int)max/MHZ);
 
-	volatile unsigned ctxsw_cycle = ECALL_CSRR_MHPMC3();
-	volatile unsigned ctxsw_instr = ECALL_CSRR_MHPMC4();
+	volatile unsigned ctxsw_cycle = CSRR(mhpmcounter3);
+	volatile unsigned ctxsw_instr = CSRR(mhpmcounter4);
 	if (ctxsw_instr>0 && cycles>0){ // mhpmcounters might not be implemented
 		printf("\n");
 		printf("ctx sw instr  = %lu \n", ctxsw_instr);
@@ -285,8 +246,11 @@ void print_pmp(void){
 }
 
 // ------------------------------------------------------------------------
- int readline(char *cmd_line) {
+int readline(char *cmd_line) {
 // ------------------------------------------------------------------------
+
+	#define CMD_LINE_SIZE 32
+
 	int p=0;
 	char c='\0';
 	int esc=0;
@@ -364,7 +328,7 @@ void print_pmp(void){
 		}
 
 		// poll & print incoming messages
-		int msg[MSG_SIZE]={0,0,0,0};
+		int msg[4]={0,0,0,0};
 
 		if (ECALL_RECV(3, msg)){
 
@@ -427,14 +391,7 @@ int main (void) {
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
 
-	ECALL_TRP_VECT(0x0, trap_0x0_handler); // 0x0 Instruction address misaligned
-	ECALL_TRP_VECT(0x1, trap_0x1_handler); // 0x1 Instruction access fault
-	ECALL_TRP_VECT(0x2, trap_0x2_handler); // 0x2 Illegal Instruction
-	ECALL_TRP_VECT(0x3, trap_0x3_handler); // 0x3 Soft timer
-    ECALL_TRP_VECT(0x4, trap_0x4_handler); // 0x4 Load address misaligned
-    ECALL_TRP_VECT(0x5, trap_0x5_handler); // 0x5 Load access fault
-    ECALL_TRP_VECT(0x6, trap_0x6_handler); // 0x6 Store/AMO address misaligned
-	ECALL_TRP_VECT(0x7, trap_0x7_handler); // 0x7 Store access fault
+	CSRW(mtvec, trap_handler); // register trap handler
 
 	open("UART", 0, 0);
 
@@ -453,7 +410,7 @@ int main (void) {
     print_cpu_info();
 
 	char cmd_line[CMD_LINE_SIZE+1]="";
-	int msg[MSG_SIZE]={0,0,0,0};
+	int msg[4]={0,0,0,0};
 
 	while(1){
 
@@ -467,18 +424,24 @@ int main (void) {
 		char * tk2 = strtok (NULL, " ");
 		char * tk3 = strtok (NULL, " ");
 
-		if (tk1 != NULL && strcmp(tk1, "load")==0){
+		if (tk1 == NULL) tk1 = "help";
+
+		// --------------------------------------------------------------------
+		if (strcmp(tk1, "load")==0){
+		// --------------------------------------------------------------------
 			if (tk2 != NULL){
 				uint8_t data = 0x00;
-				const uint64_t addr = strtoull(tk2, NULL, 16);
+				const unsigned long addr = strtoull(tk2, NULL, 16);
 				asm ("lbu %0, (%1)" : "+r"(data) : "r"(addr));
 				printf("0x%08x : 0x%02x \n", (unsigned int)addr, data);
 			} else printf("Syntax: load address \n");
 
-		} else if (tk1 != NULL && strcmp(tk1, "store")==0){
+		// --------------------------------------------------------------------
+		} else if (strcmp(tk1, "store")==0){
+		// --------------------------------------------------------------------
 			if (tk2 != NULL && tk3 != NULL){
 				const uint32_t data = (uint32_t)strtoul(tk3, NULL, 16);
-				const uint64_t addr = strtoull(tk2, NULL, 16);
+				const unsigned long addr = strtoull(tk2, NULL, 16);
 
 				if ( strlen(tk3) <=2 )
 					asm ( "sb %0, (%1)" : : "r"(data), "r"(addr));
@@ -490,21 +453,27 @@ int main (void) {
 				printf("0x%08x : 0x%02x \n", (unsigned int)addr, (unsigned int)data);
 			} else printf("Syntax: store address data \n");
 
-		} else if (tk1 != NULL && strcmp(tk1, "exec")==0){
+		// --------------------------------------------------------------------
+		} else if (strcmp(tk1, "exec")==0){
+		// --------------------------------------------------------------------
 			if (tk2 != NULL){
-				const uint64_t addr = strtoull(tk2, NULL, 16);
-			    asm ( "jr (%0)" : : "r"(addr));
-		} else printf("Syntax: exec address \n");
+				const unsigned long addr = strtoull(tk2, NULL, 16);
+				asm ( "jr (%0)" : : "r"(addr));
+			} else printf("Syntax: exec address \n");
 
-		} else if (tk1 != NULL && strcmp(tk1, "send")==0){
+		// --------------------------------------------------------------------
+		} else if (strcmp(tk1, "send")==0){
+		// --------------------------------------------------------------------
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
-				for (int i=0; i<MSG_SIZE; i++)
+				for (int i=0; i<4; i++)
 					msg[i] = i<strlen(tk3) ? (unsigned int)*(tk3+i) : 0x0;
 				if (!ECALL_SEND(tk2[0]-'0', msg))
 					printf("Error: Inbox full.\n");
 			} else printf("Syntax: send {1|2|3|4} message \n");
 
-		} else if (tk1 != NULL && strcmp(tk1, "recv")==0){
+		// --------------------------------------------------------------------
+		} else if (strcmp(tk1, "recv")==0){
+		// --------------------------------------------------------------------
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
 				if (ECALL_RECV(tk2[0]-'0', msg))
 					printf("msg : 0x%08x 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2], msg[3]);
@@ -512,20 +481,18 @@ int main (void) {
 					printf("Error: Inbox empty.\n");
 			} else printf("Syntax: recv {1|2|3|4} \n");
 
-		} else if (tk1 != NULL && strcmp(tk1, "yield")==0){
-			volatile unsigned long C1 = ECALL_CSRR_MCYCLE();
+		// --------------------------------------------------------------------
+		} else if (strcmp(tk1, "yield")==0){
+		// --------------------------------------------------------------------
+			volatile unsigned long C1 = CSRR(cycle);
 			ECALL_YIELD();
-			volatile unsigned long C2 = ECALL_CSRR_MCYCLE();
+			volatile unsigned long C2 = CSRR(cycle);
 			const int TC = (C2-C1)/(CPU_FREQ/1000000);
 			printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
 
-		} else if (tk1 != NULL && strcmp(tk1, "stats")==0){
-			print_stats();
-
-		} else if (tk1 != NULL && strcmp(tk1, "restart")==0){
-			asm ("j _start");
-
-		} else if (tk1 != NULL && strcmp(tk1, "timer")==0){
+		// --------------------------------------------------------------------
+		} else if (strcmp(tk1, "timer")==0){
+		// --------------------------------------------------------------------
 			if (tk2 != NULL){
 				const uint64_t ms = abs(strtoull(tk2, NULL, 10));
 				const uint64_t T0 = ECALL_CSRR_MTIME();
@@ -535,11 +502,26 @@ int main (void) {
 													  (unsigned long)(T1*1000/RTC_FREQ) );
 			} else printf("Syntax: timer ms \n");
 
-		} else if (tk1 != NULL && strcmp(tk1, "pmp")==0){
-			print_pmp();
+		// --------------------------------------------------------------------
+		} else if (strcmp(tk1, "stats")==0)	print_stats();
+		// --------------------------------------------------------------------
 
-		} else
-			printf("Commands: load store exec send recv yield pmp stats timer restart \n");
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "restart")==0) asm ("j _start");
+		// --------------------------------------------------------------------
+
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "pmp")==0) print_pmp();
+		// --------------------------------------------------------------------
+
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "rdtime")==0){
+			const unsigned long time = CSRR(time);
+			printf("0x%08x \n", (unsigned int)time);
+		}
+		// --------------------------------------------------------------------
+
+		else printf("Commands: load store exec send recv yield pmp stats timer restart \n");
 
 	}
 

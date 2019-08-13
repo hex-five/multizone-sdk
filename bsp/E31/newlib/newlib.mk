@@ -31,7 +31,7 @@ CFLAGS += -mabi=$(RISCV_ABI)
 CFLAGS += -mcmodel=medany
 CFLAGS += -msmall-data-limit=8
 CFLAGS += -mdiv
-CFLAGS += -O1
+CFLAGS += -Os
 
 HEX = $(subst .elf,.hex,$(TARGET))
 LST = $(subst .elf,.lst,$(TARGET))

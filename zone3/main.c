@@ -60,14 +60,14 @@ int main (void){
 
 	GPIO_REG(GPIO_INPUT_EN)  |= (0x1 << SPI_TDI);
 	GPIO_REG(GPIO_PULLUP_EN) |= (0x1 << SPI_TDI);
-	GPIO_REG(GPIO_OUTPUT_EN) |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO) | LED_RED | LED_GREEN | LED_BLUE);
+	GPIO_REG(GPIO_OUTPUT_EN) |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO) | (0x1 << LED_RED) | (0x1 << LED_GREEN));
     GPIO_REG(GPIO_DRIVE)     |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO)) ;
 
 	#define CMD_STOP  ((uint8_t[]){0x00, 0x00, 0x00})
 	#define CMD_DUMMY ((uint8_t[]){0xFF, 0xFF, 0xFF})
 	#define CMD_TIME  RTC_FREQ*250/1000 // 250ms
 	#define PING_TIME RTC_FREQ // 1000ms
-	#define SYS_TIME  RTC_REG(RTC_MTIME)
+	#define SYS_TIME  CLINT_REG(CLINT_MTIME)
 	#define LED_ON_TIME  RTC_FREQ*20/1000 //  50ms
 	#define LED_OFF_TIME RTC_FREQ 		  // 950ms
 
@@ -119,19 +119,20 @@ int main (void){
 	    	ping_timer = SYS_TIME + PING_TIME;
 	    }
 
-	    // Update USB state (0xFFFFFFFF no spi/usb adapter)
+	    // Update USB state
 	    if (rx_data != usb_state){
 
-	    	if (rx_data==0x12670000 && usb_state==0x0){
+	    	usb_state=rx_data;
+
+	    	if (rx_data==0x12670000){
 	    		LED = LED_GREEN;
 	    		ECALL_SEND(1, ((int[]){1,0,0,0}));
-	    	} else if (rx_data==0x0 && usb_state==0x12670000){
+	    	} else {
 	    		LED = LED_RED;
 	    		ECALL_SEND(1, ((int[]){2,0,0,0}));
 	    		owi_task_stop_request();
 	    	}
 
-	    	usb_state=rx_data;
 	    }
 
 		// OWI sequence
