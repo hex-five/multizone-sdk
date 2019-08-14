@@ -7,10 +7,12 @@
 #define RTC_FREQ 	   32833
 
 // -----------------------------------------------------------------------------
-// RTC (MTIME)
+// RTC (CLINT)
 // -----------------------------------------------------------------------------
-#define RTC_BASE	0x02000000
-#define RTC_MTIME	    0xBFF8
+#define CLINT_BASE	0x02000000
+#define CLINT_MSIP	    0x0000
+#define CLINT_MTIMECMP  0x4000
+#define CLINT_MTIME	    0xBFF8
 
 
 // -----------------------------------------------------------------------------
@@ -116,7 +118,7 @@
 #define _REG32(base, offset) (*(volatile uint32_t *)((base) + (offset)))
 #define _REG16(base, offset) (*(volatile uint16_t *)((base) + (offset)))
 
-#define RTC_REG(offset)  _REG64(RTC_BASE, offset)
+#define CLINT_REG(offset)  _REG64(CLINT_BASE, offset)
 #define GPIO_REG(offset) _REG32(GPIO_BASE, offset)
 #define PWM_REG(offset)  _REG32(PWM_BASE, offset)
 #define UART_REG(offset) _REG32(UART_BASE, offset)

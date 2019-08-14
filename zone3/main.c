@@ -119,20 +119,19 @@ int main (void){
 	    	ping_timer = SYS_TIME + PING_TIME;
 	    }
 
-	    // Update USB state
+	    // Update USB state (0xFFFFFFFF no spi/usb adapter)
 	    if (rx_data != usb_state){
 
-	    	usb_state=rx_data;
-
-	    	if (rx_data==0x12670000){
+	    	if (rx_data==0x12670000 && usb_state==0x0){
 	    		LED = LED_GREEN;
 	    		ECALL_SEND(1, ((int[]){1,0,0,0}));
-	    	} else {
+	    	} else if (rx_data==0x0 && usb_state==0x12670000){
 	    		LED = LED_RED;
 	    		ECALL_SEND(1, ((int[]){2,0,0,0}));
 	    		owi_task_stop_request();
 	    	}
 
+	    	usb_state=rx_data;
 	    }
 
 		// OWI sequence
