@@ -47,12 +47,11 @@ int ECALL_RECV(int, void *);
 
 //void ECALL_TRP_VECT(int, void *);
 //void ECALL_IRQ_VECT(int, void *);
-
-uint64_t ECALL_CSRR_MTIME();
-uint64_t ECALL_CSRR_MCYCLE();
-uint64_t ECALL_CSRR_MINSTR();
-uint64_t ECALL_CSRR_MHPMC3();
-uint64_t ECALL_CSRR_MHPMC4();
+//uint64_t ECALL_CSRR_MTIME();
+//uint64_t ECALL_CSRR_MCYCLE();
+//uint64_t ECALL_CSRR_MINSTR();
+//uint64_t ECALL_CSRR_MHPMC3();
+//uint64_t ECALL_CSRR_MHPMC4();
 
 void ECALL_CSRW_MTIMECMP(uint64_t);
 

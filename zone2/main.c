@@ -23,8 +23,8 @@ __attribute__((interrupt())) void button_0_handler(void) { // global interrupt
 
 	LD1_GRN_ON; LD1_RED_OFF; LD1_BLU_OFF;
 
-	const uint64_t T1 = ECALL_CSRR_MTIME() + 3*RTC_FREQ;
-	while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
+	volatile unsigned long T1 = CSRR(time) + 3*RTC_FREQ;
+	while (CSRR(time) < T1) ECALL_YIELD();
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -39,8 +39,8 @@ __attribute__((interrupt())) void button_1_handler(void) { // local interrupt
 
 	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 
-	const uint64_t T1 = ECALL_CSRR_MTIME() + 3*RTC_FREQ;
-	while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
+	volatile unsigned long T1 = CSRR(time) + 3*RTC_FREQ;
+	while (CSRR(time) < T1) ECALL_YIELD();
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -53,8 +53,8 @@ __attribute__((interrupt())) void button_2_handler(void) { // local interrupt
 
 	LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
 
-	const uint64_t T1 = ECALL_CSRR_MTIME() + 3*RTC_FREQ;
-	while (ECALL_CSRR_MTIME() < T1) ECALL_YIELD();
+	volatile unsigned long T1 = CSRR(time) + 3*RTC_FREQ;
+	while (CSRR(time) < T1) ECALL_YIELD();
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -196,10 +196,9 @@ int main (void){
 
 	while(1){
 
-		const uint64_t T1 = CLINT_REG(CLINT_MTIME) + 12*RTC_FREQ/1000;
-		//const unsigned long TL = CSRR(time);
+		volatile unsigned long T1 = CSRR(time) + 12*RTC_FREQ/1000;
 
-		while (CLINT_REG(CLINT_MTIME) < T1)	ECALL_YIELD();
+		while (CSRR(time) < T1)	ECALL_YIELD();
 
 		if (r > 0 && b == 0) {r--; g++;}
 		if (g > 0 && r == 0) {g--; b++;}

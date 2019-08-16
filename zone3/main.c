@@ -67,16 +67,18 @@ int main (void){
 	#define CMD_DUMMY ((uint8_t[]){0xFF, 0xFF, 0xFF})
 	#define CMD_TIME  RTC_FREQ*250/1000 // 250ms
 	#define PING_TIME RTC_FREQ // 1000ms
-	#define SYS_TIME  CLINT_REG(CLINT_MTIME)
 	#define LED_ON_TIME  RTC_FREQ*20/1000 //  50ms
 	#define LED_OFF_TIME RTC_FREQ 		  // 950ms
 
 
-	uint64_t cmd_timer=0, ping_timer=0, led_timer=0;
+	volatile unsigned long sys_time;
+	unsigned long cmd_timer=0, ping_timer=0, led_timer=0;
 	uint32_t rx_data = 0, usb_state = 0;
 	int LED = LED_RED;
 
 	while(1){
+
+		sys_time = CSRR(time);
 
 		int msg[4]={0,0,0,0}; ECALL_RECV(1, msg);
 
@@ -101,22 +103,22 @@ int main (void){
 
 			if ( cmd[0] + cmd[1] + cmd[2] != 0 ){
 				rx_data = spi_rw(cmd);
-				cmd_timer = SYS_TIME + CMD_TIME;
-				ping_timer = SYS_TIME + PING_TIME;
+				cmd_timer = sys_time + CMD_TIME;
+				ping_timer = sys_time + PING_TIME;
 			}
 		}
 
 		// auto stop manual commands after CMD_TIME
-	    if (cmd_timer >0 && SYS_TIME > cmd_timer){
+	    if (cmd_timer >0 && sys_time > cmd_timer){
 	    	rx_data = spi_rw(CMD_STOP);
 	    	cmd_timer=0;
-	    	ping_timer = SYS_TIME + PING_TIME;
+	    	ping_timer = sys_time + PING_TIME;
 	    }
 
 	    // Detect USB state every 1sec
-	    if (SYS_TIME > ping_timer){
+	    if (sys_time > ping_timer){
 	    	rx_data = spi_rw(CMD_DUMMY);
-	    	ping_timer = SYS_TIME + PING_TIME;
+	    	ping_timer = sys_time + PING_TIME;
 	    }
 
 	    // Update USB state (0xFFFFFFFF no spi/usb adapter)
@@ -144,10 +146,10 @@ int main (void){
 				case '0' : owi_task_stop_request(); break;
 	    	}
 
-			int32_t cmd = owi_task_run(SYS_TIME);
+			int32_t cmd = owi_task_run(sys_time);
 			if ( cmd != -1){
 				rx_data = spi_rw((uint8_t[]){(uint8_t)cmd, (uint8_t)(cmd>>8), (uint8_t)(cmd>>16)});
-				ping_timer = SYS_TIME + PING_TIME;
+				ping_timer = sys_time + PING_TIME;
 			}
 
 	    }
@@ -159,18 +161,18 @@ int main (void){
 	    else if (msg[0]=='b' && msg[1]=='l' && msg[2]=='u' && msg[3]=='e') LED = LED_BLUE;
 
         // LED blink
-	    if (SYS_TIME > led_timer){
+	    if (sys_time > led_timer){
 
 	    	if ( GPIO_REG(GPIO_OUTPUT_VAL) & (LED_RED | LED_GREEN | LED_BLUE) ) {
 	    		// ON => OFF
 	        	GPIO_REG(GPIO_OUTPUT_VAL) &= ~(LED_RED | LED_GREEN | LED_BLUE);
-	    		led_timer = SYS_TIME + LED_OFF_TIME;
+	    		led_timer = sys_time + LED_OFF_TIME;
 
 	    	} else {
 	    		// OFF => ON
 	        	GPIO_REG(GPIO_OUTPUT_VAL) &= ~(LED_RED | LED_GREEN | LED_BLUE);
 	    		GPIO_REG(GPIO_OUTPUT_VAL) |= LED;
-	    		led_timer = SYS_TIME + LED_ON_TIME;
+	    		led_timer = sys_time + LED_ON_TIME;
 	    	}
 
 	    }

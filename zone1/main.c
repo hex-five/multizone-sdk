@@ -137,8 +137,6 @@ void print_stats(void){
 
 		cycles[i] = C2-C1;
 
-		//if (first) {first=0; i--;} // ignore 1st reading (prime cache)
-
 	}
 
 	int max_cycle = 0; for (int i=0; i<COUNT; i++)
@@ -490,7 +488,7 @@ int main (void) {
 			const int TC = (C2-C1)/(CPU_FREQ/1000000);
 			printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
 
-		// --------------------------------------------------------------------
+/*		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "timer")==0){
 		// --------------------------------------------------------------------
 			if (tk2 != NULL){
@@ -500,7 +498,7 @@ int main (void) {
 				ECALL_CSRW_MTIMECMP(T1);
 				printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 													  (unsigned long)(T1*1000/RTC_FREQ) );
-			} else printf("Syntax: timer ms \n");
+			} else printf("Syntax: timer ms \n");*/
 
 		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "stats")==0)	print_stats();
@@ -515,16 +513,7 @@ int main (void) {
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "rdtime")==0){
-			const unsigned long time = CSRR(time);
-			printf("0x%08x \n", (unsigned int)time);
-		}
-
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "csrw")==0){
-			CSRW(time, 32);
-		}
-
+		else if (strcmp(tk1, "rdtime")==0) printf("%lu \n", CSRR(time));
 		// --------------------------------------------------------------------
 
 		else printf("Commands: load store exec send recv yield pmp stats timer restart \n");
