@@ -197,6 +197,7 @@ int main (void){
 	while(1){
 
 		const uint64_t T1 = CLINT_REG(CLINT_MTIME) + 12*RTC_FREQ/1000;
+		//const unsigned long TL = CSRR(time);
 
 		while (CLINT_REG(CLINT_MTIME) < T1)	ECALL_YIELD();
 

@@ -519,6 +519,12 @@ int main (void) {
 			const unsigned long time = CSRR(time);
 			printf("0x%08x \n", (unsigned int)time);
 		}
+
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "csrw")==0){
+			CSRW(time, 32);
+		}
+
 		// --------------------------------------------------------------------
 
 		else printf("Commands: load store exec send recv yield pmp stats timer restart \n");
