@@ -70,7 +70,6 @@ int main (void){
 	#define LED_ON_TIME  RTC_FREQ*20/1000 //  50ms
 	#define LED_OFF_TIME RTC_FREQ 		  // 950ms
 
-
 	volatile unsigned long sys_time;
 	unsigned long cmd_timer=0, ping_timer=0, led_timer=0;
 	uint32_t rx_data = 0, usb_state = 0;
