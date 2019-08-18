@@ -325,6 +325,7 @@ int readline(char *cmd_line) {
 				esc=0;
 		}
 
+/*
 		// poll & print incoming messages
 		int msg[4]={0,0,0,0};
 
@@ -368,7 +369,9 @@ int readline(char *cmd_line) {
 			write(1, "\e[2B", 4); // curs down down
 		}
 
+*/
 		ECALL_YIELD();
+
 
 	}
 
@@ -389,7 +392,7 @@ int main (void) {
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
 
-	CSRW(mtvec, trap_handler); // register trap handler
+	//CSRW(mtvec, trap_handler); // register trap handler
 
 	open("UART", 0, 0);
 
@@ -405,7 +408,7 @@ int main (void) {
 	printf("not have these restrictions.                                         \n");
 	printf("=====================================================================\n");
 
-    print_cpu_info();
+    //print_cpu_info();
 
 	char cmd_line[CMD_LINE_SIZE+1]="";
 	int msg[4]={0,0,0,0};
