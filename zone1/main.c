@@ -56,6 +56,10 @@ __attribute__((interrupt())) void trap_handler(void){
 	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
 			 break;
 
+	case 8 : printf("Environment call from U-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
+			 break;
+
 	default: printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 			 printf("\nPress any key to restart this zone");
 			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
@@ -370,7 +374,7 @@ int readline(char *cmd_line) {
 		}
 
 */
-		ECALL_YIELD();
+		//ECALL_YIELD();
 
 
 	}
@@ -408,7 +412,7 @@ int main (void) {
 	printf("not have these restrictions.                                         \n");
 	printf("=====================================================================\n");
 
-    //print_cpu_info();
+    print_cpu_info();
 
 	char cmd_line[CMD_LINE_SIZE+1]="";
 	int msg[4]={0,0,0,0};
@@ -517,6 +521,10 @@ int main (void) {
 
 		// --------------------------------------------------------------------
 		else if (strcmp(tk1, "rdtime")==0) printf("%lu \n", CSRR(time));
+		// --------------------------------------------------------------------
+
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "test")==0) asm ( "csrw misa, 0x0");
 		// --------------------------------------------------------------------
 
 		else printf("Commands: load store exec send recv yield pmp stats timer restart \n");
