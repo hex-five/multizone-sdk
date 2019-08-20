@@ -396,7 +396,7 @@ int main (void) {
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
 
-	//CSRW(mtvec, trap_handler); // register trap handler
+	CSRW(mtvec, trap_handler); // register trap handler
 
 	open("UART", 0, 0);
 
