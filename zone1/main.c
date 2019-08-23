@@ -3,40 +3,38 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <math.h> // round()
+#include <fcntl.h>	// open()
 
 #include <platform.h>
 #include <libhexfive.h>
 
 __attribute__((interrupt())) void trap_handler(void){
 
-	unsigned long mcause = 0; asm volatile("csrr %0, mcause" : "=r"(mcause));
-	unsigned long mepc   = 0; asm volatile("csrr %0, mepc"   : "=r"(mepc));
-	unsigned long mtval  = 0; asm volatile("csrr %0, mtval"  : "=r"(mtval));
+	const unsigned long mcause = CSRR(mcause);	//asm volatile("csrr %0, mcause" : "=r"(mcause));
+	const unsigned long mepc   = CSRR(mepc); 	//asm volatile("csrr %0, mepc"   : "=r"(mepc));
+	const unsigned long mtval  = CSRR(mtval);	//asm volatile("csrr %0, mtval"  : "=r"(mtval));
 
 	char c='\0';
 
 	switch(mcause){
 
 	case 0 : printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-			 printf("\nPress any key to restart this zone");
+ 	 	 	 printf("Press any key to restart this zone \n");
 			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 			 break;
 
 	case 1 : printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-			 printf("\nPress any key to restart this zone");
+ 	 	 	 printf("Press any key to restart this zone \n");
 			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 			 break;
 
 	case 2 : printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-			 printf("\nPress any key to restart this zone");
+ 	 	 	 printf("Press any key to restart this zone \n");
 			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 			 break;
 
 	case 3 : printf("Breakpoint : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-			 printf("\nPress any key to restart this zone");
+	 	 	 printf("Press any key to restart this zone \n");
 			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 			 break;
 
@@ -61,7 +59,7 @@ __attribute__((interrupt())) void trap_handler(void){
 			 break;
 
 	default: printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-			 printf("\nPress any key to restart this zone");
+			 printf("Press any key to restart this zone \n");
 			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 
 	}
@@ -147,14 +145,14 @@ void print_stats(void){
 		max_cycle = cycles[i] > max_cycle ? cycles[i] : max_cycle;
 	char str[16]; sprintf(str, "%lu", max_cycle); const int max_col = strlen(str);
 	for (int i=0; i<COUNT; i++)
-		printf("%*d cycles in %*d us \n", max_col, cycles[i], max_col-2, (int)(cycles[i]/MHZ));
+		printf("%*d cycles in %*d us \n", max_col, cycles[i], max_col-2, cycles[i]/MHZ);
 
 	qsort(cycles, COUNT, sizeof(int), cmpfunc);
 
 	printf("------------------------------------------------\n");
 	int min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
 	printf("cycles  min/med/max = %d/%d/%d \n", min, med, max);
-	printf("time    min/med/max = %d/%d/%d us \n", (int)min/MHZ, (int)med/MHZ, (int)max/MHZ);
+	printf("time    min/med/max = %d/%d/%d us \n", min/MHZ, med/MHZ, max/MHZ);
 
 	volatile unsigned ctxsw_cycle = CSRR(mhpmcounter3);
 	volatile unsigned ctxsw_instr = CSRR(mhpmcounter4);
@@ -374,7 +372,7 @@ int readline(char *cmd_line) {
 		}
 
 */
-		//ECALL_YIELD();
+		ECALL_YIELD();
 
 
 	}
@@ -520,11 +518,7 @@ int main (void) {
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "rdtime")==0) printf("%lu \n", CSRR(time));
-		// --------------------------------------------------------------------
-
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "test")==0) asm ( "csrw misa, 0x0");
+		else if (strcmp(tk1, "test")==0) asm ("rdtime x0");
 		// --------------------------------------------------------------------
 
 		else printf("Commands: load store exec send recv yield pmp stats timer restart \n");

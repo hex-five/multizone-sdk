@@ -166,7 +166,7 @@ static const void (* trap_vector[32])(void) __attribute__((aligned(64))) = {
 
 int main (void){
 
-  volatile int w=0; while(1){w++;}
+  //volatile int w=0; while(1){w++;}
   //while(1) ECALL_YIELD();
 
   // vectored trap handler
@@ -196,9 +196,9 @@ int main (void){
 
 	while(1){
 
-		volatile unsigned long T1 = CSRR(time) + 12*RTC_FREQ/1000;
+		volatile uint64_t T1 = CLINT_REG(CLINT_MTIME) + 12*RTC_FREQ/1000;
 
-		while (CSRR(time) < T1)	ECALL_YIELD();
+		while (CLINT_REG(CLINT_MTIME) < T1)	ECALL_YIELD();
 
 		if (r > 0 && b == 0) {r--; g++;}
 		if (g > 0 && r == 0) {g--; b++;}
