@@ -56,7 +56,7 @@ uint32_t spi_rw(uint8_t cmd[]){
 int main (void){
 
 	//volatile int w=0; while(1){w++;}
-	//while(1) ECALL_YIELD();
+	while(1) ECALL_YIELD();
 
 	GPIO_REG(GPIO_INPUT_EN)  |= (0x1 << SPI_TDI);
 	GPIO_REG(GPIO_PULLUP_EN) |= (0x1 << SPI_TDI);

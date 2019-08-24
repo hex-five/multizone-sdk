@@ -1,8 +1,10 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
+#include <unistd.h>  // NULL
 #include <platform.h>
 #include <plic_driver.h>
 #include <libhexfive.h>
+
 
 #define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x00;
 #define LD1_GRN_ON PWM_REG(PWM_CMP2)  = 0x00;
@@ -167,7 +169,7 @@ static const void (* trap_vector[32])(void) __attribute__((aligned(64))) = {
 int main (void){
 
   //volatile int w=0; while(1){w++;}
-  //while(1) ECALL_YIELD();
+  while(1) ECALL_YIELD();
 
   // vectored trap handler
   CSRW(mtvec, ((unsigned long)trap_vector) | 1UL);

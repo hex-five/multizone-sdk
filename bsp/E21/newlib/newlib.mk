@@ -30,7 +30,6 @@ CFLAGS += -march=$(RISCV_ARCH)
 CFLAGS += -mabi=$(RISCV_ABI)
 CFLAGS += -mcmodel=medany
 CFLAGS += -msmall-data-limit=8
-CFLAGS += -mdiv
 CFLAGS += -O2
 
 HEX = $(subst .elf,.hex,$(TARGET))

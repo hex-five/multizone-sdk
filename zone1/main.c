@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>	// open()
+#include <unistd.h> // read() NULL
 
 #include <platform.h>
 #include <libhexfive.h>
@@ -236,7 +237,7 @@ void print_pmp(void){
 		} else break;
 
 #if __riscv_xlen==32
-		printf("0x%08x 0x%08x %s %s \n", (unsigned int)start, (unsigned int)end, rwx, type);
+		printf("0x%08x 0x%08x %s %s \n", (unsigned long)start, (unsigned int)end, rwx, type);
 #else
 		printf("0x%08" PRIX64 " 0x%08" PRIX64 " %s %s \n", start, end, rwx, type);
 #endif
@@ -518,7 +519,7 @@ int main (void) {
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "test")==0) asm ("rdtime x0");
+		else if (strcmp(tk1, "test")==0) asm ("uret");
 		// --------------------------------------------------------------------
 
 		else printf("Commands: load store exec send recv yield pmp stats timer restart \n");
