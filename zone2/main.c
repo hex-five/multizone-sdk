@@ -169,7 +169,7 @@ static const void (* trap_vector[32])(void) __attribute__((aligned(64))) = {
 int main (void){
 
   //volatile int w=0; while(1){w++;}
-  while(1) ECALL_YIELD();
+  //while(1) ECALL_YIELD();
 
   // vectored trap handler
   CSRW(mtvec, ((unsigned long)trap_vector) | 1UL);

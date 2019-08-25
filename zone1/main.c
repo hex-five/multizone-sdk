@@ -1,10 +1,10 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <fcntl.h>	// open()
-#include <unistd.h> // read() NULL
+#include <unistd.h> // read() write()
+#include <string.h>	// strxxx()
+#include <stdio.h>	// printf()
+#include <stdlib.h> // qsort() strtoul()
 
 #include <platform.h>
 #include <libhexfive.h>
@@ -127,37 +127,44 @@ int cmpfunc(const void* a, const void* b){
 void print_stats(void){
 // ------------------------------------------------------------------------
 
-	#define COUNT (10+1) // odd values for median
+	const int COUNT = 10+1; // odd values for median
 	#define MHZ (CPU_FREQ/1000000)
 
-	int cycles[COUNT];
+	int cycles[COUNT], instrs[COUNT];
 
-	for (int i=0, first=1; i<COUNT; i++){
+	for (int i=0; i<COUNT; i++){
 
-		volatile unsigned long C1 = CSRR(cycle);
+		volatile unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
+		volatile unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
 		ECALL_YIELD();
-		volatile unsigned long C2 = CSRR(cycle);
+		volatile unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
+		volatile unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
 
-		cycles[i] = C2-C1;
+		cycles[i] = C2-C1; instrs[i] = I2-I1;
 
 	}
 
-	int max_cycle = 0; for (int i=0; i<COUNT; i++)
-		max_cycle = cycles[i] > max_cycle ? cycles[i] : max_cycle;
-	char str[16]; sprintf(str, "%lu", max_cycle); const int max_col = strlen(str);
+	int max_cycle = 0;
+	for (int i=0; i<COUNT; i++)	max_cycle = (cycles[i] > max_cycle ? cycles[i] : max_cycle);
+	char str[16]; sprintf(str, "%lu", max_cycle); const int col_len = strlen(str);
+
 	for (int i=0; i<COUNT; i++)
-		printf("%*d cycles in %*d us \n", max_col, cycles[i], max_col-2, cycles[i]/MHZ);
+		printf("%*d instr %*d cycles %*d us \n", col_len, instrs[i], col_len, cycles[i], col_len-2, cycles[i]/MHZ);
 
 	qsort(cycles, COUNT, sizeof(int), cmpfunc);
+	qsort(instrs, COUNT, sizeof(int), cmpfunc);
 
 	printf("------------------------------------------------\n");
-	int min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
+	int min = instrs[0], med = instrs[COUNT/2], max = instrs[COUNT-1];
+	printf("instrs  min/med/max = %d/%d/%d \n", min, med, max);
+		min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
 	printf("cycles  min/med/max = %d/%d/%d \n", min, med, max);
 	printf("time    min/med/max = %d/%d/%d us \n", min/MHZ, med/MHZ, max/MHZ);
 
-	volatile unsigned ctxsw_cycle = CSRR(mhpmcounter3);
-	volatile unsigned ctxsw_instr = CSRR(mhpmcounter4);
-	if (ctxsw_instr>0 && cycles>0){ // mhpmcounters might not be implemented
+	// mhpmcounters might not be implemented
+	volatile unsigned long ctxsw_cycle = ECALL_CSRR(CSR_MHPMCOUNTER3);
+	volatile unsigned long ctxsw_instr = ECALL_CSRR(CSR_MHPMCOUNTER4);
+	if (ctxsw_instr>0 && cycles>0){
 		printf("\n");
 		printf("ctx sw instr  = %lu \n", ctxsw_instr);
 		printf("ctx sw cycles = %lu \n", ctxsw_cycle);
@@ -375,7 +382,6 @@ int readline(char *cmd_line) {
 */
 		ECALL_YIELD();
 
-
 	}
 
 	for (int i = CMD_LINE_SIZE-1; i > 0; i--)
@@ -396,6 +402,7 @@ int main (void) {
 	//while(1) ECALL_YIELD();
 
 	CSRW(mtvec, trap_handler); // register trap handler
+	unsigned long val = CSRR(mtvec);
 
 	open("UART", 0, 0);
 
@@ -488,9 +495,11 @@ int main (void) {
 		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "yield")==0){
 		// --------------------------------------------------------------------
-			volatile unsigned long C1 = CSRR(cycle);
+			volatile unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
+			volatile unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
 			ECALL_YIELD();
-			volatile unsigned long C2 = CSRR(cycle);
+			volatile unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
+			volatile unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
 			const int TC = (C2-C1)/(CPU_FREQ/1000000);
 			printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
 
@@ -519,7 +528,7 @@ int main (void) {
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "test")==0) asm ("uret");
+		else if (strcmp(tk1, "test")==0) ECALL_CSRR(13);
 		// --------------------------------------------------------------------
 
 		else printf("Commands: load store exec send recv yield pmp stats timer restart \n");
@@ -527,3 +536,24 @@ int main (void) {
 	}
 
 }
+
+/*
+    printf("\n");
+    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
+
+    printf("# CSRW(mscratch) 0x12345678 \n"); CSRW(mscratch, 0x12345678);
+    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
+
+    printf("# CSRW(mscratch) 0x1f \n"); CSRW(mscratch, 31);
+    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
+
+    printf("# CSRRW(mscratch, 0xff) 0x%08x \n", CSRRW(mscratch, 0xFF));
+    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
+
+    printf("# CSRRC(mscratch, 0x0) 0x%08x \n", CSRRC(mscratch, 0x0));
+    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
+
+    printf("# CSRRS(mscratch, 0x0) 0x%08x \n", CSRRS(mscratch, 0x0));
+    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
+
+ */

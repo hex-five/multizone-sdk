@@ -3,22 +3,43 @@
 #ifndef LIBHEXFIVE_H_
 #define LIBHEXFIVE_H_
 
-void ECALL_YIELD();
+#define ECALL_YIELD() asm volatile ("li a0, 0; ecall" : : : "a0")
+
 int ECALL_SEND(int, void *);
 int ECALL_RECV(int, void *);
+
+#define ECALL_CSRR(csr) ({ unsigned long rd; \
+  asm volatile ("li a0, 3; mv a1, %1; ecall; mv %0, a0" : "=r"(rd) : "r"(csr) : "a0", "a1"); \
+  rd; })
+
+#define CSR_MISA 			0
+#define CSR_MVENDORID 		1
+#define CSR_MARCHID 		2
+#define CSR_MIMPID 			3
+#define CSR_MHARTID 		4
+
+#define CSR_MCYCLE 			5
+#define CSR_MINSTRET 		6
+#define CSR_MHPMCOUNTER3 	7
+#define CSR_MHPMCOUNTER4 	8
+
+#define CSR_MCYCLEH 		9
+#define CSR_MINSTRETH 		10
+#define CSR_MHPMCOUNTER3H 	11
+#define CSR_MHPMCOUNTER4H 	12
 
 // ----- Privileged Pseudoinstructions  ------
 
 #define CSRW(csr, rs) ({ \
   if (__builtin_constant_p(rs) && (unsigned long)(rs) < 32) \
-	asm volatile ("csrw " #csr ", %0" :: "i"(rs)); \
+	asm volatile ("csrw " #csr ", %0" :: "k"(rs)); \
   else \
 	asm volatile ("csrw " #csr ", %0" :: "r"(rs)); \
   })
 
 #define CSRRW(csr, rs) ({ unsigned long rd; \
   if (__builtin_constant_p(rs) && (unsigned long)(rs) < 32) \
-    asm volatile ("csrrw %0, " #csr ", %1" : "=r"(rd) : "i"(rs)); \
+    asm volatile ("csrrw %0, " #csr ", %1" : "=r"(rd) : "k"(rs)); \
   else \
     asm volatile ("csrrw %0, " #csr ", %1" : "=r"(rd) : "r"(rs)); \
   rd; })
@@ -29,14 +50,14 @@ int ECALL_RECV(int, void *);
 
 #define CSRRS(csr, rs) ({ unsigned long rd; \
   if (__builtin_constant_p(rs) && (unsigned long)(rs) < 32) \
-    asm volatile ("csrrs %0, " #csr ", %1" : "=r"(rd) : "i"(rs)); \
+    asm volatile ("csrrs %0, " #csr ", %1" : "=r"(rd) : "k"(rs)); \
   else \
     asm volatile ("csrrs %0, " #csr ", %1" : "=r"(rd) : "r"(rs)); \
   rd; })
 
 #define CSRRC(csr, rs) ({ unsigned long rd; \
   if (__builtin_constant_p(rs) && (unsigned long)(rs) < 32) \
-    asm volatile ("csrrc %0, " #csr ", %1" : "=r"(rd) : "i"(rs)); \
+    asm volatile ("csrrc %0, " #csr ", %1" : "=r"(rd) : "k"(rs)); \
   else \
     asm volatile ("csrrc %0, " #csr ", %1" : "=r"(rd) : "r"(rs)); \
   rd; })
@@ -44,40 +65,3 @@ int ECALL_RECV(int, void *);
 
 #endif /* LIBHEXFIVE_H_ */
 
-
-/*
-#define read_csr(reg) ({ unsigned long __tmp; \
-  asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
-  __tmp; })
-
-#define write_csr(reg, val) ({ \
-  if (__builtin_constant_p(val) && (unsigned long)(val) < 32) \
-    asm volatile ("csrw " #reg ", %0" :: "i"(val)); \
-  else \
-    asm volatile ("csrw " #reg ", %0" :: "r"(val)); })
-
-#define swap_csr(reg, val) ({ unsigned long __tmp; \
-  if (__builtin_constant_p(val) && (unsigned long)(val) < 32) \
-    asm volatile ("csrrw %0, " #reg ", %1" : "=r"(__tmp) : "i"(val)); \
-  else \
-    asm volatile ("csrrw %0, " #reg ", %1" : "=r"(__tmp) : "r"(val)); \
-  __tmp; })
-
-#define set_csr(reg, bit) ({ unsigned long __tmp; \
-  if (__builtin_constant_p(bit) && (unsigned long)(bit) < 32) \
-    asm volatile ("csrrs %0, " #reg ", %1" : "=r"(__tmp) : "i"(bit)); \
-  else \
-    asm volatile ("csrrs %0, " #reg ", %1" : "=r"(__tmp) : "r"(bit)); \
-  __tmp; })
-
-#define clear_csr(reg, bit) ({ unsigned long __tmp; \
-  if (__builtin_constant_p(bit) && (unsigned long)(bit) < 32) \
-    asm volatile ("csrrc %0, " #reg ", %1" : "=r"(__tmp) : "i"(bit)); \
-  else \
-    asm volatile ("csrrc %0, " #reg ", %1" : "=r"(__tmp) : "r"(bit)); \
-  __tmp; })
-
-#define rdtime() read_csr(time)
-#define rdcycle() read_csr(cycle)
-#define rdinstret() read_csr(instret)
-*/
