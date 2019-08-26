@@ -11,9 +11,9 @@
 
 __attribute__((interrupt())) void trap_handler(void){
 
-	const unsigned long mcause = CSRR(mcause);	//asm volatile("csrr %0, mcause" : "=r"(mcause));
-	const unsigned long mepc   = CSRR(mepc); 	//asm volatile("csrr %0, mepc"   : "=r"(mepc));
-	const unsigned long mtval  = CSRR(mtval);	//asm volatile("csrr %0, mtval"  : "=r"(mtval));
+	const unsigned long mcause = ECALL_CSRR(CSR_MCAUSE); //CSRR(mcause);//asm volatile("csrr %0, mcause" : "=r"(mcause));
+	const unsigned long mepc   = ECALL_CSRR(CSR_MEPC);   //CSRR(mepc); 	//asm volatile("csrr %0, mepc"   : "=r"(mepc));
+	const unsigned long mtval  = ECALL_CSRR(CSR_MTVAL);  //CSRR(mtval);	//asm volatile("csrr %0, mtval"  : "=r"(mtval));
 
 	char c='\0';
 
