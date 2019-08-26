@@ -4,12 +4,14 @@ MultiZone™ Security Trusted Execution Environment for any RISC-V platform
 MultiZone Security provides policy-based hardware-enforced separation for an unlimited number of security domains, with full control over data, code, peripherals and interrupts.
 
 MultiZone Security SDK supports the following cores / boards:
- - Hex Five X300 - RV32ACIMU Core for Xilinx Arty A7-35T FPGA
- - Andes  N25 - RV32ACIMU Core for GOWIN GW2A-55K FPGA
- - SiFive E21 - RV32ACIMU Core for Xilinx Arty A7-35T FPGA 
- - SiFive E31 - RV32ACIMU Core for Xilinx Arty A7-35T FPGA
- - SiFIve E51 - RV64ACIMU Core for Xilinx Arty A7-35T FPGA
- - SiFIve S51 - RV64ACIMU Core for Xilinx Arty A7-35T FPGA
+ - Andes  N22 - RV32ACIMU Board: Corvette F1 FPGA
+ - Andes  N25 - RV32ACIMU Board: GoWin GW2A-55K FPGA
+ - SiFive E21 - RV32ACIMU Board: Digilent ARTY7 FPGA 
+ - SiFive E31 - RV32ACIMU Board: Digilent ARTY7 FPGA
+ - SiFIve E51 - RV64ACIMU Board: Digilent ARTY7 FPGA
+ - SiFIve S51 - RV64ACIMU Board: Digilent ARTY7 FPGA
+ - SiFive U540 - RV64ACIMU Board Unleashed https://github.com/hex-five/multizone-linux
+ - Hex Five X300 - RV32ACIMU Board: Digilent ARTY7 FPGA
 
 This repository, maintained by Hex Five Security, makes it easy to build robust Trusted Execution Environments on RISC-V cores.
 For Questions or feedback - send email to info 'at' hex-five.com
