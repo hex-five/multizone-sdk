@@ -59,6 +59,21 @@ __attribute__((interrupt())) void trap_handler(void){
 	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
 			 break;
 
+	case 0x80000003 : printf("Machine software interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					  printf("Press any key to restart this zone \n");
+					  while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+					  break;
+
+	case 0x80000007 : printf("Machine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					  printf("Press any key to restart this zone \n");
+					  while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+					  break;
+
+	case 0x80000011 : printf("Machine external interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					  printf("Press any key to restart this zone \n");
+					  while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+					  break;
+
 	default: printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 			 printf("Press any key to restart this zone \n");
 			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
@@ -402,7 +417,6 @@ int main (void) {
 	//while(1) ECALL_YIELD();
 
 	CSRW(mtvec, trap_handler); // register trap handler
-	unsigned long val = CSRR(mtvec);
 
 	open("UART", 0, 0);
 
@@ -528,10 +542,18 @@ int main (void) {
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "test")==0) ECALL_CSRR(13);
+		else if (strcmp(tk1, "msip")==0) (*(volatile uint32_t *)((CLINT_BASE) + (CLINT_MSIP)))=1;
 		// --------------------------------------------------------------------
 
-		else printf("Commands: load store exec send recv yield pmp stats timer restart \n");
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "ebreak")==0) asm("ebreak");
+		// --------------------------------------------------------------------
+
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "test")==0) printf("ctx_mepc 0x%08x \n", ECALL_CSRR(CSR_MEPC));
+		// --------------------------------------------------------------------
+
+		else printf("Commands: yield send recv pmp load store exec msip stats timer restart \n");
 
 	}
 

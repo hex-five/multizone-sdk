@@ -1,7 +1,6 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 #include <platform.h>
 #include <libhexfive.h>
@@ -71,39 +70,49 @@ int main (void){
 	#define LED_ON_TIME  RTC_FREQ*20/1000 //  50ms
 	#define LED_OFF_TIME RTC_FREQ 		  // 950ms
 
-
 	uint64_t cmd_timer=0, ping_timer=0, led_timer=0;
 	uint32_t rx_data = 0, usb_state = 0;
 	int LED = LED_RED;
 
 	while(1){
 
-		int msg[4]={0,0,0,0}; ECALL_RECV(1, msg);
+		int msg[4]={0,0,0,0};
 
-		if (msg[0] && !msg[1] && usb_state==0x12670000 && cmd_timer==0){
+		if (ECALL_RECV(1, msg)) {
 
-			uint8_t cmd[3] = {0x00, 0x00, 0x00};
+			if (msg[0] && !msg[1] && usb_state==0x12670000 && cmd_timer==0){
 
-			switch (msg[0]){
-				case 'q' : cmd[0] = 0x01; break; // grip close
-				case 'a' : cmd[0] = 0x02; break; // grip open
-				case 'w' : cmd[0] = 0x04; break; // wrist up
-				case 's' : cmd[0] = 0x08; break; // wrist down
-				case 'e' : cmd[0] = 0x10; break; // elbow up
-				case 'd' : cmd[0] = 0x20; break; // elbow down
-				case 'r' : cmd[0] = 0x40; break; // shoulder up
-				case 'f' : cmd[0] = 0x80; break; // shoulder down
-				case 't' : cmd[1] = 0x01; break; // base clockwise
-				case 'g' : cmd[1] = 0x02; break; // base counterclockwise
-				case 'y' : cmd[2] = 0x01; break; // light on
-				default  : break;
+				uint8_t cmd[3] = {0x00, 0x00, 0x00};
+
+				switch (msg[0]){
+					case 'q' : cmd[0] = 0x01; break; // grip close
+					case 'a' : cmd[0] = 0x02; break; // grip open
+					case 'w' : cmd[0] = 0x04; break; // wrist up
+					case 's' : cmd[0] = 0x08; break; // wrist down
+					case 'e' : cmd[0] = 0x10; break; // elbow up
+					case 'd' : cmd[0] = 0x20; break; // elbow down
+					case 'r' : cmd[0] = 0x40; break; // shoulder up
+					case 'f' : cmd[0] = 0x80; break; // shoulder down
+					case 't' : cmd[1] = 0x01; break; // base clockwise
+					case 'g' : cmd[1] = 0x02; break; // base counterclockwise
+					case 'y' : cmd[2] = 0x01; break; // light on
+					default  : break;
+				}
+
+				if ( cmd[0] + cmd[1] + cmd[2] != 0 ){
+					rx_data = spi_rw(cmd);
+					cmd_timer = SYS_TIME + CMD_TIME;
+					ping_timer = SYS_TIME + PING_TIME;
+				}
+
 			}
 
-			if ( cmd[0] + cmd[1] + cmd[2] != 0 ){
-				rx_data = spi_rw(cmd);
-				cmd_timer = SYS_TIME + CMD_TIME;
-				ping_timer = SYS_TIME + PING_TIME;
-			}
+			// Ping Pong & Change LED color
+			if (msg[0]=='p' && msg[1]=='i' && msg[2]=='n' && msg[3]=='g') ECALL_SEND(1, msg);
+			else if (msg[0]=='r' && msg[1]=='e' && msg[2]=='d')                LED = LED_RED;
+			else if (msg[0]=='g' && msg[1]=='r' && msg[2]=='e' && msg[3]=='e') LED = LED_GREEN;
+			else if (msg[0]=='b' && msg[1]=='l' && msg[2]=='u' && msg[3]=='e') LED = LED_BLUE;
+
 		}
 
 		// auto stop manual commands after CMD_TIME
@@ -151,12 +160,6 @@ int main (void){
 			}
 
 	    }
-
-	    // Ping Pong & Change LED color
-        if (msg[0]=='p' && msg[1]=='i' && msg[2]=='n' && msg[3]=='g') ECALL_SEND(1, msg);
-        else if (msg[0]=='r' && msg[1]=='e' && msg[2]=='d')                LED = LED_RED;
-	    else if (msg[0]=='g' && msg[1]=='r' && msg[2]=='e' && msg[3]=='e') LED = LED_GREEN;
-	    else if (msg[0]=='b' && msg[1]=='l' && msg[2]=='u' && msg[3]=='e') LED = LED_BLUE;
 
         // LED blink
 	    if (SYS_TIME > led_timer){
