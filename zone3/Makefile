@@ -10,9 +10,6 @@ LINKER_SCRIPT := linker.lds
 
 C_SRCS += main.c owi_task.c
 
-INCLUDES += -I../libhexfive
-LDFLAGS += -L../libhexfive
-LDFLAGS += $(if $(findstring rv64, $(RISCV_ARCH)), -lhexfive64,  $(if $(findstring rv32e, $(RISCV_ARCH)), -lhexfive32e, -lhexfive32))
+INCLUDES += -I ../
 
 include $(NEWLIB_DIR)/newlib.mk
-

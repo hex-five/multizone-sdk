@@ -7,7 +7,7 @@
 #include <stdlib.h> // qsort() strtoul()
 
 #include <platform.h>
-#include <libhexfive.h>
+#include <multizone.h>
 
 __attribute__((interrupt())) void trap_handler(void){
 
@@ -350,7 +350,6 @@ int readline(char *cmd_line) {
 				esc=0;
 		}
 
-/*
 		// poll & print incoming messages
 		int msg[4]={0,0,0,0};
 
@@ -394,7 +393,6 @@ int readline(char *cmd_line) {
 			write(1, "\e[2B", 4); // curs down down
 		}
 
-*/
 		ECALL_YIELD();
 
 	}
@@ -492,7 +490,7 @@ int main (void) {
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
 				for (int i=0; i<4; i++)
 					msg[i] = i<strlen(tk3) ? (unsigned int)*(tk3+i) : 0x0;
-				if (!ECALL_SEND(tk2[0]-'0', msg))
+				if (!ECALL_SEND( tk2[0]-'0', msg) )
 					printf("Error: Inbox full.\n");
 			} else printf("Syntax: send {1|2|3|4} message \n");
 

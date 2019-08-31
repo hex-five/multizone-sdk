@@ -2,7 +2,7 @@
 
 #include <platform.h>
 #include <plic_driver.h>
-#include <libhexfive.h>
+#include <multizone.h>
 
 
 #define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x0;
@@ -16,11 +16,26 @@
 // Global Instance data for the PLIC for use by the PLIC Driver.
 plic_instance_t g_plic;
 
-__attribute__((interrupt())) void button_0_handler(void) { // global interrupt
+__attribute__((interrupt())) void trp_handler(void) { // synchronous traps (0)
+	switch(ECALL_CSRR(CSR_MCAUSE)){
+		case 0 : break; // Instruction address misaligned
+		case 1 : break; // Instruction access fault
+		case 3 : break; // Breakpoint
+		case 4 : break; // Load address misaligned
+		case 5 : break; // Load access fault
+		case 6 : break; // Store/AMO address misaligned
+		case 7 : break; // Store access fault
+		case 8 : break; // Environment call from U-mode
+		default: break;
+	}
+}
+__attribute__((interrupt())) void msi_handler(void) {} // machine software interrupt (3)
+__attribute__((interrupt())) void tmr_handler(void) {} // machine timer interrupt (7)
+__attribute__((interrupt())) void button_0_handler(void) { // global interrupt (11)
 
 	plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
 
-	ECALL_SEND(1, (int[4]){201,0,0,0});
+	ECALL_SEND(1, ((int[4]){201,0,0,0}));
 
 	LD1_GRN_ON; LD1_RED_OFF; LD1_BLU_OFF;
 
@@ -34,9 +49,9 @@ __attribute__((interrupt())) void button_0_handler(void) { // global interrupt
 	PLIC_complete_interrupt(&g_plic, int_num); // complete
 
 }
-__attribute__((interrupt())) void button_1_handler(void) { // local interrupt
+__attribute__((interrupt())) void button_1_handler(void) { // local interrupt (16+5)
 
-	ECALL_SEND(1, (int[4]){190+16+LOCAL_INT_BTN_1,0,0,0} );
+	ECALL_SEND(1, ((int[4]){190+16+LOCAL_INT_BTN_1,0,0,0}));
 
 	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -48,9 +63,9 @@ __attribute__((interrupt())) void button_1_handler(void) { // local interrupt
 	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
 
 }
-__attribute__((interrupt())) void button_2_handler(void) { // local interrupt
+__attribute__((interrupt())) void button_2_handler(void) { // local interrupt (16+6)
 
-	ECALL_SEND(1, (int[4]){190+16+LOCAL_INT_BTN_2,0,0,0});
+	ECALL_SEND(1, ((int[4]){190+16+LOCAL_INT_BTN_2,0,0,0}));
 
 	LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
 
@@ -62,17 +77,17 @@ __attribute__((interrupt())) void button_2_handler(void) { // local interrupt
 	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
 
 }
-__attribute__((aligned(8))) void trap_vector(void)  {
+__attribute__((aligned(2))) void trap_vector(void)  {
 
 	asm (
-		"jr (x0);"	//  0
+		"j trp_handler;"	//  0
 		"jr (x0);"	//  1
 		"jr (x0);"	//  2
-		"jr (x0);" 	//  3
+		"j msi_handler;" 	//  3
 		"jr (x0);" 	//  4
 		"jr (x0);" 	//  5
 		"jr (x0);" 	//  6
-		"jr (x0);" 	//  7
+		"j tmr_handler;" 	//  7
 		"jr (x0);" 	//  8
 		"jr (x0);" 	//  9
 		"jr (x0);" 	// 10
@@ -221,7 +236,7 @@ int main (void){
 			switch (msg[0]) {
 			//case '1': ECALL_CSRS_MIE();	break;
 			//case '0': ECALL_CSRC_MIE();	break;
-			case 'p': ECALL_SEND(1, (int[4] ) {'p','o','n','g'}); break;
+			case 'p': ECALL_SEND(1, ((int[4]){'p','o','n','g'})); break;
 			}
 		}
 

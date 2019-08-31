@@ -3,7 +3,6 @@
 .PHONY: all
 all: $(TARGET)
 
-
 ASM_SRCS += $(NEWLIB_DIR)/crt0.S
 C_SRCS += $(NEWLIB_DIR)/newlib.c
 C_SRCS += $(PLATFORM_DIR)/plic_driver.c
@@ -24,7 +23,7 @@ LINK_DEPS += $(LINKER_SCRIPT)
 
 CLEAN_OBJS += $(TARGET) $(LINK_OBJS)
 
-CFLAGS += -g3
+CFLAGS += -g
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -march=$(RISCV_ARCH)
 CFLAGS += -mabi=$(RISCV_ABI)

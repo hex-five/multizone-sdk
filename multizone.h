@@ -1,12 +1,67 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
-#ifndef LIBHEXFIVE_H_
-#define LIBHEXFIVE_H_
+#ifndef MULTIZONE_H_
+#define MULTIZONE_H_
 
 #define ECALL_YIELD() asm volatile ("li a0, 0; ecall" : : : "a0")
 
-int ECALL_SEND(int, void *);
-int ECALL_RECV(int, void *);
+#if __riscv_xlen==32
+
+	#define ECALL_SEND(zone, msg) ({ int sent; \
+				asm volatile ( \
+				" mv a0, %2; 		" \
+				" lw a2, 0*4(a0); 	" \
+				" lw a3, 1*4(a0); 	" \
+				" lw a4, 2*4(a0); 	" \
+				" lw a5, 3*4(a0); 	" \
+				" li a0, 1;  	" \
+				" mv a1, %1; 	" \
+				" ecall;     	" \
+				" mv %0, a0;  	" \
+				: "=r"(sent) : "r"(zone), "r"(msg) : "a0","a1","a2","a3","a4","a5"); \
+			sent; })
+
+	#define ECALL_RECV(zone, msg) ({ int rcvd; \
+				asm volatile ( \
+				" li a0, 2;  " \
+				" mv a1, %1; " \
+				" ecall;     " \
+				" mv %0, a0; " \
+				" mv a0, %2; " \
+				" sw a2, 0*4(a0); " \
+				" sw a3, 1*4(a0); " \
+				" sw a4, 2*4(a0); " \
+				" sw a5, 3*4(a0); " \
+				: "=r"(rcvd) : "r"(zone), "r"(msg) : "a0","a1","a2","a3","a4","a5"); \
+			rcvd; })
+
+#else
+
+	#define ECALL_SEND(zone, msg) ({ int sent; \
+				asm volatile ( \
+				" mv a0, %2; 		" \
+				" ld a2, 0*8(a0); 	" \
+				" ld a3, 1*8(a0); 	" \
+				" li a0, 1;  	" \
+				" mv a1, %1; 	" \
+				" ecall;     	" \
+				" mv %0, a0;  	" \
+				: "=r"(sent) : "r"(zone), "r"(msg) : "a0","a1","a2","a3"); \
+			sent; })
+
+	#define ECALL_RECV(zone, msg) ({ int rcvd; \
+				asm volatile ( \
+				" li a0, 2;  " \
+				" mv a1, %1; " \
+				" ecall;     " \
+				" mv %0, a0; " \
+				" mv a0, %2; " \
+				" sd a2, 0*8(a0); " \
+				" sd a3, 1*8(a0); " \
+				: "=r"(rcvd) : "r"(zone), "r"(msg) : "a0","a1","a2","a3"); \
+			rcvd; })
+
+#endif
 
 #define ECALL_CSRR(csr) ({ unsigned long rd; \
   asm volatile ("li a0, 3; mv a1, %1; ecall; mv %0, a0" : "=r"(rd) : "r"(csr) : "a0", "a1"); \
@@ -72,5 +127,5 @@ int ECALL_RECV(int, void *);
   rd; })
 
 
-#endif /* LIBHEXFIVE_H_ */
+#endif /* MULTIZONE_H */
 

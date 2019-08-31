@@ -1,9 +1,7 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
-#include <stdint.h>
-
 #include <platform.h>
-#include <libhexfive.h>
+#include <multizone.h>
 #include "owi_task.h"
 
 #define SPI_TDI 11 	// in
