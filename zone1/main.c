@@ -548,7 +548,9 @@ int main (void) {
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "test")==0) printf("ctx_mepc 0x%08x \n", ECALL_CSRR(CSR_MEPC));
+		else if (strcmp(tk1, "rdtime")==0)
+			printf("rdtime 0x%08x \n", CSRR(time));
+		else if (strcmp(tk1, "rdtimeh")==0) printf("rdtimeh 0x%08x \n", CSRR(timeh));
 		// --------------------------------------------------------------------
 
 		else printf("Commands: yield send recv pmp load store exec msip stats timer restart \n");

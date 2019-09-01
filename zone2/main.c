@@ -39,8 +39,8 @@ __attribute__((interrupt())) void button_0_handler(void) { // global interrupt (
 
 	LD1_GRN_ON; LD1_RED_OFF; LD1_BLU_OFF;
 
-	const uint64_t T1 = CLINT_REG(CLINT_MTIME) + 3*RTC_FREQ;
-	while (CLINT_REG(CLINT_MTIME) < T1) ECALL_YIELD();
+	const unsigned long T1 = ECALL_CSRR(CSR_TIME) + 3*RTC_FREQ;
+	while (ECALL_CSRR(CSR_TIME) < T1) ECALL_YIELD();
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -55,8 +55,8 @@ __attribute__((interrupt())) void button_1_handler(void) { // local interrupt (1
 
 	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 
-	const uint64_t T1 = CLINT_REG(CLINT_MTIME) + 3*RTC_FREQ;
-	while (CLINT_REG(CLINT_MTIME) < T1) ECALL_YIELD();
+	const unsigned long T1 = ECALL_CSRR(CSR_TIME) + 3*RTC_FREQ;
+	while (ECALL_CSRR(CSR_TIME) < T1) ECALL_YIELD();
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -69,8 +69,8 @@ __attribute__((interrupt())) void button_2_handler(void) { // local interrupt (1
 
 	LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
 
-	const uint64_t T1 = CLINT_REG(CLINT_MTIME) + 3*RTC_FREQ;
-	while (CLINT_REG(CLINT_MTIME) < T1) ECALL_YIELD();
+	const unsigned long T1 = ECALL_CSRR(CSR_TIME) + 3*RTC_FREQ;
+	while (ECALL_CSRR(CSR_TIME) < T1) ECALL_YIELD();
 
 	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
 
@@ -209,17 +209,19 @@ int main (void){
 	// The LEDs are intentionally left somewhat dim.
 	PWM_REG(PWM_CMP0)  = 0xFE;
 
-	uint64_t T = CLINT_REG(CLINT_MTIME);
-
 	uint16_t r=0x3F;
 	uint16_t g=0;
 	uint16_t b=0;
 
+	unsigned long T1 = 0;
+
 	while(1){
 
-		if (CLINT_REG(CLINT_MTIME) > T){
+		const unsigned long T = ECALL_CSRR(CSR_TIME);
 
-			T = CLINT_REG(CLINT_MTIME) + 12*RTC_FREQ/1000;
+		if (T > T1){
+
+			T1 = T + 12*RTC_FREQ/1000;
 
 			if (r > 0 && b == 0) {r--; g++;}
 			if (g > 0 && r == 0) {g--; b++;}
