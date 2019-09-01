@@ -544,24 +544,25 @@ int main (void) {
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "rdtime")==0) printf("0x%08x \n", (uint32_t)ECALL_RDTIME());
+		else if (strcmp(tk1, "rdtime")==0){
 		// --------------------------------------------------------------------
+			uint64_t timecmp = ECALL_RDTIME();
+			printf("0x%08x_%08x \n", (uint32_t)(timecmp>>32), (uint32_t)timecmp);
+		}
 
 		// --------------------------------------------------------------------
 		else if (strcmp(tk1, "rdtimecmp")==0){
-			uint64_t timecmp = ECALL_RDTIMECMP();
-			uint32_t timecmpH = (uint32_t)((timecmp>>32) & 0x00000000FFFFFFFF) ;
-			uint32_t timecmpL = (uint32_t)(timecmp & 0x00000000FFFFFFFF);
-			printf("0x%08x_%08x \n", timecmpH, timecmpL);
-		}
 		// --------------------------------------------------------------------
+			uint64_t timecmp = ECALL_RDTIMECMP();
+			printf("0x%08x_%08x \n", (uint32_t)(timecmp>>32), (uint32_t)timecmp);
+		}
 
 		// --------------------------------------------------------------------
 		else if (strcmp(tk1, "wrtimecmp")==0){
+		// --------------------------------------------------------------------
 			uint64_t timecmp = strtoull("0x1234567890abcdef", NULL, 16);
 			ECALL_WRTIMECMP(timecmp);
 		}
-		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
 		else if (strcmp(tk1, "trap")==0) asm ("rdtime x0"); // csrrs x0, time, 0 => M trap 0x2

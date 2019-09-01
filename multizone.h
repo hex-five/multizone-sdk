@@ -23,6 +23,8 @@
 
 #define ECALL_YIELD() asm volatile ("li a0, 0; ecall" : : : "a0")
 
+#define ECALL_WFI() asm volatile ("li a0, 7; ecall" : : : "a0")
+
 #if __riscv_xlen==32
 
 	#define ECALL_SEND(zone, msg) ({ int sent; \
@@ -106,11 +108,7 @@
 	#define CSR_MINSTRETH 		18
 	#define CSR_MHPMCOUNTER3H 	19
 	#define CSR_MHPMCOUNTER4H 	20
-	#define CSR_TIMEH		 	21
 #endif
-
-#define CSR_TIME		 	22
-
 
 
 // ----- Privileged Pseudoinstructions  ------
