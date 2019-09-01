@@ -3,6 +3,24 @@
 #ifndef MULTIZONE_H_
 #define MULTIZONE_H_
 
+
+#define ECALL_RDTIME() ({ register uint32_t a0 asm ("a0"), a1 asm ("a1"); \
+			asm volatile ("li a0, 4; ecall" : "=r"(a0), "=r"(a1)); \
+		(uint64_t)a1<<32|a0; })
+
+#define ECALL_RDTIMECMP() ({ register uint32_t a0 asm ("a0"), a1 asm ("a1"); \
+			asm volatile ("li a0, 5; ecall" : "=r"(a0), "=r"(a1)); \
+		(uint64_t)a1<<32|a0; })
+
+#define ECALL_WRTIMECMP(val) ({ \
+			asm volatile ( \
+			"mv a1, %0; " \
+			"mv a2, %1; " \
+			"li a0, 6;  " \
+			"ecall" \
+			: : "r"((uint32_t)val), "r"((uint32_t)(val>>32)): "a0","a1","a2"); \
+		})
+
 #define ECALL_YIELD() asm volatile ("li a0, 0; ecall" : : : "a0")
 
 #if __riscv_xlen==32
@@ -59,7 +77,6 @@
 
 #endif
 
-
 #define ECALL_CSRR(csr) ({ unsigned long rd; \
   asm volatile ("li a0, 3; mv a1, %1; ecall; mv %0, a0" : "=r"(rd) : "r"(csr) : "a0", "a1"); \
   rd; })
@@ -93,7 +110,6 @@
 #endif
 
 #define CSR_TIME		 	22
-
 
 
 

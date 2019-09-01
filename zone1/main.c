@@ -540,20 +540,34 @@ int main (void) {
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "msip")==0) (*(volatile uint32_t *)((CLINT_BASE) + (CLINT_MSIP)))=1;
-		// --------------------------------------------------------------------
-
-		// --------------------------------------------------------------------
 		else if (strcmp(tk1, "ebreak")==0) asm("ebreak");
 		// --------------------------------------------------------------------
 
 		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "rdtime")==0)
-			printf("rdtime 0x%08x \n", CSRR(time));
-		else if (strcmp(tk1, "rdtimeh")==0) printf("rdtimeh 0x%08x \n", CSRR(timeh));
+		else if (strcmp(tk1, "rdtime")==0) printf("0x%08x \n", (uint32_t)ECALL_RDTIME());
 		// --------------------------------------------------------------------
 
-		else printf("Commands: yield send recv pmp load store exec msip stats timer restart \n");
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "rdtimecmp")==0){
+			uint64_t timecmp = ECALL_RDTIMECMP();
+			uint32_t timecmpH = (uint32_t)((timecmp>>32) & 0x00000000FFFFFFFF) ;
+			uint32_t timecmpL = (uint32_t)(timecmp & 0x00000000FFFFFFFF);
+			printf("0x%08x_%08x \n", timecmpH, timecmpL);
+		}
+		// --------------------------------------------------------------------
+
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "wrtimecmp")==0){
+			uint64_t timecmp = strtoull("0x1234567890abcdef", NULL, 16);
+			ECALL_WRTIMECMP(timecmp);
+		}
+		// --------------------------------------------------------------------
+
+		// --------------------------------------------------------------------
+		else if (strcmp(tk1, "trap")==0) asm ("rdtime x0"); // csrrs x0, time, 0 => M trap 0x2
+		// --------------------------------------------------------------------
+
+		else printf("Commands: yield send recv pmp load store exec stats rdtime timer restart \n");
 
 	}
 

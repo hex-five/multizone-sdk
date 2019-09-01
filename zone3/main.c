@@ -67,13 +67,13 @@ int main (void){
 	#define LED_ON_TIME  RTC_FREQ*20/1000 //  50ms
 	#define LED_OFF_TIME RTC_FREQ 		  // 950ms
 
-	unsigned long cmd_timer=0, ping_timer=0, led_timer=0;
+    uint64_t time, cmd_timer=0, ping_timer=0, led_timer=0;
 	uint32_t rx_data = 0, usb_state = 0;
 	int LED = LED_RED;
 
 	while(1){
 
-		const unsigned long T = ECALL_CSRR(CSR_TIME);
+		time = ECALL_RDTIME();
 
 		int msg[4]={0,0,0,0};
 
@@ -100,8 +100,8 @@ int main (void){
 
 				if ( cmd[0] + cmd[1] + cmd[2] != 0 ){
 					rx_data = spi_rw(cmd);
-					cmd_timer = T + CMD_TIME;
-					ping_timer = T + PING_TIME;
+					cmd_timer = time + CMD_TIME;
+					ping_timer = time + PING_TIME;
 				}
 
 			}
@@ -115,16 +115,16 @@ int main (void){
 		}
 
 		// auto stop manual commands after CMD_TIME
-	    if (cmd_timer >0 && T > cmd_timer){
+	    if (cmd_timer >0 && time > cmd_timer){
 	    	rx_data = spi_rw(CMD_STOP);
 	    	cmd_timer=0;
-	    	ping_timer = T + PING_TIME;
+	    	ping_timer = time + PING_TIME;
 	    }
 
 	    // Detect USB state every 1sec
-	    if (T > ping_timer){
+	    if (time > ping_timer){
 	    	rx_data = spi_rw(CMD_DUMMY);
-	    	ping_timer = T + PING_TIME;
+	    	ping_timer = time + PING_TIME;
 	    }
 
 	    // Update USB state (0xFFFFFFFF no spi/usb adapter)
@@ -152,27 +152,27 @@ int main (void){
 				case '0' : owi_task_stop_request(); break;
 	    	}
 
-			int32_t cmd = owi_task_run(T);
+			int32_t cmd = owi_task_run(time);
 			if ( cmd != -1){
 				rx_data = spi_rw((uint8_t[]){(uint8_t)cmd, (uint8_t)(cmd>>8), (uint8_t)(cmd>>16)});
-				ping_timer = T + PING_TIME;
+				ping_timer = time + PING_TIME;
 			}
 
 	    }
 
         // LED blink
-	    if (T > led_timer){
+	    if (time > led_timer){
 
 	    	if ( GPIO_REG(GPIO_OUTPUT_VAL) & (LED_RED | LED_GREEN | LED_BLUE) ) {
 	    		// ON => OFF
 	        	GPIO_REG(GPIO_OUTPUT_VAL) &= ~(LED_RED | LED_GREEN | LED_BLUE);
-	    		led_timer = T + LED_OFF_TIME;
+	    		led_timer = time + LED_OFF_TIME;
 
 	    	} else {
 	    		// OFF => ON
 	        	GPIO_REG(GPIO_OUTPUT_VAL) &= ~(LED_RED | LED_GREEN | LED_BLUE);
 	    		GPIO_REG(GPIO_OUTPUT_VAL) |= LED;
-	    		led_timer = T + LED_ON_TIME;
+	    		led_timer = time + LED_ON_TIME;
 	    	}
 
 	    }
