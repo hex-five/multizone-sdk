@@ -22,8 +22,8 @@ int main (void){
 
 	CSRW(mtvec, trap_handler);
 
-	//while(1) ECALL_YIELD();
+	while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
-	volatile int i=0; while(1){i++;}
+	//volatile int i=0; while(1){i++;}
 
 }

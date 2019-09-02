@@ -15,70 +15,54 @@ __attribute__((interrupt())) void trap_handler(void){
 	const unsigned long mepc   = ECALL_CSRR(CSR_MEPC);   //CSRR(mepc); 	//asm volatile("csrr %0, mepc"   : "=r"(mepc));
 	const unsigned long mtval  = ECALL_CSRR(CSR_MTVAL);  //CSRR(mtval);	//asm volatile("csrr %0, mtval"  : "=r"(mtval));
 
-	char c='\0';
-
 	switch(mcause){
 
 	case 0 : printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
- 	 	 	 printf("Press any key to restart this zone \n");
-			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 			 break;
 
 	case 1 : printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
- 	 	 	 printf("Press any key to restart this zone \n");
-			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 			 break;
 
 	case 2 : printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
- 	 	 	 printf("Press any key to restart this zone \n");
-			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 			 break;
 
 	case 3 : printf("Breakpoint : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-	 	 	 printf("Press any key to restart this zone \n");
-			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 			 break;
 
 	case 4 : printf("Load address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
-			 break;
+	 	 	 CSRW(mepc, mepc+4); // skip
+	 	 	 return;
 
 	case 5 : printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-			 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
-			 break;
+ 	 	 	 CSRW(mepc, mepc+4); // skip
+	 	 	 return;
 
 	case 6 : printf("Store/AMO address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
-			 break;
+ 	 	 	 CSRW(mepc, mepc+4); // skip
+	 	 	 return;
 
 	case 7 : printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
-			 break;
+ 	 	 	 CSRW(mepc, mepc+4); // skip
+	 	 	 return;
 
 	case 8 : printf("Environment call from U-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-	 	 	 asm volatile("csrw mepc, %0" : : "r"(mepc+4)); // skip
 			 break;
 
 	case 0x80000003 : printf("Machine software interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					  printf("Press any key to restart this zone \n");
-					  while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 					  break;
 
 	case 0x80000007 : printf("Machine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					  printf("Press any key to restart this zone \n");
-					  while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 					  break;
 
 	case 0x80000011 : printf("Machine external interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					  printf("Press any key to restart this zone \n");
-					  while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 					  break;
 
 	default: printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-			 printf("Press any key to restart this zone \n");
-			 while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 
 	}
+
+	printf("Press any key to restart \n");
+	char c='\0'; while(read(0, &c, 1) ==0 ){;} asm ("j _start");
 
 }
 
@@ -515,17 +499,17 @@ int main (void) {
 			const int TC = (C2-C1)/(CPU_FREQ/1000000);
 			printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
 
-/*		// --------------------------------------------------------------------
+		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "timer")==0){
 		// --------------------------------------------------------------------
 			if (tk2 != NULL){
 				const uint64_t ms = abs(strtoull(tk2, NULL, 10));
-				const uint64_t T0 = ECALL_CSRR_MTIME();
+				const uint64_t T0 = ECALL_RDTIME();
 				const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-				ECALL_CSRW_MTIMECMP(T1);
+				ECALL_WRTIMECMP(T1); CSRRS(mie, 1<<7);
 				printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 													  (unsigned long)(T1*1000/RTC_FREQ) );
-			} else printf("Syntax: timer ms \n");*/
+			} else printf("Syntax: timer ms \n");
 
 		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "stats")==0)	print_stats();
