@@ -90,10 +90,12 @@
 #define BTN0  4
 #define BTN1  5
 #define BTN2  6
+#define BTN3  7
 
 #define LOCAL_INT_BTN_0  4
 #define LOCAL_INT_BTN_1  5
 #define LOCAL_INT_BTN_2  6
+#define LOCAL_INT_BTN_3  7
 
 // -----------------------------------------------------------------------------
 // LEDs

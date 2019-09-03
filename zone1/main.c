@@ -337,6 +337,19 @@ int readline(char *cmd_line) {
 		// poll & print incoming messages
 		int msg[4]={0,0,0,0};
 
+		if (ECALL_RECV(4, msg)){
+
+			write(1, "\e7", 2);   // save curs pos
+			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
+
+			printf("\rZ4 > %s\n", msg);
+
+			write(1, "\nZ1 > ", 6);
+			write(1, &cmd_line[0], strlen(cmd_line));
+			write(1, "\e8", 2);   // restore curs pos
+			write(1, "\e[2B", 4); // curs down down
+		}
+
 		if (ECALL_RECV(3, msg)){
 
 			write(1, "\e7", 2); // save curs pos
