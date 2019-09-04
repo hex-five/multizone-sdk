@@ -17,7 +17,7 @@ __attribute__((interrupt())) void trap_handler(void){
 		case 8 : break; // Environment call from U-mode
 
 		case 0x80000000+7 : ECALL_SEND(1, "IRQ TMR");
-			ECALL_WRTIMECMP(ECALL_RDTIME() + 3000*RTC_FREQ/1000); // clear mip
+			ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ); // clear mip
 			break;
 
 		case 0x80000000+16+BTN3 : ECALL_SEND(1, "IRQ BTN3");
@@ -47,8 +47,8 @@ int main (void){
     // enable irq
     CSRRS(mie, 1<<(16+BTN3));
 
-    // set timer += 3sec
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 3000*RTC_FREQ/1000);
+    // set timer += 10sec
+	ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ);
     CSRRS(mie, 1<<7);
 
 
