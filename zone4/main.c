@@ -16,13 +16,19 @@ __attribute__((interrupt())) void trap_handler(void){
 		case 7 : break; // Store access fault
 		case 8 : break; // Environment call from U-mode
 
-		case 0x80000000+7 : ECALL_SEND(1, "IRQ TMR");
+		case 0x80000000+7 : {
+			//ECALL_SEND(1, "IRQ TMR");
 			ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ); // clear mip
-			break;
+			break; }
 
-		case 0x80000000+16+BTN3 : ECALL_SEND(1, "IRQ BTN3");
+		case 0x80000000+16+BTN3 : {
+			//volatile unsigned long mstatus = CSRR(mstatus);
+			//volatile unsigned long mie = CSRR(mie);
+			//volatile unsigned long mip = CSRR(mip);
+			//CSRC(mstatus, 0x80);
+			//ECALL_SEND(1, "IRQ BTN3");
 			GPIO_REG(GPIO_RISE_IP) |= (1<<BTN3); //clear mip
-			break;
+			break; }
 
 		default: break;
 	}
@@ -45,20 +51,22 @@ int main (void){
     GPIO_REG(GPIO_RISE_IE)    |= (1<<BTN3);
 
     // enable irq
-    CSRRS(mie, 1<<(16+BTN3));
+    CSRS(mie, 1<<(16+BTN3));
 
     // set timer += 10sec
 	ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ);
-    CSRRS(mie, 1<<7);
+    CSRS(mie, 1<<7);
 
+    // enable global interrupts
+    CSRS(mstatus, 1<<3);
 
 	while(1){
 
 		//ECALL_YIELD();
 
-		while (!ECALL_SEND(1, ("WFI in")));
+		ECALL_SEND(1, ("WFI in"));
 		ECALL_WFI();
-		while (!ECALL_SEND(1, ("WFI out")));
+		ECALL_SEND(1, ("WFI out"));
 
 	}
 

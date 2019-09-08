@@ -3,7 +3,7 @@
 #include <fcntl.h>	// open()
 #include <unistd.h> // read() write()
 #include <string.h>	// strxxx()
-#include <stdio.h>	// printf()
+#include <stdio.h>	// printf() sprintf()
 #include <stdlib.h> // qsort() strtoul()
 
 #include <platform.h>
@@ -11,9 +11,9 @@
 
 __attribute__((interrupt())) void trap_handler(void){
 
-	const unsigned long mcause = ECALL_CSRR(CSR_MCAUSE); //CSRR(mcause);//asm volatile("csrr %0, mcause" : "=r"(mcause));
-	const unsigned long mepc   = ECALL_CSRR(CSR_MEPC);   //CSRR(mepc); 	//asm volatile("csrr %0, mepc"   : "=r"(mepc));
-	const unsigned long mtval  = ECALL_CSRR(CSR_MTVAL);  //CSRR(mtval);	//asm volatile("csrr %0, mtval"  : "=r"(mtval));
+	const unsigned long mcause = ECALL_CSRR(CSR_MCAUSE);
+	const unsigned long mepc   = ECALL_CSRR(CSR_MEPC);
+	const unsigned long mtval  = ECALL_CSRR(CSR_MTVAL);
 
 	switch(mcause){
 
@@ -413,6 +413,8 @@ int main (void) {
 
 	CSRW(mtvec, trap_handler); // register trap handler
 
+    CSRS(mstatus, 1<<3);      // enable global interrupts
+
 	open("UART", 0, 0);
 
 	printf("\e[2J\e[H"); // clear terminal screen
@@ -519,7 +521,8 @@ int main (void) {
 				const uint64_t ms = abs(strtoull(tk2, NULL, 10));
 				const uint64_t T0 = ECALL_RDTIME();
 				const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-				ECALL_WRTIMECMP(T1); CSRRS(mie, 1<<7);
+				ECALL_WRTIMECMP(T1);
+				CSRS(mie, 1<<7);
 				printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 													  (unsigned long)(T1*1000/RTC_FREQ) );
 			} else printf("Syntax: timer ms \n");

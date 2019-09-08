@@ -145,7 +145,7 @@ void b0_irq_init()  {
     PLIC_set_priority(&g_plic, irqnum, 2);
 
     // enable PLIC ext irq
-    CSRRS(mie, 1<<11);
+    CSRS(mie, 1<<11);
 
 
 }
@@ -164,7 +164,7 @@ void b1_irq_init()  {
     GPIO_REG(GPIO_RISE_IE)    |= (1<<BTN1);
 
     // enable irq
-    CSRRS(mie, 1<<(16+BTN1));
+    CSRS(mie, 1<<(16+BTN1));
 
 }
 
@@ -182,7 +182,7 @@ void b2_irq_init()  {
     GPIO_REG(GPIO_RISE_IE)    |= (1<<BTN2);
 
     // enable irq
-    CSRRS(mie, 1<<(16+BTN2));
+    CSRS(mie, 1<<(16+BTN2));
 }
 
 int main (void){
@@ -196,6 +196,9 @@ int main (void){
 	b0_irq_init();
 	b1_irq_init();
 	b2_irq_init();
+
+    // enable global interrupts
+    CSRS(mstatus, 1<<3);
 
 	#ifdef IOF1_PWM1_MASK
 	GPIO_REG(GPIO_IOF_EN) |= IOF1_PWM1_MASK;
@@ -221,7 +224,7 @@ int main (void){
 
 		if (T > T1){
 
-			T1 = T + 12*RTC_FREQ/1000;
+			T1 = T + 15*RTC_FREQ/1000;
 
 			if (r > 0 && b == 0) {r--; g++;}
 			if (g > 0 && r == 0) {g--; b++;}
@@ -236,8 +239,8 @@ int main (void){
 		int msg[4]={0,0,0,0};
 		if (ECALL_RECV(1, msg)) {
 			switch (msg[0]) {
-			//case '1': ECALL_CSRS_MIE();	break;
-			//case '0': ECALL_CSRC_MIE();	break;
+			case '1': CSRS(mstatus, 1<<3);	break;
+			case '0': CSRC(mstatus, 1<<3);	break;
 			case 'p': ECALL_SEND(1, ((int[4]){'p','o','n','g'})); break;
 			}
 		}
@@ -248,12 +251,3 @@ int main (void){
 
 }
 
-
-/*
-//static const void (* trap_vector[32])(void) __attribute__((aligned(64))) = {
-  static void (* const trap_vector[32])(void) __attribute__((aligned(64))) = {
-	NULL,				// 0
-	button_0_handler, 	// 11 (PLIC - Source LOCAL_INT_BTN_0)
-	NULL,				// 31
-};
-*/
