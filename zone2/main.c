@@ -189,6 +189,7 @@ int main (void){
 
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
+	while(1) ECALL_WFI();
 
 	// vectored trap handler
 	CSRW(mtvec, trap_vector+1);
@@ -242,6 +243,7 @@ int main (void){
 			case '1': CSRS(mstatus, 1<<3);	break;
 			case '0': CSRC(mstatus, 1<<3);	break;
 			case 'p': ECALL_SEND(1, ((int[4]){'p','o','n','g'})); break;
+			case 'w': ECALL_WFI(); break;
 			}
 		}
 

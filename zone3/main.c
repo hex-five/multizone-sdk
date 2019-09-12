@@ -54,6 +54,7 @@ int main (void){
 
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
+	while(1) ECALL_WFI();
 
 	GPIO_REG(GPIO_INPUT_EN)  |= (0x1 << SPI_TDI);
 	GPIO_REG(GPIO_PULLUP_EN) |= (0x1 << SPI_TDI);
@@ -106,11 +107,12 @@ int main (void){
 
 			}
 
-			// Ping Pong & Change LED color
+			// Ping Pong, Change LED color, WFI
 			if (msg[0]=='p' && msg[1]=='i' && msg[2]=='n' && msg[3]=='g') ECALL_SEND(1, msg);
 			else if (msg[0]=='r' && msg[1]=='e' && msg[2]=='d')                LED = LED_RED;
 			else if (msg[0]=='g' && msg[1]=='r' && msg[2]=='e' && msg[3]=='e') LED = LED_GREEN;
 			else if (msg[0]=='b' && msg[1]=='l' && msg[2]=='u' && msg[3]=='e') LED = LED_BLUE;
+			else if (msg[0]=='w' && msg[1]=='f' && msg[2]=='i') ECALL_WFI();
 
 		}
 

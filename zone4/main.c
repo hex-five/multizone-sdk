@@ -17,8 +17,8 @@ __attribute__((interrupt())) void trap_handler(void){
 		case 8 : break; // Environment call from U-mode
 
 		case 0x80000000+7 : {
-			//ECALL_SEND(1, "IRQ TMR");
-			ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ); // clear mip
+			ECALL_SEND(1, "IRQ TMR");
+			ECALL_WRTIMECMP(ECALL_RDTIME() + 10*RTC_FREQ); // clear mip
 			break; }
 
 		case 0x80000000+16+BTN3 : {
@@ -39,22 +39,20 @@ int main (void){
 
 	//volatile int i=0; while(1){i++;}
 	//while(1) ECALL_YIELD();
+	//while(1) ECALL_WFI();
 
 	CSRW(mtvec, trap_handler);
 
-    //dissable hw io function
     GPIO_REG(GPIO_IOF_EN ) &= ~(1 << BTN3);
-    //set to input
     GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN3);
     GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BTN3);
-    //set to interrupt on rising edge
     GPIO_REG(GPIO_RISE_IE)    |= (1<<BTN3);
 
-    // enable irq
+    // enable BTN3 irq
     CSRS(mie, 1<<(16+BTN3));
 
     // set timer += 10sec
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ);
+	ECALL_WRTIMECMP(ECALL_RDTIME() + 10*RTC_FREQ);
     CSRS(mie, 1<<7);
 
     // enable global interrupts
@@ -62,11 +60,9 @@ int main (void){
 
 	while(1){
 
-		//ECALL_YIELD();
-
-		ECALL_SEND(1, ("WFI in"));
 		ECALL_WFI();
-		ECALL_SEND(1, ("WFI out"));
+		const uint64_t T1 = ECALL_RDTIME() + 1*RTC_FREQ;
+		while (ECALL_RDTIME() < T1) {;} //ECALL_YIELD();
 
 	}
 

@@ -528,6 +528,20 @@ int main (void) {
 			} else printf("Syntax: timer ms \n");
 
 		// --------------------------------------------------------------------
+		} else if (strcmp(tk1, "wfi")==0){
+		// --------------------------------------------------------------------
+			if (tk2 != NULL && tk2[0] != '0'){
+				const uint64_t ms = abs(strtoull(tk2, NULL, 10));
+				const uint64_t T0 = ECALL_RDTIME();
+				const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
+				ECALL_WRTIMECMP(T1);
+				CSRS(mie, 1<<7);
+				printf("paused T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
+												   (unsigned long)(T1*1000/RTC_FREQ) );
+			}
+			ECALL_WFI();
+
+		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "stats")==0)	print_stats();
 		// --------------------------------------------------------------------
 
@@ -568,7 +582,7 @@ int main (void) {
 		else if (strcmp(tk1, "trap")==0) asm ("rdtime x0"); // csrrs x0, time, 0 => M trap 0x2
 		// --------------------------------------------------------------------
 
-		else printf("Commands: yield send recv pmp load store exec stats rdtime timer restart \n");
+		else printf("Commands: yield send recv pmp load store exec stats timer wfi restart \n");
 
 	}
 
