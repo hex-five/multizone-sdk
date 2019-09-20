@@ -17,7 +17,7 @@ __attribute__((interrupt())) void trap_handler(void){
 
 	switch(mcause){
 
-	case 0 : printf("Instruction address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 0 : printf("Instruction address missaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 			 break;
 
 	case 1 : printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
@@ -29,7 +29,7 @@ __attribute__((interrupt())) void trap_handler(void){
 	case 3 : printf("Breakpoint : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 			 break;
 
-	case 4 : printf("Load address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 4 : printf("Load address missaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 	 	 	 CSRW(mepc, mepc+4); // skip
 	 	 	 return;
 
@@ -37,7 +37,7 @@ __attribute__((interrupt())) void trap_handler(void){
  	 	 	 CSRW(mepc, mepc+4); // skip
 	 	 	 return;
 
-	case 6 : printf("Store/AMO address misaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 6 : printf("Store/AMO address missaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
  	 	 	 CSRW(mepc, mepc+4); // skip
 	 	 	 return;
 
@@ -153,21 +153,30 @@ void print_stats(void){
 	qsort(cycles, COUNT, sizeof(int), cmpfunc);
 	qsort(instrs, COUNT, sizeof(int), cmpfunc);
 
-	printf("------------------------------------------------\n");
+	printf("-----------------------------------------\n");
 	int min = instrs[0], med = instrs[COUNT/2], max = instrs[COUNT-1];
-	printf("instrs  min/med/max = %d/%d/%d \n", min, med, max);
+	printf("instrs min/med/max = %d/%d/%d \n", min, med, max);
 		min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
-	printf("cycles  min/med/max = %d/%d/%d \n", min, med, max);
-	printf("time    min/med/max = %d/%d/%d us \n", min/MHZ, med/MHZ, max/MHZ);
+	printf("cycles min/med/max = %d/%d/%d \n", min, med, max);
+	printf("time   min/med/max = %d/%d/%d us \n", min/MHZ, med/MHZ, max/MHZ);
 
-	// mhpmcounters might not be implemented
-	volatile unsigned long ctxsw_cycle = ECALL_CSRR(CSR_MHPMCOUNTER3);
-	volatile unsigned long ctxsw_instr = ECALL_CSRR(CSR_MHPMCOUNTER4);
-	if (ctxsw_instr>0 && cycles>0){
+	// Kernel stats - may not be available (#ifdef STATS)
+	const unsigned long count 	  = ECALL_CSRR(CSR_MHPMCOUNTER21);
+	const unsigned long cycle_min = ECALL_CSRR(CSR_MHPMCOUNTER22);
+	const unsigned long cycle_avg = ECALL_CSRR(CSR_MHPMCOUNTER23)/count;
+	const unsigned long cycle_max = ECALL_CSRR(CSR_MHPMCOUNTER24);
+	const unsigned long instr_min = ECALL_CSRR(CSR_MHPMCOUNTER25);
+	const unsigned long instr_avg = ECALL_CSRR(CSR_MHPMCOUNTER26)/count;
+	const unsigned long instr_max = ECALL_CSRR(CSR_MHPMCOUNTER27);
+
+	if (count>0){
 		printf("\n");
-		printf("ctx sw instr  = %lu \n", ctxsw_instr);
-		printf("ctx sw cycles = %lu \n", ctxsw_cycle);
-		printf("ctx sw time   = %d us \n", (int)(ctxsw_cycle/MHZ));
+		printf("Kernel\n");
+		printf("-----------------------------------------\n");
+		printf("instrs min/avg/max = %lu/%lu/%lu \n", instr_min, instr_avg, instr_max);
+		printf("cycles min/avg/max = %lu/%lu/%lu \n", cycle_min, cycle_avg, cycle_max);
+		printf("time   min/avg/max = %lu/%lu/%lu \n", cycle_min/MHZ, cycle_avg/MHZ, cycle_max/MHZ);
+
 	}
 
 }

@@ -79,7 +79,7 @@
 		})
 
 #define ECALL_CSRR(csr) ({ unsigned long rd; \
-  asm volatile ("mv a1, %1; li a0, 7; ecall; mv %0, a0" : "=r"(rd) : "r"(csr) : "a0", "a1"); \
+  asm volatile ("li a1, %1; li a0, 7; ecall; mv %0, a0" : "=r"(rd) : "I"(csr) : "a0", "a1"); \
   rd; })
 
 #define CSR_MSTATUS			 0
@@ -109,6 +109,13 @@
 	#define CSR_MHPMCOUNTER4H 	20
 #endif
 
+#define CSR_MHPMCOUNTER21 	21 // kernel count
+#define CSR_MHPMCOUNTER22 	22 // kernel cycle min
+#define CSR_MHPMCOUNTER23 	23 // kernel cycle tot
+#define CSR_MHPMCOUNTER24 	24 // kernel cycle max
+#define CSR_MHPMCOUNTER25 	25 // kernel instret min
+#define CSR_MHPMCOUNTER26 	26 // kernel instret tot
+#define CSR_MHPMCOUNTER27 	27 // kernel instret max
 
 // ----- Privileged Pseudoinstructions  ------
 
@@ -118,7 +125,7 @@
 
 #define CSRW(csr, rs) ({ \
   if (__builtin_constant_p(rs) && (unsigned long)(rs) < 32) \
-	asm volatile ("csrw " #csr ", %0" :: "k"(rs)); \
+	asm volatile ("csrw " #csr ", %0" :: "K"(rs)); \
   else \
 	asm volatile ("csrw " #csr ", %0" :: "r"(rs)); \
   })
@@ -146,4 +153,3 @@
 
 
 #endif /* MULTIZONE_H */
-
