@@ -77,7 +77,7 @@ __attribute__((interrupt())) void button_2_handler(void) { // local interrupt (1
 	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
 
 }
-__attribute__((aligned(2))) void trap_vector(void)  {
+__attribute__((aligned(2))) void irq_vector(void)  {
 
 	asm (
 		"j trp_handler;"	//  0
@@ -192,7 +192,7 @@ int main (void){
 	//while(1) ECALL_WFI();
 
 	// vectored trap handler
-	CSRW(mtvec, trap_vector+1);
+	CSRW(mtvec, irq_vector+1);
 
 	b0_irq_init();
 	b1_irq_init();
