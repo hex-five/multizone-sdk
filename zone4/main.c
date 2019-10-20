@@ -18,7 +18,7 @@ __attribute__((interrupt())) void trap_handler(void){
 
 		case 0x80000000+7 : {
 			ECALL_SEND(1, "IRQ TMR");
-			ECALL_WRTIMECMP(ECALL_RDTIME() + 10*RTC_FREQ); // clear mip
+			ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ); // clear mip
 			break; }
 
 		case 0x80000000+16+BTN3 : {
@@ -61,8 +61,15 @@ int main (void){
 	while(1){
 
 		ECALL_WFI();
-		const uint64_t T1 = ECALL_RDTIME() + 1*RTC_FREQ;
-		while (ECALL_RDTIME() < T1) {;} //ECALL_YIELD();
+
+		int msg[4]={0,0,0,0};
+		if (ECALL_RECV(1, msg)) {
+			switch (msg[0]) {
+			case '1': CSRS(mstatus, 1<<3);	break;
+			case '0': CSRC(mstatus, 1<<3);	break;
+			case 'p': ECALL_SEND(1, ((int[4]){'p','o','n','g'})); break;
+			}
+		}
 
 	}
 

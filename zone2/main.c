@@ -4,7 +4,6 @@
 #include <plic_driver.h>
 #include <multizone.h>
 
-
 #define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x0;
 #define LD1_GRN_ON PWM_REG(PWM_CMP2)  = 0x0;
 #define LD1_BLU_ON PWM_REG(PWM_CMP3)  = 0x0;
@@ -16,7 +15,7 @@
 // Global Instance data for the PLIC for use by the PLIC Driver.
 plic_instance_t g_plic;
 
-__attribute__((interrupt())) void trp_handler(void) { // synchronous traps (0)
+__attribute__((interrupt())) void trp_handler(void)   { // traps handler
 	switch(ECALL_CSRR(CSR_MCAUSE)){
 		case 0 : break; // Instruction address misaligned
 		case 1 : break; // Instruction access fault
@@ -29,56 +28,95 @@ __attribute__((interrupt())) void trp_handler(void) { // synchronous traps (0)
 		default: break;
 	}
 }
-__attribute__((interrupt())) void msi_handler(void) {} // machine software interrupt (3)
-__attribute__((interrupt())) void tmr_handler(void) {} // machine timer interrupt (7)
-__attribute__((interrupt())) void button_0_handler(void) { // global interrupt (11)
-
-	plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
-
-	ECALL_SEND(1, ((int[4]){201,0,0,0}));
-
-	LD1_GRN_ON; LD1_RED_OFF; LD1_BLU_OFF;
-
-	const uint64_t T1 = ECALL_RDTIME() + 3*RTC_FREQ;
-	while (ECALL_RDTIME() < T1) ECALL_YIELD();
-
-	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
-
-	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN0); //clear gpio irq
-
-	PLIC_complete_interrupt(&g_plic, int_num); // complete
+__attribute__((interrupt())) void msi_handler(void)   { // machine software interrupt (3)
 
 }
-__attribute__((interrupt())) void button_1_handler(void) { // local interrupt (16+5)
+__attribute__((interrupt())) void tmr_handler(void)   { // machine timer interrupt (7)
 
-	ECALL_SEND(1, ((int[4]){190+16+LOCAL_INT_BTN_1,0,0,0}));
+	static uint16_t r=0x3F;
+	static uint16_t g=0;
+	static uint16_t b=0;
 
-	LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
+	if (r > 0 && b == 0) {r--; g++;}
+	if (g > 0 && r == 0) {g--; b++;}
+	if (b > 0 && g == 0) {r++; b--;}
 
-	const uint64_t T1 = ECALL_RDTIME() + 3*RTC_FREQ;
-	while (ECALL_RDTIME() < T1) ECALL_YIELD();
+	PWM_REG(PWM_CMP1) = 0xFF - (r >> 2);
+	PWM_REG(PWM_CMP2) = 0xFF - (g >> 2);
+	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
-	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
-
-	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
-
-}
-__attribute__((interrupt())) void button_2_handler(void) { // local interrupt (16+6)
-
-	ECALL_SEND(1, ((int[4]){190+16+LOCAL_INT_BTN_2,0,0,0}));
-
-	LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
-
-	const uint64_t T1 = ECALL_RDTIME() + 3*RTC_FREQ;
-	while (ECALL_RDTIME() < T1) ECALL_YIELD();
-
-	LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_OFF;
-
-	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
+	// set timer
+	ECALL_WRTIMECMP(ECALL_RDTIME() + 15*RTC_FREQ/1000);
 
 }
-__attribute__((aligned(2))) void irq_vector(void)  {
+__attribute__((interrupt())) void btn0_handler(void) { // global interrupt (11)
 
+	static uint64_t debounce = 0;
+
+	const uint64_t time = ECALL_RDTIME();
+
+	if (time > debounce + 2000*RTC_FREQ/1000){
+
+		plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
+
+		LD1_GRN_ON; LD1_RED_OFF; LD1_BLU_OFF;
+
+		ECALL_SEND(1, ((int[4]){201,0,0,0}));
+
+		ECALL_WRTIMECMP(ECALL_RDTIME() + 2000*RTC_FREQ/1000);
+
+		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN0); //clear gpio irq
+
+		PLIC_complete_interrupt(&g_plic, int_num); // complete
+
+		debounce = time;
+
+	}
+
+}
+__attribute__((interrupt())) void btn1_handler(void) { // local interrupt (16+5)
+
+	static uint64_t debounce = 0;
+
+	const uint64_t time = ECALL_RDTIME();
+
+	if (time > debounce + 2000*RTC_FREQ/1000){
+
+		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
+
+		ECALL_SEND(1, ((int[4]){190+16+LOCAL_INT_BTN_1,0,0,0}));
+
+		ECALL_WRTIMECMP(ECALL_RDTIME() + 2000*RTC_FREQ/1000);
+
+		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
+
+		debounce = time;
+
+	}
+
+}
+__attribute__((interrupt())) void btn2_handler(void) { // local interrupt (16+6)
+
+	static uint64_t debounce = 0;
+
+	const uint64_t time = ECALL_RDTIME();
+
+	if (time > debounce + 2000*RTC_FREQ/1000){
+
+		LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
+
+		ECALL_SEND(1, ((int[4]){190+16+LOCAL_INT_BTN_2,0,0,0}));
+
+		ECALL_WRTIMECMP(ECALL_RDTIME() + 2000*RTC_FREQ/1000);
+
+		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
+
+		debounce = time;
+
+	}
+
+}
+__attribute__((aligned(2)))  void irq_vector(void)    { // irqs vector
 	asm (
 		"j trp_handler;"	//  0
 		"jr (x0);"	//  1
@@ -91,7 +129,7 @@ __attribute__((aligned(2))) void irq_vector(void)  {
 		"jr (x0);" 	//  8
 		"jr (x0);" 	//  9
 		"jr (x0);" 	// 10
-		"j button_0_handler;" // 11
+		"j btn0_handler;" // 11
 		"jr (x0);" 	// 12
 		"jr (x0);" 	// 13
 		"jr (x0);" 	// 14
@@ -101,8 +139,8 @@ __attribute__((aligned(2))) void irq_vector(void)  {
 		"jr (x0);" 	// 18
 		"jr (x0);" 	// 19
 		"jr (x0);" 	// 20
-		"j button_1_handler;" // 21
-		"j button_2_handler;" // 22
+		"j btn1_handler;" // 21
+		"j btn2_handler;" // 22
 		"jr (x0);" 	// 23
 		"jr (x0);" 	// 24
 		"jr (x0);" 	// 25
@@ -113,10 +151,9 @@ __attribute__((aligned(2))) void irq_vector(void)  {
 		"jr (x0);" 	// 30
 		"jr (x0);" 	// 31
 	);
-
 }
 
-/*configures Button0 as a global gpio irq*/
+/*configures Button0 as global interrupt*/
 void b0_irq_init()  {
 
     uint32_t irqnum;
@@ -150,7 +187,7 @@ void b0_irq_init()  {
 
 }
 
-/*configures Button1 as a local interrupt*/
+/*configures Button1 as local interrupt*/
 void b1_irq_init()  {
 
     //dissable hw io function
@@ -168,7 +205,7 @@ void b1_irq_init()  {
 
 }
 
-/*configures Button2 as a local interrupt*/
+/*configures Button2 as local interrupt*/
 void b2_irq_init()  {
 
     //dissable hw io function
@@ -191,51 +228,32 @@ int main (void){
 	//while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
 
-	// vectored trap handler
-	CSRW(mtvec, irq_vector+1);
-
-	b0_irq_init();
-	b1_irq_init();
-	b2_irq_init();
-
-    // enable global interrupts
-    CSRS(mstatus, 1<<3);
-
 	#ifdef IOF1_PWM1_MASK
 	GPIO_REG(GPIO_IOF_EN) |= IOF1_PWM1_MASK;
 	GPIO_REG(GPIO_IOF_SEL) |= IOF1_PWM1_MASK;
 	#endif
 
-	PWM_REG(PWM_CFG)   = 0;
 	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS) | (PWM_CFG_ZEROCMP) | (PWM_CFG_DEGLITCH);
 	PWM_REG(PWM_COUNT) = 0;
-
-	// The LEDs are intentionally left somewhat dim.
 	PWM_REG(PWM_CMP0)  = 0xFE;
 
-	uint16_t r=0x3F;
-	uint16_t g=0;
-	uint16_t b=0;
+	b0_irq_init();
+	b1_irq_init();
+	b2_irq_init();
 
-	unsigned long T1 = 0;
+	// vectored trap handler
+	CSRW(mtvec, irq_vector +1);
+
+    // set & enable timer
+	ECALL_WRTIMECMP(ECALL_RDTIME() + 15*RTC_FREQ/1000);
+    CSRS(mie, 1<<7);
+
+    // enable global interrupts
+    CSRS(mstatus, 1<<3);
 
 	while(1){
 
-		uint64_t T = ECALL_RDTIME();
-
-		if (T > T1){
-
-			T1 = T + 15*RTC_FREQ/1000;
-
-			if (r > 0 && b == 0) {r--; g++;}
-			if (g > 0 && r == 0) {g--; b++;}
-			if (b > 0 && g == 0) {r++; b--;}
-
-			PWM_REG(PWM_CMP1) = 0xFF - (r >> 2);
-			PWM_REG(PWM_CMP2) = 0xFF - (g >> 2);
-			PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
-
-		}
+		ECALL_WFI();
 
 		int msg[4]={0,0,0,0};
 		if (ECALL_RECV(1, msg)) {
@@ -243,11 +261,8 @@ int main (void){
 			case '1': CSRS(mstatus, 1<<3);	break;
 			case '0': CSRC(mstatus, 1<<3);	break;
 			case 'p': ECALL_SEND(1, ((int[4]){'p','o','n','g'})); break;
-			case 'w': ECALL_WFI(); break;
 			}
 		}
-
-		ECALL_YIELD();
 
 	}
 

@@ -549,6 +549,7 @@ int main (void) {
 												   (unsigned long)(T1*1000/RTC_FREQ) );
 			}
 			ECALL_WFI();
+			CSRC(mie, 1<<7); // clear the timer in case WFI is resumed by other irqs/msg
 
 		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "stats")==0)	print_stats();
@@ -597,23 +598,4 @@ int main (void) {
 
 }
 
-/*
-    printf("\n");
-    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
 
-    printf("# CSRW(mscratch) 0x12345678 \n"); CSRW(mscratch, 0x12345678);
-    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
-
-    printf("# CSRW(mscratch) 0x1f \n"); CSRW(mscratch, 31);
-    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
-
-    printf("# CSRRW(mscratch, 0xff) 0x%08x \n", CSRRW(mscratch, 0xFF));
-    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
-
-    printf("# CSRRC(mscratch, 0x0) 0x%08x \n", CSRRC(mscratch, 0x0));
-    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
-
-    printf("# CSRRS(mscratch, 0x0) 0x%08x \n", CSRRS(mscratch, 0x0));
-    printf("# CSRR(mscratch) 0x%08x \n", CSRR(mscratch));
-
- */
