@@ -1,7 +1,7 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
-
+#include <string.h>	// strcmp()
+#include <inttypes.h> // uint16_t, ...
 #include <platform.h>
-#include <plic_driver.h>
 #include <multizone.h>
 
 #define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x0;
@@ -12,26 +12,26 @@
 #define LD1_GRN_OFF PWM_REG(PWM_CMP2)  = 0xFF;
 #define LD1_BLU_OFF PWM_REG(PWM_CMP3)  = 0xFF;
 
-// Global Instance data for the PLIC for use by the PLIC Driver.
-plic_instance_t g_plic;
+__attribute__((interrupt())) void trp_handler(void)	 { // trap handler
 
-__attribute__((interrupt())) void trp_handler(void)   { // traps handler
-	switch(ECALL_CSRR(CSR_MCAUSE)){
-		case 0 : break; // Instruction address misaligned
-		case 1 : break; // Instruction access fault
-		case 3 : break; // Breakpoint
-		case 4 : break; // Load address misaligned
-		case 5 : break; // Load access fault
-		case 6 : break; // Store/AMO address misaligned
-		case 7 : break; // Store access fault
-		case 8 : break; // Environment call from U-mode
-		default: break;
+	const unsigned long mcause = ECALL_CSRR(CSR_MCAUSE);
+
+	switch (mcause) {
+	case 0:	break; // Instruction address misaligned
+	case 1:	break; // Instruction access fault
+	case 3:	break; // Breakpoint
+	case 4:	break; // Load address misaligned
+	case 5:	break; // Load access fault
+	case 6:	break; // Store/AMO address misaligned
+	case 7:	break; // Store access fault
+	case 8:	break; // Environment call from U-mode
 	}
-}
-__attribute__((interrupt())) void msi_handler(void)   { // machine software interrupt (3)
 
+	asm("ebreak");
 }
-__attribute__((interrupt())) void tmr_handler(void)   { // machine timer interrupt (7)
+__attribute__((interrupt())) void msi_handler(void)  { // machine software interrupt (3)
+}
+__attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrupt (7)
 
 	static uint16_t r=0x3F;
 	static uint16_t g=0;
@@ -49,27 +49,24 @@ __attribute__((interrupt())) void tmr_handler(void)   { // machine timer interru
 	ECALL_WRTIMECMP(ECALL_RDTIME() + 15*RTC_FREQ/1000);
 
 }
+
 __attribute__((interrupt())) void btn0_handler(void) { // global interrupt (11)
 
 	static uint64_t debounce = 0;
 
 	const uint64_t time = ECALL_RDTIME();
 
-	if (time > debounce + 2000*RTC_FREQ/1000){
+	if (time > debounce){
 
-		plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
+		debounce = time + 2000*RTC_FREQ/1000;
 
-		LD1_GRN_ON; LD1_RED_OFF; LD1_BLU_OFF;
+		ECALL_WRTIMECMP(debounce);
 
-		ECALL_SEND(1, ((int[4]){201,0,0,0}));
+		LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
 
-		ECALL_WRTIMECMP(ECALL_RDTIME() + 2000*RTC_FREQ/1000);
+		ECALL_SEND(1, "IRQ 20 [BTN0]");
 
 		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN0); //clear gpio irq
-
-		PLIC_complete_interrupt(&g_plic, int_num); // complete
-
-		debounce = time;
 
 	}
 
@@ -80,17 +77,17 @@ __attribute__((interrupt())) void btn1_handler(void) { // local interrupt (16+5)
 
 	const uint64_t time = ECALL_RDTIME();
 
-	if (time > debounce + 2000*RTC_FREQ/1000){
+	if (time > debounce){
+
+		debounce = time + 2000*RTC_FREQ/1000;
+
+		ECALL_WRTIMECMP(debounce);
 
 		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 
-		ECALL_SEND(1, ((int[4]){190+16+LOCAL_INT_BTN_1,0,0,0}));
-
-		ECALL_WRTIMECMP(ECALL_RDTIME() + 2000*RTC_FREQ/1000);
+		ECALL_SEND(1, "IRQ 21 [BTN1]");
 
 		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
-
-		debounce = time;
 
 	}
 
@@ -101,22 +98,23 @@ __attribute__((interrupt())) void btn2_handler(void) { // local interrupt (16+6)
 
 	const uint64_t time = ECALL_RDTIME();
 
-	if (time > debounce + 2000*RTC_FREQ/1000){
+	if (time > debounce){
+
+		debounce = time + 2000*RTC_FREQ/1000;
+
+		ECALL_WRTIMECMP(debounce);
 
 		LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
 
-		ECALL_SEND(1, ((int[4]){190+16+LOCAL_INT_BTN_2,0,0,0}));
-
-		ECALL_WRTIMECMP(ECALL_RDTIME() + 2000*RTC_FREQ/1000);
+		ECALL_SEND(1, "IRQ 22 [BTN2]");
 
 		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
-
-		debounce = time;
 
 	}
 
 }
-__attribute__((aligned(2)))  void irq_vector(void)    { // irqs vector
+
+__attribute__((aligned(2)))  void irq_vector(void)   { // irqs vector
 	asm (
 		"j trp_handler;"	//  0
 		"jr (x0);"	//  1
@@ -129,7 +127,7 @@ __attribute__((aligned(2)))  void irq_vector(void)    { // irqs vector
 		"jr (x0);" 	//  8
 		"jr (x0);" 	//  9
 		"jr (x0);" 	// 10
-		"j btn0_handler;" // 11
+		"jr (x0);" 	// 11
 		"jr (x0);" 	// 12
 		"jr (x0);" 	// 13
 		"jr (x0);" 	// 14
@@ -138,7 +136,7 @@ __attribute__((aligned(2)))  void irq_vector(void)    { // irqs vector
 		"jr (x0);" 	// 17
 		"jr (x0);" 	// 18
 		"jr (x0);" 	// 19
-		"jr (x0);" 	// 20
+		"j btn0_handler;" // 20
 		"j btn1_handler;" // 21
 		"j btn2_handler;" // 22
 		"jr (x0);" 	// 23
@@ -156,8 +154,6 @@ __attribute__((aligned(2)))  void irq_vector(void)    { // irqs vector
 /*configures Button0 as global interrupt*/
 void b0_irq_init()  {
 
-    uint32_t irqnum;
-
     //dissable hw io function
     GPIO_REG(GPIO_IOF_EN ) &= ~(1 << BTN0);
 
@@ -168,22 +164,8 @@ void b0_irq_init()  {
     //set to interrupt on rising edge
     GPIO_REG(GPIO_RISE_IE)    |= (1<<BTN0);
 
-    PLIC_init(&g_plic,
-  	    PLIC_BASE,
-  	    PLIC_NUM_INTERRUPTS,
-  	    PLIC_NUM_PRIORITIES);
-
-    // GPIO irq offset depends on the core version
-    irqnum = CSRR(mvendorid) == 0x489 && CSRR(mimpid) > 0x20190000 ?
-    		1 + BTN0 :
-			GPIO_INT_BASE + BTN0;
-
-    PLIC_enable_interrupt (&g_plic, irqnum);
-    PLIC_set_priority(&g_plic, irqnum, 2);
-
-    // enable PLIC ext irq
-    CSRS(mie, 1<<11);
-
+    // enable irq
+    CSRS(mie, 1<<(16+BTN0));
 
 }
 
@@ -228,11 +210,6 @@ int main (void){
 	//while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
 
-	#ifdef IOF1_PWM1_MASK
-	GPIO_REG(GPIO_IOF_EN) |= IOF1_PWM1_MASK;
-	GPIO_REG(GPIO_IOF_SEL) |= IOF1_PWM1_MASK;
-	#endif
-
 	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS) | (PWM_CFG_ZEROCMP) | (PWM_CFG_DEGLITCH);
 	PWM_REG(PWM_COUNT) = 0;
 	PWM_REG(PWM_CMP0)  = 0xFE;
@@ -248,23 +225,27 @@ int main (void){
 	ECALL_WRTIMECMP(ECALL_RDTIME() + 15*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
-    // enable global interrupts
+    // enable global interrupts (BTN0, BTN1, BTN2, TMR)
     CSRS(mstatus, 1<<3);
 
 	while(1){
 
-		ECALL_WFI();
-
-		int msg[4]={0,0,0,0};
-		if (ECALL_RECV(1, msg)) {
-			switch (msg[0]) {
-			case '1': CSRS(mstatus, 1<<3);	break;
-			case '0': CSRC(mstatus, 1<<3);	break;
-			case 'p': ECALL_SEND(1, ((int[4]){'p','o','n','g'})); break;
+		// Message handler
+		for (int zone=1; zone<=4; zone++){
+			char msg[16];
+			if (zone!=2 && ECALL_RECV(zone, msg)) {
+				if (strcmp("ping", msg) == 0) ECALL_SEND(zone, "pong");
+				else if (msg[0]=='1') CSRS(mstatus, 1<<3);
+				else if (msg[0]=='0') CSRC(mstatus, 1<<3);
 			}
 		}
+
+		// Wait For Interrupt
+		ECALL_WFI();
 
 	}
 
 }
+
+
 

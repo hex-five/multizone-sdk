@@ -7,7 +7,11 @@
 #include <stdlib.h> // qsort() strtoul()
 
 #include <platform.h>
+#include <plic_driver.h>
 #include <multizone.h>
+
+// Global Instance data for the PLIC for use by the PLIC Driver.
+plic_instance_t g_plic;
 
 __attribute__((interrupt())) void trap_handler(void){
 
@@ -48,14 +52,22 @@ __attribute__((interrupt())) void trap_handler(void){
 	case 8 : printf("Environment call from U-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 			 break;
 
-	case 0x80000003 : printf("Machine software interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					  break;
+	case 9 : printf("Environment call from S-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 break;
 
-	case 0x80000007 : printf("Machine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					  break;
+	case 11: printf("Environment call from M-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 break;
 
-	case 0x80000011 : printf("Machine external interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					  break;
+	case 0x80000000+3 : printf("Machine software interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					    break;
+
+	case 0x80000000+7 : printf("Machine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					    break;
+
+	case 0x80000000+11: printf("Machine external interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+						const plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
+						PLIC_complete_interrupt(&g_plic, int_num); // complete
+						return;
 
 	default: printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 
@@ -343,60 +355,26 @@ int readline(char *cmd_line) {
 				esc=0;
 		}
 
-		// poll & print incoming messages
-		int msg[4]={0,0,0,0};
+		// Message handler
+		for (int zone=2; zone<=4; zone++){
 
-		if (ECALL_RECV(4, msg)){
+			char msg[16];
 
-			write(1, "\e7", 2);   // save curs pos
-			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
+			if (ECALL_RECV(zone, msg)) {
 
-			printf("\rZ4 > %s\n", msg);
+				if (strcmp("ping", msg) == 0)
+					ECALL_SEND(zone, "pong");
 
-			write(1, "\nZ1 > ", 6);
-			write(1, &cmd_line[0], strlen(cmd_line));
-			write(1, "\e8", 2);   // restore curs pos
-			write(1, "\e[2B", 4); // curs down down
-		}
+				else {
 
-		if (ECALL_RECV(3, msg)){
+					write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
+					printf("\rZ%d > %.16s\n", zone, msg);
+					printf("\nZ1 > %s", cmd_line);
+					write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
 
-			write(1, "\e7", 2); // save curs pos
-			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-
-			switch (msg[0]) {
-			case 1   : write(1, "\rZ3 > USB DEVICE ATTACH VID=0x1267 PID=0x0000\r\n", 47); break;
-			case 2   : write(1, "\rZ3 > USB DEVICE DETACH\r\n", 25); break;
-			case 331 : write(1, "\rZ3 > CLINT IRQ 23 [BTN3]\r\n", 27); break;
-			case 'p' : write(1, "\rZ3 > pong\r\n", 12); break;
-			default  : write(1, "\rZ3 > ???\r\n", 11); break;
+				}
 			}
 
-			write(1, "\nZ1 > ", 6);
-			write(1, &cmd_line[0], strlen(cmd_line));
-			write(1, "\e8", 2);   // restore curs pos
-			write(1, "\e[2B", 4); // curs down down
-		}
-
-		if (ECALL_RECV(2, msg)){
-
-			write(1, "\e7", 2);   // save curs pos
-			write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-
-			switch (msg[0]) {
-			case 201 : write(1, "\rZ2 > PLIC  IRQ 11 [BTN0]\r\n", 27); break;
-			case 207 : write(1, "\rZ2 > CLINT IRQ 17 [BTN1]\r\n", 27); break;
-			case 208 : write(1, "\rZ2 > CLINT IRQ 18 [BTN2]\r\n", 27); break;
-			case 211 : write(1, "\rZ2 > CLINT IRQ 21 [BTN1]\r\n", 27); break;
-			case 212 : write(1, "\rZ2 > CLINT IRQ 22 [BTN2]\r\n", 27); break;
-			case 'p' : write(1, "\rZ2 > pong\r\n", 12); break;
-			default  : write(1, "\rZ2 > ???\r\n", 11); break;
-			}
-
-			write(1, "\nZ1 > ", 6);
-			write(1, &cmd_line[0], strlen(cmd_line));
-			write(1, "\e8", 2);   // restore curs pos
-			write(1, "\e[2B", 4); // curs down down
 		}
 
 		ECALL_YIELD();
@@ -419,10 +397,24 @@ int main (void) {
 
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
+	//while(1) ECALL_WFI();
+
+/*	{   // Init PLIC
+		PLIC_init(&g_plic,
+		PLIC_BASE,
+		PLIC_NUM_INTERRUPTS,
+		PLIC_NUM_PRIORITIES);
+
+		// Enable PLIC irq 17 (UART)
+		#define plic_irq_num 17
+		PLIC_enable_interrupt (&g_plic, plic_irq_num);
+		PLIC_set_priority(&g_plic, plic_irq_num, 1);
+
+	}*/
 
 	CSRW(mtvec, trap_handler); // register trap handler
-
-    CSRS(mstatus, 1<<3);      // enable global interrupts
+	//CSRS(mie, 1<<11); // enable external interrupts (PLIC)
+    CSRS(mstatus, 1<<3); // enable global interrupts
 
 	open("UART", 0, 0);
 
@@ -441,7 +433,6 @@ int main (void) {
     print_cpu_info();
 
 	char cmd_line[CMD_LINE_SIZE+1]="";
-	int msg[4]={0,0,0,0};
 
 	while(1){
 
@@ -496,8 +487,7 @@ int main (void) {
 		} else if (strcmp(tk1, "send")==0){
 		// --------------------------------------------------------------------
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
-				for (int i=0; i<4; i++)
-					msg[i] = i<strlen(tk3) ? (unsigned int)*(tk3+i) : 0x0;
+				char msg[16]; strncpy(msg, tk3, 16);
 				if (!ECALL_SEND( tk2[0]-'0', msg) )
 					printf("Error: Inbox full.\n");
 			} else printf("Syntax: send {1|2|3|4} message \n");
@@ -506,8 +496,9 @@ int main (void) {
 		} else if (strcmp(tk1, "recv")==0){
 		// --------------------------------------------------------------------
 			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
+				char msg[16];
 				if (ECALL_RECV(tk2[0]-'0', msg))
-					printf("msg : 0x%08x 0x%08x 0x%08x 0x%08x \n", msg[0], msg[1], msg[2], msg[3]);
+					printf("msg : %.16s\n", msg);
 				else
 					printf("Error: Inbox empty.\n");
 			} else printf("Syntax: recv {1|2|3|4} \n");
@@ -530,8 +521,7 @@ int main (void) {
 				const uint64_t ms = abs(strtoull(tk2, NULL, 10));
 				const uint64_t T0 = ECALL_RDTIME();
 				const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-				ECALL_WRTIMECMP(T1);
-				CSRS(mie, 1<<7);
+				ECALL_WRTIMECMP(T1); CSRS(mie, 1<<7);
 				printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 													  (unsigned long)(T1*1000/RTC_FREQ) );
 			} else printf("Syntax: timer ms \n");
@@ -543,13 +533,12 @@ int main (void) {
 				const uint64_t ms = abs(strtoull(tk2, NULL, 10));
 				const uint64_t T0 = ECALL_RDTIME();
 				const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-				ECALL_WRTIMECMP(T1);
-				CSRS(mie, 1<<7);
+				ECALL_WRTIMECMP(T1); CSRS(mie, 1<<7);
 				printf("paused T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 												   (unsigned long)(T1*1000/RTC_FREQ) );
 			}
 			ECALL_WFI();
-			CSRC(mie, 1<<7); // clear the timer in case WFI is resumed by other irqs/msg
+			CSRC(mie, 1<<7); // disable timer in case WFI exits before timer expiration (irqs/msg)
 
 		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "stats")==0)	print_stats();

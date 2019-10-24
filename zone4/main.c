@@ -16,21 +16,20 @@ __attribute__((interrupt())) void trap_handler(void){
 		case 7 : break; // Store access fault
 		case 8 : break; // Environment call from U-mode
 
-		case 0x80000000+7 : {
+		case 0x80000000+7 :
 			ECALL_SEND(1, "IRQ TMR");
 			ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ); // clear mip
-			break; }
+			break;
 
-		case 0x80000000+16+BTN3 : {
+		case 0x80000000+16+BTN3 :
 			//volatile unsigned long mstatus = CSRR(mstatus);
 			//volatile unsigned long mie = CSRR(mie);
 			//volatile unsigned long mip = CSRR(mip);
 			//CSRC(mstatus, 0x80);
 			//ECALL_SEND(1, "IRQ BTN3");
 			GPIO_REG(GPIO_RISE_IP) |= (1<<BTN3); //clear mip
-			break; }
+			break;
 
-		default: break;
 	}
 
 }
@@ -39,7 +38,7 @@ int main (void){
 
 	//volatile int i=0; while(1){i++;}
 	//while(1) ECALL_YIELD();
-	//while(1) ECALL_WFI();
+	while(1) ECALL_WFI();
 
 	CSRW(mtvec, trap_handler);
 
