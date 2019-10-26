@@ -46,7 +46,8 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
 	// set timer
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 15*RTC_FREQ/1000);
+	const uint64_t T = ECALL_RDTIME();
+	ECALL_WRTIMECMP(T + 15*RTC_FREQ/1000);
 
 }
 
@@ -222,7 +223,7 @@ int main (void){
 	CSRW(mtvec, irq_vector +1);
 
     // set & enable timer
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 15*RTC_FREQ/1000);
+	const uint64_t T = ECALL_RDTIME(); ECALL_WRTIMECMP(T + 15*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
     // enable global interrupts (BTN0, BTN1, BTN2, TMR)
