@@ -46,8 +46,7 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
 	// set timer
-	const uint64_t T = ECALL_RDTIME();
-	ECALL_WRTIMECMP(T + 15*RTC_FREQ/1000);
+	const uint64_t T = ECALL_RDTIME(); ECALL_WRTIMECMP(T + 25*RTC_FREQ/1000);
 
 }
 
@@ -55,11 +54,11 @@ __attribute__((interrupt())) void btn0_handler(void) { // global interrupt (11)
 
 	static uint64_t debounce = 0;
 
-	const uint64_t time = ECALL_RDTIME();
+	const uint64_t T = ECALL_RDTIME();
 
-	if (time > debounce){
+	if (T > debounce){
 
-		debounce = time + 2000*RTC_FREQ/1000;
+		debounce = T + 250*RTC_FREQ/1000;
 
 		ECALL_WRTIMECMP(debounce);
 
@@ -76,11 +75,11 @@ __attribute__((interrupt())) void btn1_handler(void) { // local interrupt (16+5)
 
 	static uint64_t debounce = 0;
 
-	const uint64_t time = ECALL_RDTIME();
+	const uint64_t T = ECALL_RDTIME();
 
-	if (time > debounce){
+	if (T > debounce){
 
-		debounce = time + 2000*RTC_FREQ/1000;
+		debounce = T + 250*RTC_FREQ/1000;
 
 		ECALL_WRTIMECMP(debounce);
 
@@ -97,11 +96,11 @@ __attribute__((interrupt())) void btn2_handler(void) { // local interrupt (16+6)
 
 	static uint64_t debounce = 0;
 
-	const uint64_t time = ECALL_RDTIME();
+	const uint64_t T = ECALL_RDTIME();
 
-	if (time > debounce){
+	if (T > debounce){
 
-		debounce = time + 2000*RTC_FREQ/1000;
+		debounce = T + 250*RTC_FREQ/1000;
 
 		ECALL_WRTIMECMP(debounce);
 
@@ -115,7 +114,8 @@ __attribute__((interrupt())) void btn2_handler(void) { // local interrupt (16+6)
 
 }
 
-__attribute__((aligned(2)))  void irq_vector(void)   { // irqs vector
+__attribute__((naked, aligned(4))) void trap_vect(void) { // irqs vector
+
 	asm (
 		"j trp_handler;"	//  0
 		"jr (x0);"	//  1
@@ -220,10 +220,10 @@ int main (void){
 	b2_irq_init();
 
 	// vectored trap handler
-	CSRW(mtvec, irq_vector +1);
+	CSRW(mtvec, trap_vect); CSRS(mtvec, 0b1);
 
     // set & enable timer
-	const uint64_t T = ECALL_RDTIME(); ECALL_WRTIMECMP(T + 15*RTC_FREQ/1000);
+	const uint64_t T = ECALL_RDTIME(); ECALL_WRTIMECMP(T + 25*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
     // enable global interrupts (BTN0, BTN1, BTN2, TMR)

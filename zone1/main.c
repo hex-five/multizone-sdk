@@ -62,6 +62,7 @@ __attribute__((interrupt())) void trap_handler(void){
 					    break;
 
 	case 0x80000000+7 : printf("Machine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+						CSRC(mie, 1<<7);// disable timer
 					    break;
 
 	case 0x80000000+11: printf("Machine external interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
@@ -412,9 +413,9 @@ int main (void) {
 
 	}*/
 
-	CSRW(mtvec, trap_handler); // register trap handler
-	//CSRS(mie, 1<<11); // enable external interrupts (PLIC)
-    CSRS(mstatus, 1<<3); // enable global interrupts
+	CSRW(mtvec, trap_handler);  // register trap handler
+	//CSRS(mie, 1<<11); 		// enable external interrupts (PLIC)
+    CSRS(mstatus, 1<<3);		// enable global interrupts (PLIC, TMR)
 
 	open("UART", 0, 0);
 
@@ -538,8 +539,8 @@ int main (void) {
 												   (unsigned long)(T1*1000/RTC_FREQ) );
 			}
 			ECALL_WFI();
-			CSRC(mie, 1<<7); // disable timer in case WFI exits before timer expiration (irqs/msg)
-
+			// disable timer in case WFI exits before timer expiration (irqs/msg)
+			CSRC(mie, 1<<7);
 		// --------------------------------------------------------------------
 		} else if (strcmp(tk1, "stats")==0)	print_stats();
 		// --------------------------------------------------------------------

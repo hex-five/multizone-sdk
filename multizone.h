@@ -111,11 +111,12 @@
 
 #define CSR_MHPMCOUNTER21 	21 // kernel count
 #define CSR_MHPMCOUNTER22 	22 // kernel cycle min
-#define CSR_MHPMCOUNTER23 	23 // kernel cycle tot
-#define CSR_MHPMCOUNTER24 	24 // kernel cycle max
-#define CSR_MHPMCOUNTER25 	25 // kernel instret min
-#define CSR_MHPMCOUNTER26 	26 // kernel instret tot
-#define CSR_MHPMCOUNTER27 	27 // kernel instret max
+#define CSR_MHPMCOUNTER23 	23 // kernel cycle sum
+//							24    reserved
+#define CSR_MHPMCOUNTER24 	25 // kernel cycle max
+#define CSR_MHPMCOUNTER25 	26 // kernel instret min
+#define CSR_MHPMCOUNTER26 	27 // kernel instret sum
+#define CSR_MHPMCOUNTER27 	28 // kernel instret max
 
 // ----- Privileged Pseudoinstructions  ------
 
