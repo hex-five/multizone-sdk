@@ -10,7 +10,15 @@
 #include <plic_driver.h>
 #include <multizone.h>
 
-// Global Instance data for the PLIC for use by the PLIC Driver.
+#define BUFFER_SIZE 16
+static struct{
+	char data[BUFFER_SIZE];
+	volatile int p0; // read
+	volatile int p1; // write
+} buffer;
+
+static char inputline[32+1]="";
+
 plic_instance_t g_plic;
 
 __attribute__((interrupt())) void trap_handler(void){
@@ -58,19 +66,26 @@ __attribute__((interrupt())) void trap_handler(void){
 	case 11: printf("Environment call from M-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 			 break;
 
-	case 0x80000000+3 : printf("Machine software interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					    break;
+	case 0x80000003: printf("Machine software interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					 break;
 
-	case 0x80000000+7 : printf("Machine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-						CSRC(mie, 1<<7);// disable timer
-					    break;
+	case 0x80000007: printf("Machine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					 CSRC(mie, 1<<7);// disable timer
+					 break;
 
-	case 0x80000000+11: printf("Machine external interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-						const plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
-						PLIC_complete_interrupt(&g_plic, int_num); // complete
-						return;
+	case 0x8000000B: ;//printf("Machine external interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					 const plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
 
-	default: printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					 if (buffer.p0==buffer.p1) {buffer.p0=0; buffer.p1=0;}
+
+					 read(0, &buffer.data[buffer.p1++], 1);
+
+					 if (buffer.p1> BUFFER_SIZE-1) buffer.p1 = BUFFER_SIZE-1;
+
+					 PLIC_complete_interrupt(&g_plic, int_num); // complete
+					 return;
+
+	default : printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 
 	}
 
@@ -80,7 +95,7 @@ __attribute__((interrupt())) void trap_handler(void){
 }
 
 // ------------------------------------------------------------------------
-void print_cpu_info(void) {
+ void print_cpu_info(void) {
 // ------------------------------------------------------------------------
 
 	// misa
@@ -128,8 +143,8 @@ void print_cpu_info(void) {
 }
 
 // ------------------------------------------------------------------------
-int cmpfunc(const void* a, const void* b){
-// ------------------------------------------------------------------------
+ int cmpfunc(const void* a, const void* b){
+
     const int ai = *(const int* )a;
     const int bi = *(const int* )b;
     return ai < bi ? -1 : ai > bi ? 1 : 0;
@@ -137,7 +152,6 @@ int cmpfunc(const void* a, const void* b){
 
 // ------------------------------------------------------------------------
 void print_stats(void){
-// ------------------------------------------------------------------------
 
 	const int COUNT = 10+1; // odd values for median
 	#define MHZ (CPU_FREQ/1000000)
@@ -275,151 +289,243 @@ void print_pmp(void){
 }
 
 // ------------------------------------------------------------------------
-int readline(char *cmd_line) {
-// ------------------------------------------------------------------------
+void msg_handler() {
 
-	#define CMD_LINE_SIZE 32
+	// Message handler
+	for (int zone=2; zone<=4; zone++){
 
-	int p=0;
-	char c='\0';
-	int esc=0;
-	cmd_line[0] = '\0';
-	static char history[CMD_LINE_SIZE+1]="";
+		char msg[16];
 
-	while(c!='\r'){
+		if (ECALL_RECV(zone, msg)) {
 
-		if ( read(0, &c, 1) >0 ) {
+			if (strcmp("ping", msg) == 0)
+				ECALL_SEND(zone, "pong");
 
-			if (c=='\e'){
-				esc=1;
-
-			} else if (esc==1 && c=='['){
-				esc=2;
-
-			} else if (esc==2 && c=='3'){
-				esc=3;
-
-			} else if (esc==3 && c=='~'){ // del key
-				for (int i=p; i<strlen(cmd_line); i++) cmd_line[i]=cmd_line[i+1];
-				write(1, "\e7", 2); // save curs pos
-				write(1, "\e[K", 3); // clear line from curs pos
-				write(1, &cmd_line[p], strlen(cmd_line)-p);
-				write(1, "\e8", 2); // restore curs pos
-				esc=0;
-
-			} else if (esc==2 && c=='C'){ // right arrow
-				esc=0;
-				if (p < strlen(cmd_line)){
-					p++;
-					write(1, "\e[C", 3);
-				}
-
-			} else if (esc==2 && c=='D'){ // left arrow
-				esc=0;
-				if (p>0){
-					p--;
-					write(1, "\e[D", 3);
-				}
-
-			} else if (esc==2 && c=='A'){ // up arrow
-				esc=0;
-				if (strlen(history)>0){
-					p=strlen(history);
-					strcpy(cmd_line, history);
-					write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-					write(1, "\rZ1 > ", 6);
-					write(1, &cmd_line[0], strlen(cmd_line));
-				}
-
-			} else if (esc==2 && c=='B'){ // down arrow
-				esc=0;
-
-			} else if ((c=='\b' || c=='\x7f') && p>0 && esc==0){ // backspace
-				p--;
-				for (int i=p; i<strlen(cmd_line); i++) cmd_line[i]=cmd_line[i+1];
-				write(1, "\e[D", 3);
-				write(1, "\e7", 2);
-				write(1, "\e[K", 3);
-				write(1, &cmd_line[p], strlen(cmd_line)-p);
-				write(1, "\e8", 2);
-
-			} else if (c>=' ' && c<='~' && p < CMD_LINE_SIZE && esc==0){
-				for (int i = CMD_LINE_SIZE-1; i > p; i--) cmd_line[i]=cmd_line[i-1]; // make room for 1 ch
-				cmd_line[p]=c;
-				write(1, "\e7", 2); // save curs pos
-				write(1, "\e[K", 3); // clear line from curs pos
-				write(1, &cmd_line[p], strlen(cmd_line)-p); p++;
-				write(1, "\e8", 2); // restore curs pos
-				write(1, "\e[C", 3); // move curs right 1 pos
-
-			} else
-				esc=0;
-		}
-
-		// Message handler
-		for (int zone=2; zone<=4; zone++){
-
-			char msg[16];
-
-			if (ECALL_RECV(zone, msg)) {
-
-				if (strcmp("ping", msg) == 0)
-					ECALL_SEND(zone, "pong");
-
-				else {
-
-					write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
-					printf("\rZ%d > %.16s\n", zone, msg);
-					printf("\nZ1 > %s", cmd_line);
-					write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
-
-				}
+			else {
+				write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
+				printf("\rZ%d > %.16s\n", zone, msg);
+				write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
+				write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
 			}
-
 		}
-
-		ECALL_YIELD();
 
 	}
 
-	for (int i = CMD_LINE_SIZE-1; i > 0; i--)
-		if (cmd_line[i]==' ') cmd_line[i]='\0';	else break;
+}
 
-	if (strlen(cmd_line)>0)
-		strcpy(history, cmd_line);
+// ------------------------------------------------------------------------
+void cmd_handler(){
 
-	return strlen(cmd_line);
+	char * tk1 = strtok (inputline, " ");
+	char * tk2 = strtok (NULL, " ");
+	char * tk3 = strtok (NULL, " ");
+
+	if (tk1 == NULL) tk1 = "help";
+
+	// --------------------------------------------------------------------
+	if (strcmp(tk1, "load")==0){
+	// --------------------------------------------------------------------
+		if (tk2 != NULL){
+			uint8_t data = 0x00;
+			const unsigned long addr = strtoull(tk2, NULL, 16);
+			asm ("lbu %0, (%1)" : "+r"(data) : "r"(addr));
+			printf("0x%08x : 0x%02x \n", (unsigned int)addr, data);
+		} else printf("Syntax: load address \n");
+
+	// --------------------------------------------------------------------
+	} else if (strcmp(tk1, "store")==0){
+	// --------------------------------------------------------------------
+		if (tk2 != NULL && tk3 != NULL){
+			const uint32_t data = (uint32_t)strtoul(tk3, NULL, 16);
+			const unsigned long addr = strtoull(tk2, NULL, 16);
+
+			if ( strlen(tk3) <=2 )
+				asm ( "sb %0, (%1)" : : "r"(data), "r"(addr));
+			else if ( strlen(tk3) <=4 )
+				asm ( "sh %0, (%1)" : : "r"(data), "r"(addr));
+			else
+				asm ( "sw %0, (%1)" : : "r"(data), "r"(addr));
+
+			printf("0x%08x : 0x%02x \n", (unsigned int)addr, (unsigned int)data);
+		} else printf("Syntax: store address data \n");
+
+	// --------------------------------------------------------------------
+	} else if (strcmp(tk1, "exec")==0){
+	// --------------------------------------------------------------------
+		if (tk2 != NULL){
+			const unsigned long addr = strtoull(tk2, NULL, 16);
+			asm ( "jr (%0)" : : "r"(addr));
+		} else printf("Syntax: exec address \n");
+
+	// --------------------------------------------------------------------
+	} else if (strcmp(tk1, "send")==0){
+	// --------------------------------------------------------------------
+		if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
+			char msg[16]; strncpy(msg, tk3, 16);
+			if (!ECALL_SEND( tk2[0]-'0', msg) )
+				printf("Error: Inbox full.\n");
+		} else printf("Syntax: send {1|2|3|4} message \n");
+
+	// --------------------------------------------------------------------
+	} else if (strcmp(tk1, "recv")==0){
+	// --------------------------------------------------------------------
+		if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
+			char msg[16];
+			if (ECALL_RECV(tk2[0]-'0', msg))
+				printf("msg : %.16s\n", msg);
+			else
+				printf("Error: Inbox empty.\n");
+		} else printf("Syntax: recv {1|2|3|4} \n");
+
+	// --------------------------------------------------------------------
+	} else if (strcmp(tk1, "yield")==0){
+	// --------------------------------------------------------------------
+		volatile unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
+		volatile unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
+		ECALL_YIELD();
+		volatile unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
+		volatile unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
+		const int TC = (C2-C1)/(CPU_FREQ/1000000);
+		printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
+
+	// --------------------------------------------------------------------
+	} else if (strcmp(tk1, "timer")==0){
+	// --------------------------------------------------------------------
+		if (tk2 != NULL){
+			const uint64_t ms = abs(strtoull(tk2, NULL, 10));
+			const uint64_t T0 = ECALL_RDTIME();
+			const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
+			ECALL_WRTIMECMP(T1); CSRS(mie, 1<<7);
+			printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
+												  (unsigned long)(T1*1000/RTC_FREQ) );
+		} else printf("Syntax: timer ms \n");
+
+	// --------------------------------------------------------------------
+	} else if (strcmp(tk1, "stats")==0)	print_stats();
+	// --------------------------------------------------------------------
+
+	// --------------------------------------------------------------------
+	else if (strcmp(tk1, "restart")==0) asm ("j _start");
+	// --------------------------------------------------------------------
+
+	// --------------------------------------------------------------------
+	else if (strcmp(tk1, "pmp")==0) print_pmp();
+	// --------------------------------------------------------------------
+
+	else printf("Commands: yield send recv pmp load store exec stats timer restart \n");
+
+}
+
+// ------------------------------------------------------------------------
+int readline() {
+// ------------------------------------------------------------------------
+
+	static int p=0;
+	static int esc=0;
+	static char history[sizeof(inputline)]="";
+
+	while ( buffer.p1>buffer.p0 ) {
+
+		const char c = buffer.data[buffer.p0++];
+
+		if (c=='\e'){
+			esc=1;
+
+		} else if (esc==1 && c=='['){
+			esc=2;
+
+		} else if (esc==2 && c=='3'){
+			esc=3;
+
+		} else if (esc==3 && c=='~'){ // del key
+			for (int i=p; i<strlen(inputline); i++) inputline[i]=inputline[i+1];
+			write(1, "\e7", 2); // save curs pos
+			write(1, "\e[K", 3); // clear line from curs pos
+			write(1, &inputline[p], strlen(inputline)-p);
+			write(1, "\e8", 2); // restore curs pos
+			esc=0;
+
+		} else if (esc==2 && c=='C'){ // right arrow
+			esc=0;
+			if (p < strlen(inputline)){
+				p++;
+				write(1, "\e[C", 3);
+			}
+
+		} else if (esc==2 && c=='D'){ // left arrow
+			esc=0;
+			if (p>0){
+				p--;
+				write(1, "\e[D", 3);
+			}
+
+		} else if (esc==2 && c=='A'){ // up arrow
+			esc=0;
+			if (strlen(history)>0){
+				p=strlen(history);
+				strcpy(inputline, history);
+				write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
+				write(1, "\rZ1 > ", 6);
+				write(1, &inputline[0], strlen(inputline));
+			}
+
+		} else if (esc==2 && c=='B'){ // down arrow
+			esc=0;
+
+		} else if ((c=='\b' || c=='\x7f') && p>0 && esc==0){ // backspace
+			p--;
+			for (int i=p; i<strlen(inputline); i++) inputline[i]=inputline[i+1];
+			write(1, "\e[D", 3);
+			write(1, "\e7", 2);
+			write(1, "\e[K", 3);
+			write(1, &inputline[p], strlen(inputline)-p);
+			write(1, "\e8", 2);
+
+		} else if (c>=' ' && c<='~' && p < sizeof(inputline)-1 && esc==0){
+			for (int i = sizeof(inputline)-1-1; i > p; i--) inputline[i]=inputline[i-1]; // make room for 1 ch
+			inputline[p]=c;
+			write(1, "\e7", 2); // save curs pos
+			write(1, "\e[K", 3); // clear line from curs pos
+			write(1, &inputline[p], strlen(inputline)-p); p++;
+			write(1, "\e8", 2); // restore curs pos
+			write(1, "\e[C", 3); // move curs right 1 pos
+
+		} else if (c=='\r') {
+			p=0; esc=0;
+			write(1, "\n", 1);
+			for (int i = sizeof(inputline)-1; i > 0; i--) if (inputline[i]==' ') inputline[i]='\0'; else break;
+			if (strlen(inputline)>0) strcpy(history, inputline);
+			return 1;
+
+		} else esc=0;
+
+	}
+
+	return 0;
 
 }
 
 // ------------------------------------------------------------------------
 int main (void) {
-// ------------------------------------------------------------------------
 
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
 
-/*	{   // Init PLIC
-		PLIC_init(&g_plic,
-		PLIC_BASE,
-		PLIC_NUM_INTERRUPTS,
-		PLIC_NUM_PRIORITIES);
-
-		// Enable PLIC irq 17 (UART)
-		#define plic_irq_num 17
-		PLIC_enable_interrupt (&g_plic, plic_irq_num);
-		PLIC_set_priority(&g_plic, plic_irq_num, 1);
-
-	}*/
+	// Enable PLIC irq 17 (UART)
+	#define plic_irq_num 17
+	PLIC_init(&g_plic, PLIC_BASE, PLIC_NUM_INTERRUPTS, PLIC_NUM_PRIORITIES);
+	PLIC_enable_interrupt (&g_plic, plic_irq_num);
+	PLIC_set_priority(&g_plic, plic_irq_num, 1);
 
 	CSRW(mtvec, trap_handler);  // register trap handler
-	//CSRS(mie, 1<<11); 		// enable external interrupts (PLIC)
+	CSRS(mie, 1<<11); 			// enable external interrupts (PLIC)
     CSRS(mstatus, 1<<3);		// enable global interrupts (PLIC, TMR)
 
 	open("UART", 0, 0);
 
 	printf("\e[2J\e[H"); // clear terminal screen
+
 	printf("=====================================================================\n");
 	printf("      	           Hex Five MultiZone(TM) Security                   \n");
 	printf("    Copyright (C) 2018 Hex Five Security Inc. All Rights Reserved    \n");
@@ -433,159 +539,22 @@ int main (void) {
 
     print_cpu_info();
 
-	char cmd_line[CMD_LINE_SIZE+1]="";
+	write(1, "\n\rZ1 > ", 7);
 
-	while(1){
+    while(1){
 
-		write(1, "\n\rZ1 > ", 7);
-
-		readline(cmd_line);
-
-		write(1, "\n", 1);
-
-		char * tk1 = strtok (cmd_line, " ");
-		char * tk2 = strtok (NULL, " ");
-		char * tk3 = strtok (NULL, " ");
-
-		if (tk1 == NULL) tk1 = "help";
-
-		// --------------------------------------------------------------------
-		if (strcmp(tk1, "load")==0){
-		// --------------------------------------------------------------------
-			if (tk2 != NULL){
-				uint8_t data = 0x00;
-				const unsigned long addr = strtoull(tk2, NULL, 16);
-				asm ("lbu %0, (%1)" : "+r"(data) : "r"(addr));
-				printf("0x%08x : 0x%02x \n", (unsigned int)addr, data);
-			} else printf("Syntax: load address \n");
-
-		// --------------------------------------------------------------------
-		} else if (strcmp(tk1, "store")==0){
-		// --------------------------------------------------------------------
-			if (tk2 != NULL && tk3 != NULL){
-				const uint32_t data = (uint32_t)strtoul(tk3, NULL, 16);
-				const unsigned long addr = strtoull(tk2, NULL, 16);
-
-				if ( strlen(tk3) <=2 )
-					asm ( "sb %0, (%1)" : : "r"(data), "r"(addr));
-				else if ( strlen(tk3) <=4 )
-					asm ( "sh %0, (%1)" : : "r"(data), "r"(addr));
-				else
-					asm ( "sw %0, (%1)" : : "r"(data), "r"(addr));
-
-				printf("0x%08x : 0x%02x \n", (unsigned int)addr, (unsigned int)data);
-			} else printf("Syntax: store address data \n");
-
-		// --------------------------------------------------------------------
-		} else if (strcmp(tk1, "exec")==0){
-		// --------------------------------------------------------------------
-			if (tk2 != NULL){
-				const unsigned long addr = strtoull(tk2, NULL, 16);
-				asm ( "jr (%0)" : : "r"(addr));
-			} else printf("Syntax: exec address \n");
-
-		// --------------------------------------------------------------------
-		} else if (strcmp(tk1, "send")==0){
-		// --------------------------------------------------------------------
-			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
-				char msg[16]; strncpy(msg, tk3, 16);
-				if (!ECALL_SEND( tk2[0]-'0', msg) )
-					printf("Error: Inbox full.\n");
-			} else printf("Syntax: send {1|2|3|4} message \n");
-
-		// --------------------------------------------------------------------
-		} else if (strcmp(tk1, "recv")==0){
-		// --------------------------------------------------------------------
-			if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
-				char msg[16];
-				if (ECALL_RECV(tk2[0]-'0', msg))
-					printf("msg : %.16s\n", msg);
-				else
-					printf("Error: Inbox empty.\n");
-			} else printf("Syntax: recv {1|2|3|4} \n");
-
-		// --------------------------------------------------------------------
-		} else if (strcmp(tk1, "yield")==0){
-		// --------------------------------------------------------------------
-			volatile unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
-			volatile unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
-			ECALL_YIELD();
-			volatile unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
-			volatile unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
-			const int TC = (C2-C1)/(CPU_FREQ/1000000);
-			printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
-
-		// --------------------------------------------------------------------
-		} else if (strcmp(tk1, "timer")==0){
-		// --------------------------------------------------------------------
-			if (tk2 != NULL){
-				const uint64_t ms = abs(strtoull(tk2, NULL, 10));
-				const uint64_t T0 = ECALL_RDTIME();
-				const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-				ECALL_WRTIMECMP(T1); CSRS(mie, 1<<7);
-				printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
-													  (unsigned long)(T1*1000/RTC_FREQ) );
-			} else printf("Syntax: timer ms \n");
-
-		// --------------------------------------------------------------------
-		} else if (strcmp(tk1, "wfi")==0){
-		// --------------------------------------------------------------------
-			if (tk2 != NULL && tk2[0] != '0'){
-				const uint64_t ms = abs(strtoull(tk2, NULL, 10));
-				const uint64_t T0 = ECALL_RDTIME();
-				const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-				ECALL_WRTIMECMP(T1); CSRS(mie, 1<<7);
-				printf("paused T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
-												   (unsigned long)(T1*1000/RTC_FREQ) );
-			}
-			ECALL_WFI();
-			// disable timer in case WFI exits before timer expiration (irqs/msg)
-			CSRC(mie, 1<<7);
-		// --------------------------------------------------------------------
-		} else if (strcmp(tk1, "stats")==0)	print_stats();
-		// --------------------------------------------------------------------
-
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "restart")==0) asm ("j _start");
-		// --------------------------------------------------------------------
-
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "pmp")==0) print_pmp();
-		// --------------------------------------------------------------------
-
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "ebreak")==0) asm("ebreak");
-		// --------------------------------------------------------------------
-
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "rdtime")==0){
-		// --------------------------------------------------------------------
-			uint64_t timecmp = ECALL_RDTIME();
-			printf("0x%08x_%08x \n", (uint32_t)(timecmp>>32), (uint32_t)timecmp);
+		if (readline()){
+			cmd_handler(); //printf("%s\n", inputline);
+			write(1, "\n\rZ1 > ", 7);
+			inputline[0]='\0';
 		}
 
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "rdtimecmp")==0){
-		// --------------------------------------------------------------------
-			uint64_t timecmp = ECALL_RDTIMECMP();
-			printf("0x%08x_%08x \n", (uint32_t)(timecmp>>32), (uint32_t)timecmp);
-		}
+		msg_handler();
 
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "wrtimecmp")==0){
-		// --------------------------------------------------------------------
-			uint64_t timecmp = strtoull("0x1234567890abcdef", NULL, 16);
-			ECALL_WRTIMECMP(timecmp);
-		}
-
-		// --------------------------------------------------------------------
-		else if (strcmp(tk1, "trap")==0) asm ("rdtime x0"); // csrrs x0, time, 0 => M trap 0x2
-		// --------------------------------------------------------------------
-
-		else printf("Commands: yield send recv pmp load store exec stats timer wfi restart \n");
+		ECALL_WFI();
 
 	}
 
-}
+} // main()
 
 

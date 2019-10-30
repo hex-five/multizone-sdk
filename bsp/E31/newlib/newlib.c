@@ -61,7 +61,7 @@ int _open(const char* name, int flags, int mode) {
 		UART_REG(UART_DIV) = CPU_FREQ/2/115200-1;
 		UART_REG(UART_TXCTRL) = 0b01;
 		UART_REG(UART_RXCTRL) = 0b01;
-		//UART_REG(UART_IE)     = 0b10; // RX irq
+		UART_REG(UART_IE)     = 0b10; // RX irq
 
 		return 0;
 
