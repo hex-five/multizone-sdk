@@ -27,7 +27,7 @@ __attribute__((interrupt())) void trp_handler(void)	 { // trap handler
 	case 8:	break; // Environment call from U-mode
 	}
 
-	asm("ebreak");
+	asm volatile("ebreak");
 }
 __attribute__((interrupt())) void msi_handler(void)  { // machine software interrupt (3)
 }
@@ -45,7 +45,7 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	PWM_REG(PWM_CMP2) = 0xFF - (g >> 2);
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
-	// set timer
+	// set timer (clears mip)
 	const uint64_t T = ECALL_RDTIME(); ECALL_WRTIMECMP(T + 25*RTC_FREQ/1000);
 
 }
@@ -118,37 +118,37 @@ __attribute__((naked, aligned(4))) void trap_vect(void) { // irqs vector
 
 	asm (
 		"j trp_handler;"	//  0
-		"jr (x0);"	//  1
-		"jr (x0);"	//  2
+		".word 0x0;" //  1
+		".word 0x0;" //  2
 		"j msi_handler;" 	//  3
-		"jr (x0);" 	//  4
-		"jr (x0);" 	//  5
-		"jr (x0);" 	//  6
+		".word 0x0;" //  4
+		".word 0x0;" //  5
+		".word 0x0;" //  6
 		"j tmr_handler;" 	//  7
-		"jr (x0);" 	//  8
-		"jr (x0);" 	//  9
-		"jr (x0);" 	// 10
-		"jr (x0);" 	// 11
-		"jr (x0);" 	// 12
-		"jr (x0);" 	// 13
-		"jr (x0);" 	// 14
-		"jr (x0);" 	// 15
-		"jr (x0);" 	// 16
-		"jr (x0);" 	// 17
-		"jr (x0);" 	// 18
-		"jr (x0);" 	// 19
-		"j btn0_handler;" // 20
-		"j btn1_handler;" // 21
-		"j btn2_handler;" // 22
-		"jr (x0);" 	// 23
-		"jr (x0);" 	// 24
-		"jr (x0);" 	// 25
-		"jr (x0);" 	// 26
-		"jr (x0);" 	// 27
-		"jr (x0);" 	// 28
-		"jr (x0);" 	// 29
-		"jr (x0);" 	// 30
-		"jr (x0);" 	// 31
+		".word 0x0;" //  8
+		".word 0x0;" //  9
+		".word 0x0;" // 10
+		".word 0x0;" // 11
+		".word 0x0;" // 12
+		".word 0x0;" // 13
+		".word 0x0;" // 14
+		".word 0x0;" // 15
+		".word 0x0;" // 16
+		".word 0x0;" // 17
+		".word 0x0;" // 18
+		".word 0x0;" // 19
+		"j btn0_handler;"	// 20
+		"j btn1_handler;"	// 21
+		"j btn2_handler;"	// 22
+		".word 0x0;" // 23
+		".word 0x0;" // 24
+		".word 0x0;" // 25
+		".word 0x0;" // 26
+		".word 0x0;" // 27
+		".word 0x0;" // 28
+		".word 0x0;" // 29
+		".word 0x0;" // 30
+		".word 0x0;" // 31
 	);
 }
 
@@ -229,16 +229,28 @@ int main (void){
     // enable global interrupts (BTN0, BTN1, BTN2, TMR)
     CSRS(mstatus, 1<<3);
 
+    const unsigned long MIE = CSRR(mie); // save default value
+
 	while(1){
 
 		// Message handler
 		for (int zone=1; zone<=4; zone++){
 			char msg[16];
+
 			if (zone!=2 && ECALL_RECV(zone, msg)) {
-				if (strcmp("ping", msg) == 0) ECALL_SEND(zone, "pong");
-				else if (msg[0]=='1') CSRS(mstatus, 1<<3);
-				else if (msg[0]=='0') CSRC(mstatus, 1<<3);
+
+				if (strcmp("ping", msg) == 0) {
+					ECALL_SEND(zone, "pong");
+
+				} else if (msg[0]=='0') {
+					CSRRW(mie, 0); CSRC(mstatus, 1<<3);
+
+				} else if (msg[0]=='1') {
+					CSRRW(mie, MIE); CSRS(mstatus, 1<<3);
+
+				}
 			}
+
 		}
 
 		// Wait For Interrupt

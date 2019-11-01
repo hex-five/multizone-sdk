@@ -69,19 +69,20 @@ __attribute__((interrupt())) void trap_handler(void){
 	case 0x80000003: printf("Machine software interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 					 break;
 
-	case 0x80000007: printf("Machine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					 CSRC(mie, 1<<7);// disable timer
-					 break;
+	case 0x80000007: // Machine timer interrupt
+					 write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
+					 printf("\rMachine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					 write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
+					 write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
 
-	case 0x8000000B: ;//printf("Machine external interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					 const plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
+					 ECALL_WRTIMECMP((uint64_t)-1); // reset mip.7
+					 return;
 
-					 if (buffer.p0==buffer.p1) {buffer.p0=0; buffer.p1=0;}
-
-					 read(0, &buffer.data[buffer.p1++], 1);
-
-					 if (buffer.p1> BUFFER_SIZE-1) buffer.p1 = BUFFER_SIZE-1;
-
+	case 0x8000000B: // Machine external interrupt
+					 ;const plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
+						 if (buffer.p0==buffer.p1) {buffer.p0=0; buffer.p1=0;}
+						 read(0, &buffer.data[buffer.p1++], 1);
+						 if (buffer.p1> BUFFER_SIZE-1) buffer.p1 = BUFFER_SIZE-1;
 					 PLIC_complete_interrupt(&g_plic, int_num); // complete
 					 return;
 
@@ -90,7 +91,7 @@ __attribute__((interrupt())) void trap_handler(void){
 	}
 
 	printf("Press any key to restart \n");
-	char c='\0'; while(read(0, &c, 1) ==0 ){;} asm ("j _start");
+	char c='\0'; while(read(0, &c, 1) ==0 ){;} asm ("j _start"); // blocking loop
 
 }
 
@@ -395,7 +396,7 @@ void cmd_handler(){
 			const uint64_t ms = abs(strtoull(tk2, NULL, 10));
 			const uint64_t T0 = ECALL_RDTIME();
 			const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-			ECALL_WRTIMECMP(T1); CSRS(mie, 1<<7);
+			ECALL_WRTIMECMP(T1);
 			printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 												  (unsigned long)(T1*1000/RTC_FREQ) );
 		} else printf("Syntax: timer ms \n");
@@ -422,7 +423,7 @@ int readline() {
 
 	static int p=0;
 	static int esc=0;
-	static char history[sizeof(inputline)]="";
+	static char history[8][sizeof(inputline)]={"","","","","","","",""}; static int h=-1;
 
 	while ( buffer.p1>buffer.p0 ) {
 
@@ -459,18 +460,28 @@ int readline() {
 				write(1, "\e[D", 3);
 			}
 
-		} else if (esc==2 && c=='A'){ // up arrow
+		} else if (esc==2 && c=='A'){ // up arrow (history)
 			esc=0;
-			if (strlen(history)>0){
-				p=strlen(history);
-				strcpy(inputline, history);
+			if (h<8-1 && strlen(history[h+1])>0){
+				h++;
+				strcpy(inputline, history[h]);
 				write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
 				write(1, "\rZ1 > ", 6);
-				write(1, &inputline[0], strlen(inputline));
+				write(1, inputline, strlen(inputline));
+				p=strlen(inputline);
+
 			}
 
-		} else if (esc==2 && c=='B'){ // down arrow
+		} else if (esc==2 && c=='B'){ // down arrow (history)
 			esc=0;
+			if (h>0 && strlen(history[h-1])>0){
+				h--;
+				strcpy(inputline, history[h]);
+				write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
+				write(1, "\rZ1 > ", 6);
+				write(1, inputline, strlen(inputline));
+				p=strlen(inputline);
+			}
 
 		} else if ((c=='\b' || c=='\x7f') && p>0 && esc==0){ // backspace
 			p--;
@@ -494,7 +505,13 @@ int readline() {
 			p=0; esc=0;
 			write(1, "\n", 1);
 			for (int i = sizeof(inputline)-1; i > 0; i--) if (inputline[i]==' ') inputline[i]='\0'; else break;
-			if (strlen(inputline)>0) strcpy(history, inputline);
+
+			if (strlen(inputline)>0 && strcmp(inputline, history[0])!=0){
+				for (int i = 8-1; i > 0; i--) strcpy(history[i], history[i-1]);
+				strcpy(history[0], inputline);
+			}
+			h = -1;
+
 			return 1;
 
 		} else esc=0;
@@ -519,6 +536,7 @@ int main (void) {
 	PLIC_set_priority(&g_plic, plic_irq_num, 1);
 
 	CSRW(mtvec, trap_handler);  // register trap handler
+	CSRS(mie, 1<<7);			// enable timer
 	CSRS(mie, 1<<11); 			// enable external interrupts (PLIC)
     CSRS(mstatus, 1<<3);		// enable global interrupts (PLIC, TMR)
 
