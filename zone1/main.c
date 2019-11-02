@@ -161,11 +161,13 @@ void print_stats(void){
 
 	for (int i=0; i<COUNT; i++){
 
-		volatile unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
-		volatile unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
+		const unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
 		ECALL_YIELD();
-		volatile unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
-		volatile unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
+		const unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
+
+		const unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
+		ECALL_YIELD();
+		const unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
 
 		cycles[i] = C2-C1; instrs[i] = I2-I1;
 
@@ -189,22 +191,24 @@ void print_stats(void){
 	printf("time   min/med/max = %d/%d/%d us \n", min/MHZ, med/MHZ, max/MHZ);
 
 	// Kernel stats - may not be available (#ifdef STATS)
-	const unsigned long count 	  = ECALL_CSRR(CSR_MHPMCOUNTER21);
-	const unsigned long cycle_min = ECALL_CSRR(CSR_MHPMCOUNTER22);
-	const unsigned long cycle_avg = ECALL_CSRR(CSR_MHPMCOUNTER23)/count;
-	const unsigned long cycle_max = ECALL_CSRR(CSR_MHPMCOUNTER24);
-	const unsigned long instr_min = ECALL_CSRR(CSR_MHPMCOUNTER25);
-	const unsigned long instr_avg = ECALL_CSRR(CSR_MHPMCOUNTER26)/count;
-	const unsigned long instr_max = ECALL_CSRR(CSR_MHPMCOUNTER27);
+	const unsigned long irq_instr = ECALL_CSRR(CSR_MHPMCOUNTER26);
+	const unsigned long irq_cycle = ECALL_CSRR(CSR_MHPMCOUNTER27);
+	const unsigned long instr_min = ECALL_CSRR(CSR_MHPMCOUNTER28);
+	const unsigned long instr_max = ECALL_CSRR(CSR_MHPMCOUNTER29);
+	const unsigned long cycle_min = ECALL_CSRR(CSR_MHPMCOUNTER30);
+	const unsigned long cycle_max = ECALL_CSRR(CSR_MHPMCOUNTER31);
 
-	if (count>0){
+	if (instr_min>0){
 		printf("\n");
 		printf("Kernel\n");
 		printf("-----------------------------------------\n");
-		printf("instrs min/avg/max = %lu/%lu/%lu \n", instr_min, instr_avg, instr_max);
-		printf("cycles min/avg/max = %lu/%lu/%lu \n", cycle_min, cycle_avg, cycle_max);
-		printf("time   min/avg/max = %lu/%lu/%lu \n", cycle_min/MHZ, cycle_avg/MHZ, cycle_max/MHZ);
-
+		printf("instrs min/max = %lu/%lu \n", instr_min, instr_max);
+		printf("cycles min/max = %lu/%lu \n", cycle_min, cycle_max);
+		printf("time   min/max = %lu/%lu us\n", cycle_min/MHZ, cycle_max/MHZ);
+		printf("-----------------------------------------\n");
+		printf("irq lat instrs = %lu \n", irq_instr);
+		printf("irq lat cycles = %lu \n", irq_cycle);
+		printf("time           = %lu us\n", irq_cycle/MHZ);
 	}
 
 }
@@ -221,10 +225,10 @@ void print_pmp(void){
 	#define PMP_W 1<<1
 	#define PMP_X 1<<2
 
-	volatile uint64_t pmpcfg=0x0;
+	uint64_t pmpcfg=0x0;
 #if __riscv_xlen==32
-	volatile uint32_t pmpcfg0; asm ( "csrr %0, pmpcfg0" : "=r"(pmpcfg0) );
-	volatile uint32_t pmpcfg1; asm ( "csrr %0, pmpcfg1" : "=r"(pmpcfg1) );
+	uint32_t pmpcfg0; asm ( "csrr %0, pmpcfg0" : "=r"(pmpcfg0) );
+	uint32_t pmpcfg1; asm ( "csrr %0, pmpcfg1" : "=r"(pmpcfg1) );
 	pmpcfg = pmpcfg1;
 	pmpcfg <<= 32;
 	pmpcfg |= pmpcfg0;
@@ -381,11 +385,9 @@ void cmd_handler(){
 	// --------------------------------------------------------------------
 	} else if (strcmp(tk1, "yield")==0){
 	// --------------------------------------------------------------------
-		volatile unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
-		volatile unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
+		const unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
 		ECALL_YIELD();
-		volatile unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
-		volatile unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
+		const unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
 		const int TC = (C2-C1)/(CPU_FREQ/1000000);
 		printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
 
