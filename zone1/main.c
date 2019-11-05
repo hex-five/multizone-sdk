@@ -154,10 +154,17 @@ __attribute__((interrupt())) void trap_handler(void){
 // ------------------------------------------------------------------------
 void print_stats(void){
 
-	const int COUNT = 10+1; // odd values for median
 	#define MHZ (CPU_FREQ/1000000)
-
+	const int COUNT = 10+1; // odd values for median
 	int cycles[COUNT], instrs[COUNT];
+
+	// Kernel stats - read before cycling to get this zone irq latency
+	const unsigned long irq_instr = ECALL_CSRR(CSR_MHPMCOUNTER26);
+	const unsigned long irq_cycle = ECALL_CSRR(CSR_MHPMCOUNTER27);
+	const unsigned long instr_min = ECALL_CSRR(CSR_MHPMCOUNTER28);
+	const unsigned long instr_max = ECALL_CSRR(CSR_MHPMCOUNTER29);
+	const unsigned long cycle_min = ECALL_CSRR(CSR_MHPMCOUNTER30);
+	const unsigned long cycle_max = ECALL_CSRR(CSR_MHPMCOUNTER31);
 
 	for (int i=0; i<COUNT; i++){
 
@@ -191,13 +198,6 @@ void print_stats(void){
 	printf("time   min/med/max = %d/%d/%d us \n", min/MHZ, med/MHZ, max/MHZ);
 
 	// Kernel stats - may not be available (#ifdef STATS)
-	const unsigned long irq_instr = ECALL_CSRR(CSR_MHPMCOUNTER26);
-	const unsigned long irq_cycle = ECALL_CSRR(CSR_MHPMCOUNTER27);
-	const unsigned long instr_min = ECALL_CSRR(CSR_MHPMCOUNTER28);
-	const unsigned long instr_max = ECALL_CSRR(CSR_MHPMCOUNTER29);
-	const unsigned long cycle_min = ECALL_CSRR(CSR_MHPMCOUNTER30);
-	const unsigned long cycle_max = ECALL_CSRR(CSR_MHPMCOUNTER31);
-
 	if (instr_min>0){
 		printf("\n");
 		printf("Kernel\n");
@@ -415,7 +415,16 @@ void cmd_handler(){
 	else if (strcmp(tk1, "pmp")==0) print_pmp();
 	// --------------------------------------------------------------------
 
-	else printf("Commands: yield send recv pmp load store exec stats timer restart \n");
+	// --------------------------------------------------------------------
+	else if (strcmp(tk1, "csrr")==0){
+	// --------------------------------------------------------------------
+		//unsigned long C0 = ECALL_CSRR(CSR_MCYCLE);
+		unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
+		volatile unsigned long misa; asm volatile( "csrr %0, misa" : "=r"(misa) );
+		unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
+		printf( "csrr: cycles %d \n", (int)(C2-C1)); //-(int)(C1-C0));
+
+	} else printf("Commands: yield send recv pmp load store exec stats timer restart \n");
 
 }
 
@@ -536,6 +545,9 @@ int main (void) {
 	PLIC_init(&g_plic, PLIC_BASE, PLIC_NUM_INTERRUPTS, PLIC_NUM_PRIORITIES);
 	PLIC_enable_interrupt (&g_plic, plic_irq_num);
 	PLIC_set_priority(&g_plic, plic_irq_num, 1);
+
+	// Reset timer
+	ECALL_WRTIMECMP((uint64_t)-1);
 
 	CSRW(mtvec, trap_handler);  // register trap handler
 	CSRS(mie, 1<<7);			// enable timer

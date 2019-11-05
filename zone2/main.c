@@ -209,7 +209,7 @@ int main (void){
 
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
-	while(1) ECALL_WFI();
+	//while(1) ECALL_WFI();
 
 	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS) | (PWM_CFG_ZEROCMP) | (PWM_CFG_DEGLITCH);
 	PWM_REG(PWM_COUNT) = 0;
