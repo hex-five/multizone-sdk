@@ -1,24 +1,25 @@
 # multizone-sdk
-MultiZone™ Security Trusted Execution Environment for any RISC-V platform
+MultiZone® Security Trusted Execution Environment for any RISC-V platform
 
-MultiZone Security provides policy-based hardware-enforced separation for an unlimited number of security domains, with full control over data, code, peripherals and interrupts.
+Hex Five's open standard technology provides hardware-enforced software-defined separation of multiple application domains, with full control over data, programs, and peripherals. Contrary to traditional solutions, MultiZone® Security is policy-driven and requires no hypervisor software or hardware support for virtualization: open source libraries, third party binaries, and legacy code can be configured in minutes to achieve unprecedented levels of safety and security. 
 
-MultiZone Security SDK supports the following cores / boards:
- - Andes  N22 - RV32ACIMU Board: Corvette F1 FPGA
- - Andes  N25 - RV32ACIMU Board: GoWin GW2A-55K FPGA
+MultiZone® Security SDK supports the following cores / boards:
+ - Hex Five X300 - RV32ACIMU Board: Digilent ARTY7 FPGA
+ - UCB E300 (Rocket) - RV32ACIMU Board: Digilent ARTY7 FPGA
+ - Microchip PolarFire - RV64ACIMU Board: Aloe Vera Kit https://github.com/hex-five/multizone-linux
+ - Andes N22 - Board: Corvette F1 FPGA - see dev/N22 branch
+ - GoWin N25 - Board: GW2A-55K/18K Eval Board Mini - see dev/N22 branch
  - SiFive E21 - RV32ACIMU Board: Digilent ARTY7 FPGA 
  - SiFive E31 - RV32ACIMU Board: Digilent ARTY7 FPGA
- - SiFIve E51 - RV64ACIMU Board: Digilent ARTY7 FPGA
  - SiFIve S51 - RV64ACIMU Board: Digilent ARTY7 FPGA
- - SiFive U540 - RV64ACIMU Board Unleashed https://github.com/hex-five/multizone-linux
- - Hex Five X300 - RV32ACIMU Board: Digilent ARTY7 FPGA
+ - SiFIve U540 - RV64ACIMU Board: Unleashed 
 
-This repository, maintained by Hex Five Security, makes it easy to build robust Trusted Execution Environments on RISC-V cores.
-For Questions or feedback - send email to info 'at' hex-five.com
+This repository, maintained by Hex Five Security, makes it easy to build robust Trusted Execution Environments on RISC-V cores. For Questions or feedback - send email to info 'at' hex-five.com
 
 ### Installation ###
 
-Upload the bitstream to the Arty board following directions from SiFive - https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf
+Upload the FPGA bitstream to the target board following directions from the IP vendor.
+For Digilent ARTY7 FPGA see https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf
 
 Install the certified RISC-V toolchain for Linux - directions specific to a fresh Ubuntu 18.04 LTS, other Linux distros generally a subset
  ```
@@ -64,12 +65,12 @@ export PATH="$PATH:/home/<username>/riscv-gnu-toolchain-20181226/bin"
 ```
 Close and restart the terminal session for these changes to take effect.
 
-### Compile and Upload the Project to the Arty Board ###
+### Compile and Upload the firmware to the target ###
 
 ```
 cd multizone-sdk/
 make clean
-make
+make BOARD=xxx
 ```
 
 This will result in a HEX file that is now ready to upload to the Arty board.
@@ -80,22 +81,21 @@ make load
 
 ### Operate the Demo ###
 
-The system contains three zones:
+The system contains three zones - ARTY7 FPGA:
  - Zone 1: UART Console (115200 baud, 8N1) with commands that enable the following:
    - load, store exec - issue discrete load / store / exec commands to test the boundaries of physical memory protection in Zone 1
-     - invalid commands generate hardware exceptions that send a response to the user via handlers that are registered in main.c
+   - invalid commands generate hardware exceptions that send a response to the user via handlers that are registered in main.c
    - send / recv messages to / from other zones
    - timer - set a soft timer in ms 
    - yield - measure the round trip time through three zones when you yield context
    - stats - complete a number of yield commands and calculate statistics on performance
    - restart - restart the console
  - Zone 2: LED PWM + Interrupts
-   - This Zone is running a modified version of SiFive's coreplexip_welcome demo with trap and emulate functions
-   - Buttons 0-2 are mapped to interrupts in this Zone, they will cause the LED to change color for 5s and send a message to zone 1
-   - These interrupt handlers themselves can be interrupted and resumed by pressing another button before the first handler is complete
+   - Buttons 0-2 are mapped to interrupts in this Zone, they will cause the LED to change color for 3 seconds and to send a message to zone 1
+   - The interrupt handlers themselves can be interrupted and resumed by pressing another button before the first handler is complete
  - Zone 3: Robot Control
    - This zone controls a robot via GPIO; if you do not have the robot then this zone simply yields for you
-   - Robot commands are all issued ia messages from zone 1:
+   - Robot commands are all issued via messages from zone 1:
      - send 3 > - unfold
      - send 3 1 - begin recursive dance
      - send 3 0 - stop recursive dance when it reaches home
@@ -114,4 +114,4 @@ The system contains three zones:
   
 ### For More Information ###
 
-See the MultiZone Manual (Pending) or visit [http://www.hex-five.com](https://www.hex-five.com)
+See the MultiZone Manual or visit [http://www.hex-five.com](https://www.hex-five.com)
