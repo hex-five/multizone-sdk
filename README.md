@@ -6,9 +6,9 @@ Hex Five's open standard technology provides hardware-enforced software-defined 
 MultiZone® Security SDK supports the following cores / boards:
  - Hex Five X300 - RV32ACIMU Board: Digilent ARTY7 FPGA
  - UCB E300 (Rocket) - RV32ACIMU Board: Digilent ARTY7 FPGA
- - Microchip PolarFire - RV64ACIMU Board: Aloe Vera Kit see [https://github.com/hex-five/multizone-linux](multizone-linux repo)
- - Andes N22 - Board: Corvette F1 FPGA - see [https://github.com/hex-five/multizone-sdk/tree/dev/N22](dev/N22 branch)
- - GoWin N25 - Board: GW2A-55K/18K Eval Board Mini - see [https://github.com/hex-five/multizone-sdk/tree/dev/N22](dev/N22 branch)
+ - Microchip PolarFire - RV64ACIMU Board: Aloe Vera Kit see [multizone-linux repo](https://github.com/hex-five/multizone-linux)
+ - Andes N22 - Board: Corvette F1 FPGA - see [dev/N22 branch](https://github.com/hex-five/multizone-sdk/tree/dev/N22)
+ - GoWin N25 - Board: GW2A-55K/18K Eval Board Mini - see [dev/N22 branch](https://github.com/hex-five/multizone-sdk/tree/dev/N22)
  - Alibaba/T-Head/C-Sky E902 - RV32EMCU Board: Digilent ARTY7 FPGA (16 register ISA)
  - SiFive E21 - RV32ACIMU Board: Digilent ARTY7 FPGA 
  - SiFive E31 - RV32ACIMU Board: Digilent ARTY7 FPGA
@@ -20,7 +20,7 @@ This repository, maintained by Hex Five Security, makes it easy to build robust 
 ### Installation ###
 
 Upload the FPGA bitstream to the target board following directions from the IP vendor.
-For Digilent ARTY7 FPGA see for example [https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf](Arty FPGA Dev Kit Getting Started Guide)
+For Digilent ARTY7 FPGA see for example [Arty FPGA Dev Kit Getting Started Guide](https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf)
 
 Install the certified RISC-V toolchain for Linux - directions specific to a fresh Ubuntu 18.04 LTS, other Linux distros generally a subset
  ```
@@ -36,7 +36,7 @@ Install the certified RISC-V toolchain for Linux - directions specific to a fres
  sudo apt-get install libusb-0.1-4
  sudo apt-get install screen
 ```
-Note: Alternatively download Hex Five's prebuilt certified toolchain freely available at [http://hex-five.com/download/](http://hex-five.com/download/)
+Note: Alternatively download Hex Five's certified prebuilt toolchain at http://hex-five.com/download
 
 If you have not already done so, you need to edit or create a file to place the USB devices until plugdev group so you can access them without root privileges:
 ```
@@ -116,4 +116,4 @@ The system contains three zones - ARTY7 FPGA:
   
 ### For More Information ###
 
-Read the [https://github.com/hex-five/multizone-sdk/blob/master/manual.pdf](MultiZone PDF Manual) or visit [http://hex-five.com/faq](http://www.hex-five.com/faq)
+Read the [MultiZone PDF Manual](https://github.com/hex-five/multizone-sdk/blob/master/manual.pdf) or visit http://hex-five.com/faq
