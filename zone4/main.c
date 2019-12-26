@@ -1,8 +1,10 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
+#include <string.h>	// strcmp()
 #include <stdint.h>
-#include <platform.h>
-#include <multizone.h>
+
+#include "platform.h"
+#include "multizone.h"
 
 __attribute__((interrupt())) void trap_handler(void){
 
@@ -16,26 +18,20 @@ __attribute__((interrupt())) void trap_handler(void){
 		case 7 : break; // Store access fault
 		case 8 : break; // Environment call from U-mode
 
-		case 0x80000007 : {
+		case 0x80000007 :
 			ECALL_SEND(1, "IRQ TMR");
-			const uint64_t T = ECALL_RDTIME(); ECALL_WRTIMECMP(T + 5000*RTC_FREQ/1000); // clears mip
+			ECALL_WRTIMECMP(ECALL_RDTIME() + 5000*RTC_FREQ/1000); // clear mip
 			break;
-		}
 
-		case 0x80000000+16+BTN3 : {
-
+		case 0x80000000+16+BTN3 :
+			ECALL_SEND(1, "IRQ 23 [BTN3]");
 			static uint64_t debounce = 0;
 			const uint64_t T = ECALL_RDTIME();
-
 			if (T > debounce){
 				debounce = T + 250*RTC_FREQ/1000;
-				ECALL_WRTIMECMP(debounce);
-				ECALL_SEND(1, "IRQ 23 [BTN3]");
 				GPIO_REG(GPIO_RISE_IP) |= (1<<BTN3); //clear gpio irq
 			}
-
 			break;
-		}
 
 	}
 
@@ -66,13 +62,11 @@ int main (void){
 
 	while(1){
 
-		int msg[4]={0,0,0,0};
-		if (ECALL_RECV(1, msg)) {
-			switch (msg[0]) {
-			case '1': CSRS(mstatus, 1<<3);	break;
-			case '0': CSRC(mstatus, 1<<3);	break;
-			case 'p': ECALL_SEND(1, ((int[4]){'p','o','n','g'})); break;
-			}
+		// Message handler
+		char msg[16]; if (ECALL_RECV(1, msg)) {
+			if (strcmp("ping", msg)==0) ECALL_SEND(1, "pong");
+			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
+			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
 		}
 
 		ECALL_WFI();

@@ -1,8 +1,9 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 #include <string.h>	// strcmp()
 #include <inttypes.h> // uint16_t, ...
-#include <platform.h>
-#include <multizone.h>
+
+#include "platform.h"
+#include "multizone.h"
 
 #define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x0;
 #define LD1_GRN_ON PWM_REG(PWM_CMP2)  = 0x0;
@@ -234,23 +235,10 @@ int main (void){
 	while(1){
 
 		// Message handler
-		for (int zone=1; zone<=4; zone++){
-			char msg[16];
-
-			if (zone!=2 && ECALL_RECV(zone, msg)) {
-
-				if (strcmp("ping", msg) == 0) {
-					ECALL_SEND(zone, "pong");
-
-				} else if (msg[0]=='0') {
-					CSRRW(mie, 0); CSRC(mstatus, 1<<3);
-
-				} else if (msg[0]=='1') {
-					CSRRW(mie, MIE); CSRS(mstatus, 1<<3);
-
-				}
-			}
-
+		char msg[16]; if (ECALL_RECV(1, msg)) {
+			if (strcmp("ping", msg)==0) ECALL_SEND(1, "pong");
+			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
+			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
 		}
 
 		// Wait For Interrupt

@@ -14,10 +14,6 @@ else ifeq ($(BOARD),E31)
 	ARCH := rv32
 	RISCV_ARCH := $(ARCH)ic
 	RISCV_ABI := ilp32	
-else ifeq ($(BOARD),E51)
-	ARCH := rv64
-	RISCV_ARCH := $(ARCH)ic
-	RISCV_ABI := lp64
 else ifeq ($(BOARD),S51)
 	ARCH := rv64
 	RISCV_ARCH := $(ARCH)ic
@@ -71,8 +67,8 @@ all: clean
 	$(MAKE) -C zone3
 	$(MAKE) -C zone4	
 	java -jar multizone.jar \
-		--arch=$(BOARD) \
-		-c bsp/$(BOARD)/multizone.cfg \
+		--arch $(BOARD) \
+		--config bsp/$(BOARD)/multizone.cfg \
 		zone1/zone1.hex \
 		zone2/zone2.hex \
 		zone3/zone3.hex \

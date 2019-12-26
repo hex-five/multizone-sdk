@@ -6,9 +6,9 @@
 #include <stdio.h>	// printf() sprintf()
 #include <stdlib.h> // qsort() strtoul()
 
-#include <platform.h>
-#include <plic_driver.h>
-#include <multizone.h>
+#include "platform.h"
+#include "plic_driver.h"
+#include "multizone.h"
 
 #define BUFFER_SIZE 16
 static struct{
@@ -559,14 +559,14 @@ int main (void) {
 	printf("\e[2J\e[H"); // clear terminal screen
 
 	printf("=====================================================================\n");
-	printf("      	           Hex Five MultiZone(TM) Security                   \n");
-	printf("    Copyright (C) 2018 Hex Five Security Inc. All Rights Reserved    \n");
+	printf("      	             Hex Five MultiZone® Security                    \n");
+	printf("    Copyright© 2020 Hex Five Security, Inc. - All Rights Reserved    \n");
 	printf("=====================================================================\n");
-	printf("This version of MultiZone(TM) is meant for evaluation purposes only. \n");
-	printf("As such, use of this software is governed by your Evaluation License.\n");
-	printf("There may be other functional limitations as described in the        \n");
-	printf("evaluation kit documentation. The full version of the software does  \n");
-	printf("not have these restrictions.                                         \n");
+	printf("This version of MultiZone® Security is meant for evaluation purposes \n");
+	printf("only. As such, use of this software is governed by the Evaluation    \n");
+	printf("License. There may be other functional limitations as described in   \n");
+	printf("the evaluation SDK documentation. The commercial version of the      \n");
+	printf("software does not have these restrictions.                           \n");
 	printf("=====================================================================\n");
 
     print_cpu_info();
