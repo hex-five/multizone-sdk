@@ -53,7 +53,7 @@ int main (void){
     // enable BTN3 irq
     CSRS(mie, 1<<(16+BTN3));
 
-    // set timer += 10sec
+    // set timer += 5sec
 	ECALL_WRTIMECMP(ECALL_RDTIME() + 5000*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
