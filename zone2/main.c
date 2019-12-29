@@ -47,7 +47,7 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
 	// set timer (clears mip)
-	const uint64_t T = ECALL_RDTIME(); ECALL_WRTIMECMP(T + 25*RTC_FREQ/1000);
+	ECALL_WRTIMECMP(ECALL_RDTIME() + 25*RTC_FREQ/1000);
 
 }
 
@@ -224,13 +224,11 @@ int main (void){
 	CSRW(mtvec, trap_vect); CSRS(mtvec, 0b1);
 
     // set & enable timer
-	const uint64_t T = ECALL_RDTIME(); ECALL_WRTIMECMP(T + 25*RTC_FREQ/1000);
+	ECALL_WRTIMECMP(ECALL_RDTIME() + 25*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
     // enable global interrupts (BTN0, BTN1, BTN2, TMR)
     CSRS(mstatus, 1<<3);
-
-    const unsigned long MIE = CSRR(mie); // save default value
 
 	while(1){
 
@@ -239,8 +237,8 @@ int main (void){
 			if (strcmp("ping", msg)==0) ECALL_SEND(1, "pong");
 			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
 			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
-			else if (strcmp("block", msg)==0) while(!ECALL_RECV(1, msg));
-			else if (strcmp("loop",  msg)==0) {while(!ECALL_RECV(1, msg)) ECALL_YIELD();}
+			else if (strcmp("block", msg)==0) {volatile int i=0; while(1) i++; }
+			else if (strcmp("loop",  msg)==0) {while(1) ECALL_YIELD();}
 		}
 
 		// Wait For Interrupt

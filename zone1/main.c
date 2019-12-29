@@ -74,8 +74,8 @@ __attribute__((interrupt())) void trap_handler(void){
 					 printf("\rMachine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 					 write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
 					 write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
-
 					 ECALL_WRTIMECMP((uint64_t)-1); // reset mip.7
+					 CSRC(mie, 1<<7); // disable mie.7
 					 return;
 
 	case 0x8000000B: // Machine external interrupt
@@ -398,7 +398,7 @@ void cmd_handler(){
 			const uint64_t ms = abs(strtoull(tk2, NULL, 10));
 			const uint64_t T0 = ECALL_RDTIME();
 			const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-			ECALL_WRTIMECMP(T1);
+			ECALL_WRTIMECMP(T1); CSRS(mie, 1<<7);
 			printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 												  (unsigned long)(T1*1000/RTC_FREQ) );
 		} else printf("Syntax: timer ms \n");
@@ -550,7 +550,6 @@ int main (void) {
 	ECALL_WRTIMECMP((uint64_t)-1);
 
 	CSRW(mtvec, trap_handler);  // register trap handler
-	CSRS(mie, 1<<7);			// enable timer
 	CSRS(mie, 1<<11); 			// enable external interrupts (PLIC)
     CSRS(mstatus, 1<<3);		// enable global interrupts (PLIC, TMR)
 

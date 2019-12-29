@@ -20,7 +20,7 @@ __attribute__((interrupt())) void trap_handler(void){
 
 		case 0x80000007 :
 			ECALL_SEND(1, "IRQ TMR");
-			ECALL_WRTIMECMP(ECALL_RDTIME() + 5000*RTC_FREQ/1000); // clear mip
+			ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ); // clear mip
 			break;
 
 		case 0x80000000+16+BTN3 :
@@ -54,7 +54,7 @@ int main (void){
     CSRS(mie, 1<<(16+BTN3));
 
     // set timer += 5sec
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 5000*RTC_FREQ/1000);
+	ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ);
     CSRS(mie, 1<<7);
 
     // enable global interrupts
@@ -67,8 +67,8 @@ int main (void){
 			if (strcmp("ping", msg)==0) ECALL_SEND(1, "pong");
 			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
 			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
-			else if (strcmp("block", msg)==0) while(!ECALL_RECV(1, msg));
-			else if (strcmp("loop",  msg)==0) {while(!ECALL_RECV(1, msg)) ECALL_YIELD();}
+			else if (strcmp("block", msg)==0) {volatile int i=0; while(1) i++; }
+			else if (strcmp("loop",  msg)==0) {while(1) ECALL_YIELD();}
 		}
 
 		ECALL_WFI();
