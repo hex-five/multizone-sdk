@@ -31,6 +31,7 @@ __attribute__((interrupt())) void trp_handler(void)	 { // trap handler
 	asm volatile("ebreak");
 }
 __attribute__((interrupt())) void msi_handler(void)  { // machine software interrupt (3)
+	asm volatile("ebreak");
 }
 __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrupt (7)
 
@@ -47,11 +48,12 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
 	// set timer (clears mip)
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 25*RTC_FREQ/1000);
+	const uint64_t T = ECALL_RDTIME();
+	ECALL_WRTIMECMP(T + 25*RTC_FREQ/1000);
 
 }
 
-__attribute__((interrupt())) void btn0_handler(void) { // global interrupt (11)
+__attribute__((interrupt())) void btn0_handler(void) { // local interrupt (16+4)
 
 	static uint64_t debounce = 0;
 
@@ -153,7 +155,7 @@ __attribute__((naked, aligned(4))) void trap_vect(void) { // irqs vector
 	);
 }
 
-/*configures Button0 as global interrupt*/
+/*configures Button0 as local interrupt*/
 void b0_irq_init()  {
 
     //dissable hw io function
@@ -221,7 +223,7 @@ int main (void){
 	b2_irq_init();
 
 	// vectored trap handler
-	CSRW(mtvec, trap_vect); CSRS(mtvec, 0b1);
+	CSRW(mtvec, trap_vect); CSRS(mtvec, 0x1);
 
     // set & enable timer
 	ECALL_WRTIMECMP(ECALL_RDTIME() + 25*RTC_FREQ/1000);

@@ -1,8 +1,11 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
+#include <string.h>	// strcmp()
+#include <stdio.h> // sprintf()
+
 #include "platform.h"
 #include "multizone.h"
-#include "owi_task.h"
+#include "owi_sequence.h"
 
 #define SPI_TDI 11 	// in
 #define SPI_TCK 10	// out (master)
@@ -50,6 +53,46 @@ uint32_t spi_rw(uint8_t cmd[]){
 	return rx_data;
 }
 
+__attribute__((interrupt())) void trap_handler(void){
+
+	switch(ECALL_CSRR(CSR_MCAUSE)){
+		case 0 : break; // Instruction address misaligned
+		case 1 : break; // Instruction access fault
+		case 3 : break; // Breakpoint
+		case 4 : break; // Load address misaligned
+		case 5 : break; // Load access fault
+		case 6 : break; // Store/AMO address misaligned
+		case 7 : break; // Store access fault
+		case 8 : break; // Environment call from U-mode
+
+		case 0x80000007 : {
+
+			int delay_ms = 1000;
+
+			// OWI Robot sequence
+			const int owi_seq = owi_sequence_next();
+			const int32_t owi_cmd = owi_sequence_get_cmd();
+			const int owi_ms = owi_sequence_get_ms();
+
+			if (owi_seq!=-1){
+
+				char str[16+1]="\0";
+				sprintf(str, "%2d 0x%05x %4d", owi_seq, owi_cmd, owi_ms);
+				ECALL_SEND(1, str);
+
+				delay_ms = owi_ms;
+
+			}
+
+			ECALL_WRTIMECMP(ECALL_RDTIME() + delay_ms*RTC_FREQ/1000);
+
+		} break;
+
+	}
+
+}
+
+
 int main (void){
 
 	//volatile int w=0; while(1){w++;}
@@ -72,115 +115,24 @@ int main (void){
 	uint32_t rx_data = 0, usb_state = 0;
 	int LED = LED_RED;
 
+	// Set timer 1 sec
+	ECALL_WRTIMECMP(ECALL_RDTIME() + 1*RTC_FREQ);
+	CSRW(mtvec, trap_handler);  // register trap handler
+	CSRS(mie, 1<<7); 			// enable timer interrupts
+    CSRS(mstatus, 1<<3);		// enable global interrupts
+
 	while(1){
 
-		time = ECALL_RDTIME();
-
-		int msg[4]={0,0,0,0};
-
-		if (ECALL_RECV(1, msg)) {
-
-			if (msg[0] && !msg[1] && usb_state==0x12670000 && cmd_timer==0){
-
-				uint8_t cmd[3] = {0x00, 0x00, 0x00};
-
-				switch (msg[0]){
-					case 'q' : cmd[0] = 0x01; break; // grip close
-					case 'a' : cmd[0] = 0x02; break; // grip open
-					case 'w' : cmd[0] = 0x04; break; // wrist up
-					case 's' : cmd[0] = 0x08; break; // wrist down
-					case 'e' : cmd[0] = 0x10; break; // elbow up
-					case 'd' : cmd[0] = 0x20; break; // elbow down
-					case 'r' : cmd[0] = 0x40; break; // shoulder up
-					case 'f' : cmd[0] = 0x80; break; // shoulder down
-					case 't' : cmd[1] = 0x01; break; // base clockwise
-					case 'g' : cmd[1] = 0x02; break; // base counterclockwise
-					case 'y' : cmd[2] = 0x01; break; // light on
-					default  : break;
-				}
-
-				if ( cmd[0] + cmd[1] + cmd[2] != 0 ){
-					rx_data = spi_rw(cmd);
-					cmd_timer = time + CMD_TIME;
-					ping_timer = time + PING_TIME;
-				}
-
-			}
-
-			// Ping Pong, Change LED color, WFI
-			if (msg[0]=='p' && msg[1]=='i' && msg[2]=='n' && msg[3]=='g') ECALL_SEND(1, msg);
-			else if (msg[0]=='r' && msg[1]=='e' && msg[2]=='d')                LED = LED_RED;
-			else if (msg[0]=='g' && msg[1]=='r' && msg[2]=='e' && msg[3]=='e') LED = LED_GREEN;
-			else if (msg[0]=='b' && msg[1]=='l' && msg[2]=='u' && msg[3]=='e') LED = LED_BLUE;
-			else if (msg[0]=='w' && msg[1]=='f' && msg[2]=='i') ECALL_WFI();
-
+		// Message handler
+		char msg[16]; if (ECALL_RECV(1, msg)) {
+			if (strcmp("ping", msg)==0) ECALL_SEND(1, "pong");
+			else if (strcmp("start", msg)==0) owi_sequence_start(MAIN);
+			else if (strcmp("fold", msg)==0) owi_sequence_start(FOLD);
+			else if (strcmp("unfold", msg)==0) owi_sequence_start(UNFOLD);
+			else if (strcmp("stop", msg)==0) owi_sequence_stop();
 		}
 
-		// auto stop manual commands after CMD_TIME
-	    if (cmd_timer >0 && time > cmd_timer){
-	    	rx_data = spi_rw(CMD_STOP);
-	    	cmd_timer=0;
-	    	ping_timer = time + PING_TIME;
-	    }
-
-	    // Detect USB state every 1sec
-	    if (time > ping_timer){
-	    	rx_data = spi_rw(CMD_DUMMY);
-	    	ping_timer = time + PING_TIME;
-	    }
-
-	    // Update USB state (0xFFFFFFFF no spi/usb adapter)
-	    if (rx_data != usb_state){
-
-	    	if (rx_data==0x12670000 && usb_state==0x0){
-	    		LED = LED_GREEN;
-	    		ECALL_SEND(1, ((int[]){1,0,0,0}));
-	    	} else if (rx_data==0x0 && usb_state==0x12670000){
-	    		LED = LED_RED;
-	    		ECALL_SEND(1, ((int[]){2,0,0,0}));
-	    		owi_task_stop_request();
-	    	}
-
-	    	usb_state=rx_data;
-	    }
-
-		// OWI sequence
-	    if (usb_state==0x12670000){
-
-	    	switch (msg[0]){
-				case '<' : owi_task_fold(); break;
-				case '>' : owi_task_unfold(); break;
-				case '1' : owi_task_start_request(); break;
-				case '0' : owi_task_stop_request(); break;
-	    	}
-
-			int32_t cmd = owi_task_run(time);
-			if ( cmd != -1){
-				rx_data = spi_rw((uint8_t[]){(uint8_t)cmd, (uint8_t)(cmd>>8), (uint8_t)(cmd>>16)});
-				ping_timer = time + PING_TIME;
-			}
-
-	    }
-
-        // LED blink
-	    if (time > led_timer){
-
-	    	if ( GPIO_REG(GPIO_OUTPUT_VAL) & (LED_RED | LED_GREEN | LED_BLUE) ) {
-	    		// ON => OFF
-	        	GPIO_REG(GPIO_OUTPUT_VAL) &= ~(LED_RED | LED_GREEN | LED_BLUE);
-	    		led_timer = time + LED_OFF_TIME;
-
-	    	} else {
-	    		// OFF => ON
-	        	GPIO_REG(GPIO_OUTPUT_VAL) &= ~(LED_RED | LED_GREEN | LED_BLUE);
-	    		GPIO_REG(GPIO_OUTPUT_VAL) |= LED;
-	    		led_timer = time + LED_ON_TIME;
-	    	}
-
-	    }
-
-	    // Yield to other zones
-		ECALL_YIELD();
+	    ECALL_WFI();
 
 	}
 

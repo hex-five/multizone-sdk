@@ -23,7 +23,7 @@ LINK_DEPS += $(LINKER_SCRIPT)
 
 CLEAN_OBJS += $(TARGET) $(LINK_OBJS)
 
-CFLAGS += -g
+CFLAGS += -g3
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -march=$(RISCV_ARCH)
 CFLAGS += -mabi=$(RISCV_ABI)

@@ -8,7 +8,7 @@ NEWLIB_DIR := $(PLATFORM_DIR)/newlib
 
 LINKER_SCRIPT := linker.lds
 
-C_SRCS += main.c owi_task.c
+C_SRCS += main.c owi_sequence.c
 
 INCLUDES += -I ../
 

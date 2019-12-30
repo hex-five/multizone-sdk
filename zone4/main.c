@@ -19,7 +19,7 @@ __attribute__((interrupt())) void trap_handler(void){
 		case 8 : break; // Environment call from U-mode
 
 		case 0x80000007 :
-			ECALL_SEND(1, "IRQ TMR");
+			ECALL_SEND(1, "IRQ 7 [TMR]");
 			ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ); // clear mip
 			break;
 
@@ -56,8 +56,6 @@ int main (void){
     // set timer += 5sec
 	ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ);
     CSRS(mie, 1<<7);
-
-    // enable global interrupts
     CSRS(mstatus, 1<<3);
 
 	while(1){
