@@ -18,20 +18,20 @@ __attribute__((interrupt())) void trap_handler(void){
 		case 7 : break; // Store access fault
 		case 8 : break; // Environment call from U-mode
 
-		case 0x80000007 :
+		case 0x80000007 : {
 			ECALL_SEND(1, "IRQ 7 [TMR]");
-			ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ); // clear mip
-			break;
+			ECALL_SETTIMECMP(+5*RTC_FREQ); // clear mip
+		} break;
 
-		case 0x80000000+16+BTN3 :
-			ECALL_SEND(1, "IRQ 23 [BTN3]");
+		case 0x80000000+16+BTN3 : {
 			static uint64_t debounce = 0;
 			const uint64_t T = ECALL_RDTIME();
 			if (T > debounce){
 				debounce = T + 250*RTC_FREQ/1000;
-				GPIO_REG(GPIO_RISE_IP) |= (1<<BTN3); //clear gpio irq
+				ECALL_SEND(1, "IRQ 23 [BTN3]");
 			}
-			break;
+			GPIO_REG(GPIO_RISE_IP) |= (1<<BTN3); //clear gpio irq
+		} break;
 
 	}
 
@@ -54,9 +54,9 @@ int main (void){
     CSRS(mie, 1<<(16+BTN3));
 
     // set timer += 5sec
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 5*RTC_FREQ);
+	ECALL_SETTIMECMP(+5*RTC_FREQ);
     CSRS(mie, 1<<7);
-    CSRS(mstatus, 1<<3);
+    //CSRS(mstatus, 1<<3);
 
 	while(1){
 

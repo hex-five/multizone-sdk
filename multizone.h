@@ -78,8 +78,16 @@
 			: : "r"((uint32_t)val), "r"((uint32_t)(val>>32)): "a0","a1","a2"); \
 		})
 
+#define ECALL_SETTIMECMP(val) ({ \
+			asm volatile ( \
+			"mv a1, %0; " \
+			"li a0, 7;  " \
+			"ecall" \
+			: : "r"((uint32_t)val) : "a0","a1"); \
+		})
+
 #define ECALL_CSRR(csr) ({ unsigned long rd; \
-  asm volatile ("li a1, %1; li a0, 7; ecall; mv %0, a0" : "=r"(rd) : "I"(csr) : "a0", "a1"); \
+  asm volatile ("li a1, %1; li a0, 8; ecall; mv %0, a0" : "=r"(rd) : "I"(csr) : "a0", "a1"); \
   rd; })
 
 #define CSR_MSTATUS			 0

@@ -546,9 +546,6 @@ int main (void) {
 	PLIC_enable_interrupt (&g_plic, plic_irq_num);
 	PLIC_set_priority(&g_plic, plic_irq_num, 1);
 
-	// Reset timer
-	ECALL_WRTIMECMP((uint64_t)-1);
-
 	CSRW(mtvec, trap_handler);  // register trap handler
 	CSRS(mie, 1<<11); 			// enable external interrupts (PLIC)
     CSRS(mstatus, 1<<3);		// enable global interrupts (PLIC, TMR)

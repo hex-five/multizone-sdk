@@ -84,7 +84,7 @@ __attribute__((interrupt())) void trap_handler(void){
 
 			}
 
-			ECALL_WRTIMECMP(ECALL_RDTIME() + delay_ms*RTC_FREQ/1000);
+			ECALL_SETTIMECMP(+delay_ms*RTC_FREQ/1000);
 
 		} break;
 
@@ -116,7 +116,7 @@ int main (void){
 	int LED = LED_RED;
 
 	// Set timer 1 sec
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 1*RTC_FREQ);
+	ECALL_SETTIMECMP(+1*RTC_FREQ);
 	CSRW(mtvec, trap_handler);  // register trap handler
 	CSRS(mie, 1<<7); 			// enable timer interrupts
     CSRS(mstatus, 1<<3);		// enable global interrupts

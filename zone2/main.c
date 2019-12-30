@@ -48,72 +48,44 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
 	// set timer (clears mip)
-	const uint64_t T = ECALL_RDTIME();
-	ECALL_WRTIMECMP(T + 25*RTC_FREQ/1000);
+	ECALL_SETTIMECMP(+25*RTC_FREQ/1000);
 
 }
 
 __attribute__((interrupt())) void btn0_handler(void) { // local interrupt (16+4)
 
 	static uint64_t debounce = 0;
-
 	const uint64_t T = ECALL_RDTIME();
-
 	if (T > debounce){
-
 		debounce = T + 250*RTC_FREQ/1000;
-
-		ECALL_WRTIMECMP(debounce);
-
-		LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
-
 		ECALL_SEND(1, "IRQ 20 [BTN0]");
-
-		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN0); //clear gpio irq
-
+		LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
 	}
+	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN0); //clear gpio irq
 
 }
 __attribute__((interrupt())) void btn1_handler(void) { // local interrupt (16+5)
 
 	static uint64_t debounce = 0;
-
 	const uint64_t T = ECALL_RDTIME();
-
 	if (T > debounce){
-
 		debounce = T + 250*RTC_FREQ/1000;
-
-		ECALL_WRTIMECMP(debounce);
-
-		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
-
 		ECALL_SEND(1, "IRQ 21 [BTN1]");
-
-		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
-
+		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 	}
+	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
 
 }
 __attribute__((interrupt())) void btn2_handler(void) { // local interrupt (16+6)
 
 	static uint64_t debounce = 0;
-
 	const uint64_t T = ECALL_RDTIME();
-
 	if (T > debounce){
-
 		debounce = T + 250*RTC_FREQ/1000;
-
-		ECALL_WRTIMECMP(debounce);
-
-		LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
-
 		ECALL_SEND(1, "IRQ 22 [BTN2]");
-
-		GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
-
+		LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
 	}
+	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
 
 }
 
@@ -226,7 +198,7 @@ int main (void){
 	CSRW(mtvec, trap_vect); CSRS(mtvec, 0x1);
 
     // set & enable timer
-	ECALL_WRTIMECMP(ECALL_RDTIME() + 25*RTC_FREQ/1000);
+	ECALL_SETTIMECMP(+25*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
     // enable global interrupts (BTN0, BTN1, BTN2, TMR)
