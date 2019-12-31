@@ -1,7 +1,6 @@
 /* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
 
 #include <string.h>	// strcmp()
-#include <stdio.h> // sprintf()
 
 #include "platform.h"
 #include "multizone.h"
@@ -12,7 +11,11 @@
 #define SPI_TDO  9  // out
 #define SPI_SYN  8  // out - not used
 
-uint8_t CRC8(uint8_t bytes[]){
+#define MAN_CMD_TIME 250*RTC_FREQ/1000 // 250ms
+#define KEEP_ALIVE_TIME 1*RTC_FREQ // 1 sec
+#define LED_TIME 20*RTC_FREQ/1000 //  20ms
+
+static uint8_t CRC8(const uint8_t const bytes[]){
 
     const uint8_t generator = 0x1D;
     uint8_t crc = 0;
@@ -30,12 +33,13 @@ uint8_t CRC8(uint8_t bytes[]){
 
     return crc;
 }
+static uint32_t spi_rw(const uint32_t cmd){
 
-uint32_t spi_rw(uint8_t cmd[]){
+	const uint8_t const bytes[] = {(uint8_t)cmd, (uint8_t)(cmd>>8), (uint8_t)(cmd>>16)};
+	const uint8_t CRC = CRC8(bytes);
+	const uint32_t tx_data = bytes[0]<<24 | bytes[1]<<16 | bytes[2]<<8 | CRC;
 
 	uint32_t rx_data = 0;
-
-	const uint32_t tx_data = ((uint8_t)cmd[0] << 24) |  ((uint8_t)cmd[1] << 16) | ((uint8_t)cmd[2] << 8) | CRC8(cmd);
 
 	for (int i=32-1, bit; i>=0; i--){
 
@@ -53,6 +57,96 @@ uint32_t spi_rw(uint8_t cmd[]){
 	return rx_data;
 }
 
+#define CMD_DUMMY 0xFFFFFF
+#define CMD_STOP  0x000000
+
+static volatile uint32_t usb_state = 0;
+static volatile uint32_t man_cmd = CMD_STOP;
+static volatile int LED = LED_RED;
+
+uint64_t task0(); // OWI Sequence
+uint64_t task1(); // Manual cmd stop
+uint64_t task2(); // Keep alive
+uint64_t task3(); // LED off
+static struct {
+	uint64_t (*task)(void);
+	uint64_t timecmp;
+} timer[] = {{&task0, UINT64_MAX}, {&task1, UINT64_MAX}, {&task2, 0}, {&task3, UINT64_MAX}};
+void timer_set(const int i, const uint64_t timecmp){
+
+	timer[i].timecmp = timecmp;
+
+	uint64_t timecmp_min = UINT64_MAX;
+	for (int i=0; i<sizeof(timer)/sizeof(timer[0]); i++)
+		timecmp_min = timer[i].timecmp < timecmp_min ? timer[i].timecmp : timecmp_min;
+
+	ECALL_WRTIMECMP(timecmp_min);
+
+}
+void timer_handler(const uint64_t time){
+
+	for (int i=0; i<sizeof(timer)/sizeof(timer[0]); i++)
+		if(time >= timer[i].timecmp){
+			timer_set(i, timer[i].task());
+			break;
+		}
+}
+
+uint64_t task0(){ // OWI sequence
+
+	uint64_t timecmp = UINT64_MAX;
+
+	if (usb_state==0x12670000){
+
+		const int owi_step = owi_sequence_next();
+		const int owi_cmd = owi_sequence_get_cmd();
+		const int owi_time = owi_sequence_get_ms();
+
+		if (owi_step!=-1){
+			spi_rw(owi_cmd);
+			timecmp = ECALL_RDTIME() + owi_time*RTC_FREQ/1000;
+		}
+
+	}
+
+	return timecmp;
+
+}
+uint64_t task1(){ // Manual cmd stop
+	spi_rw(man_cmd = CMD_STOP);
+	return UINT64_MAX;
+}
+uint64_t task2(){ // Keep alive 1sec
+
+	const uint64_t time = ECALL_RDTIME();
+
+	// Send keep alive packet and check ret value
+	const uint32_t rx_data = spi_rw(CMD_DUMMY);
+
+    // Update USB state (0xFFFFFFFF no spi/usb adapter)
+    if (rx_data != usb_state){
+    	if (rx_data==0x12670000 && usb_state==0x0){
+    		LED = LED_GREEN;
+    		ECALL_SEND(1, "USB ID 0x12670000");
+    	} else if (rx_data==0x0 && usb_state==0x12670000){
+    		LED = LED_RED;
+    		ECALL_SEND(1, "USB DISCONNECT");
+    		owi_sequence_stop();
+    	}
+    	usb_state=rx_data;
+    }
+
+    // Turn on LED & start LED timer
+    GPIO_REG(GPIO_OUTPUT_VAL) |= LED;
+    timer_set(3, time + LED_TIME);
+
+	return time + KEEP_ALIVE_TIME;
+}
+uint64_t task3(){ // LED off
+	GPIO_REG(GPIO_OUTPUT_VAL) &= ~LED;
+	return UINT64_MAX;
+}
+
 __attribute__((interrupt())) void trap_handler(void){
 
 	switch(ECALL_CSRR(CSR_MCAUSE)){
@@ -65,33 +159,50 @@ __attribute__((interrupt())) void trap_handler(void){
 		case 7 : break; // Store access fault
 		case 8 : break; // Environment call from U-mode
 
-		case 0x80000007 : {
-
-			int delay_ms = 1000;
-
-			// OWI Robot sequence
-			const int owi_seq = owi_sequence_next();
-			const int32_t owi_cmd = owi_sequence_get_cmd();
-			const int owi_ms = owi_sequence_get_ms();
-
-			if (owi_seq!=-1){
-
-				char str[16+1]="\0";
-				sprintf(str, "%2d 0x%05x %4d", owi_seq, owi_cmd, owi_ms);
-				ECALL_SEND(1, str);
-
-				delay_ms = owi_ms;
-
-			}
-
-			ECALL_SETTIMECMP(+delay_ms*RTC_FREQ/1000);
-
-		} break;
+		case 0x80000007 : timer_handler(ECALL_RDTIME()); break; // Muliplexed timer
 
 	}
 
 }
 
+void msg_handler(const char *msg){
+
+	if (strcmp("ping", msg)==0){
+		ECALL_SEND(1, "pong");
+
+	} else if (usb_state==0x12670000 && man_cmd==CMD_STOP){
+
+		if (strcmp("stop", msg)==0) owi_sequence_stop_req();
+
+		else if (!owi_sequence_is_running()){
+
+			     if (strcmp("start", msg)==0) {owi_sequence_start(MAIN);   timer_set(0, 0);}
+			else if (strcmp("fold",  msg)==0) {owi_sequence_start(FOLD);   timer_set(0, 0);}
+			else if (strcmp("unfold",msg)==0) {owi_sequence_start(UNFOLD); timer_set(0, 0);}
+
+			// Manual single-command adjustments
+				 if (strcmp("q", msg)==0) man_cmd = 0x000001; // grip close
+			else if (strcmp("a", msg)==0) man_cmd = 0x000002; // grip open
+			else if (strcmp("w", msg)==0) man_cmd = 0x000004; // wrist up
+			else if (strcmp("s", msg)==0) man_cmd = 0x000008; // wrist down
+			else if (strcmp("e", msg)==0) man_cmd = 0x000010; // elbow up
+			else if (strcmp("d", msg)==0) man_cmd = 0x000020; // elbow down
+			else if (strcmp("r", msg)==0) man_cmd = 0x000040; // shoulder up
+			else if (strcmp("f", msg)==0) man_cmd = 0x000080; // shoulder down
+			else if (strcmp("t", msg)==0) man_cmd = 0x000100; // base clockwise
+			else if (strcmp("g", msg)==0) man_cmd = 0x000200; // base counterclockwise
+			else if (strcmp("y", msg)==0) man_cmd = 0x010000; // light on
+
+			if (man_cmd != CMD_STOP){
+				spi_rw(man_cmd);
+				timer_set(1, ECALL_RDTIME() + MAN_CMD_TIME);
+			}
+
+		}
+
+	}
+
+}
 
 int main (void){
 
@@ -104,33 +215,14 @@ int main (void){
 	GPIO_REG(GPIO_OUTPUT_EN) |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO) | (0x1 << LED_RED) | (0x1 << LED_GREEN));
     GPIO_REG(GPIO_DRIVE)     |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO)) ;
 
-	#define CMD_STOP  ((uint8_t[]){0x00, 0x00, 0x00})
-	#define CMD_DUMMY ((uint8_t[]){0xFF, 0xFF, 0xFF})
-	#define CMD_TIME  RTC_FREQ*250/1000 // 250ms
-	#define PING_TIME RTC_FREQ // 1000ms
-	#define LED_ON_TIME  RTC_FREQ*20/1000 //  50ms
-	#define LED_OFF_TIME RTC_FREQ 		  // 950ms
-
-    uint64_t time, cmd_timer=0, ping_timer=0, led_timer=0;
-	uint32_t rx_data = 0, usb_state = 0;
-	int LED = LED_RED;
-
-	// Set timer 1 sec
-	ECALL_SETTIMECMP(+1*RTC_FREQ);
-	CSRW(mtvec, trap_handler);  // register trap handler
-	CSRS(mie, 1<<7); 			// enable timer interrupts
-    CSRS(mstatus, 1<<3);		// enable global interrupts
+	CSRW(mtvec, trap_handler);  	// register trap handler
+	CSRS(mie, 1<<7); 				// enable timer interrupts
+    CSRS(mstatus, 1<<3);			// enable global interrupts
 
 	while(1){
 
 		// Message handler
-		char msg[16]; if (ECALL_RECV(1, msg)) {
-			if (strcmp("ping", msg)==0) ECALL_SEND(1, "pong");
-			else if (strcmp("start", msg)==0) owi_sequence_start(MAIN);
-			else if (strcmp("fold", msg)==0) owi_sequence_start(FOLD);
-			else if (strcmp("unfold", msg)==0) owi_sequence_start(UNFOLD);
-			else if (strcmp("stop", msg)==0) owi_sequence_stop();
-		}
+		char msg[16]; if (ECALL_RECV(1, msg)) msg_handler(msg);
 
 	    ECALL_WFI();
 

@@ -13,9 +13,12 @@ typedef enum{
 
 void owi_sequence_start(owi_sequence);
 void owi_sequence_stop();
+void owi_sequence_stop_req();
 int owi_sequence_next();
 
 int32_t owi_sequence_get_cmd();
 int owi_sequence_get_ms();
+
+int owi_sequence_is_running();
 
 #endif

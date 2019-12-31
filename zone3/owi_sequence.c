@@ -28,8 +28,8 @@ struct sequence_step{
 // R4 09-MAR-2019
 #define T_STOP 	1000
 #define T_GRIP 	1400
-#define T_WRIST 2500
-#define T_ARM  	1600
+#define T_WRIST 2600
+#define T_ARM  	1800
 #define T_BASE	3000
 static struct sequence_step main_sequence[] = {
 	{ .command = STOP, 				.duration_ms = T_STOP },
@@ -40,12 +40,12 @@ static struct sequence_step main_sequence[] = {
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
 	{ .command = STOP, 				.duration_ms = T_STOP },
 	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
-	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM -200}, // -330
+	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM-250},
 	{ .command = ARM_UP, 			.duration_ms = T_ARM  },
-    { .command = SHOULDER_UP, 		.duration_ms =   +175 },
-    { .command = ELBOW_UP, 			.duration_ms =   +100 },
-	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST -200},
-	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP  -200},
+    { .command = SHOULDER_UP, 		.duration_ms = +175 },
+    { .command = ELBOW_UP, 			.duration_ms = +100 },
+	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST-250},
+	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP},
 };
 
 #define T_FOLD 4500
@@ -71,43 +71,58 @@ static int stop = 1;
 
 void owi_sequence_start(owi_sequence seq){
 
-	switch(seq){
+	if (sequence==NULL){
 
-	case MAIN:
-		sequence = main_sequence;
-		size = sizeof(main_sequence) / sizeof(main_sequence[0]);
-		stepIdx = 0;
-		stop = 0;
-		break;
+		switch(seq){
 
-	case FOLD:
-		sequence = fold_sequence;
-		size = sizeof(fold_sequence) / sizeof(fold_sequence[0]);
-		stepIdx = 0;
-		stop = 0;
-		break;
+		case MAIN:
+			sequence = main_sequence;
+			size = sizeof(main_sequence) / sizeof(main_sequence[0]);
+			stepIdx = 0;
+			stop = 0;
+			break;
 
-	case UNFOLD:
-		sequence = unfold_sequence;
-		size = sizeof(unfold_sequence) / sizeof(unfold_sequence[0]);
-		stepIdx = 0;
-		stop = 0;
-		break;
+		case FOLD:
+			sequence = fold_sequence;
+			size = sizeof(fold_sequence) / sizeof(fold_sequence[0]);
+			stepIdx = 0;
+			stop = 0;
+			break;
+
+		case UNFOLD:
+			sequence = unfold_sequence;
+			size = sizeof(unfold_sequence) / sizeof(unfold_sequence[0]);
+			stepIdx = 0;
+			stop = 0;
+			break;
+
+		}
 
 	}
 
-
 };
 
-void owi_sequence_stop(){stop=1;}
+void owi_sequence_stop_req(){stop=1;}
+
+void owi_sequence_stop(){
+	sequence = NULL;
+	stepIdx = 0;
+	size = 0;
+	stop = 1;
+}
 
 int owi_sequence_next(){
 
+	if (stop && stepIdx==0) sequence=NULL;
+
 	if (sequence==NULL) return -1;
 
-	if (stop && stepIdx==0) return -1;
+	stepIdx = (stepIdx+1) % size;
 
-	return stepIdx = (stepIdx+1) % size;;
+	// Auto stop FOLD/UNFOLD
+	if (sequence[stepIdx].duration_ms==0) stop=1;
+
+	return stepIdx;
 };
 
 int32_t owi_sequence_get_cmd(){
@@ -125,3 +140,9 @@ int owi_sequence_get_ms(){
 
 	return sequence[stepIdx].duration_ms;
 }
+
+int owi_sequence_is_running(){
+
+	return sequence!=NULL;
+
+};
