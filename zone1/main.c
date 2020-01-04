@@ -155,59 +155,72 @@ __attribute__((interrupt())) void trap_handler(void){
 void print_stats(void){
 
 	#define MHZ (CPU_FREQ/1000000)
-	const int COUNT = 10+1; // odd values for median
+	const int COUNT = 10; // odd values for accurate median
 	int cycles[COUNT], instrs[COUNT];
 
-	// Kernel stats - read before cycling to get this zone irq latency
+	// Kernel stats - read irq latency
 	const unsigned long irq_instr = ECALL_CSRR(CSR_MHPMCOUNTER26);
 	const unsigned long irq_cycle = ECALL_CSRR(CSR_MHPMCOUNTER27);
-	const unsigned long instr_min = ECALL_CSRR(CSR_MHPMCOUNTER28);
-	const unsigned long instr_max = ECALL_CSRR(CSR_MHPMCOUNTER29);
-	const unsigned long cycle_min = ECALL_CSRR(CSR_MHPMCOUNTER30);
-	const unsigned long cycle_max = ECALL_CSRR(CSR_MHPMCOUNTER31);
+	ECALL_CSRR(CSR_MHPMCOUNTER31); // reset kernel stats
 
 	for (int i=0; i<COUNT; i++){
 
+		const unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
 		const unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
 		ECALL_YIELD();
 		const unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
-
-		const unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
-		ECALL_YIELD();
 		const unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
 
 		cycles[i] = C2-C1; instrs[i] = I2-I1;
 
 	}
 
+	// ------------------------------------------------------------
+	unsigned long C0 = ECALL_CSRR(CSR_MCYCLE);
+				  C0 = ECALL_CSRR(CSR_MCYCLE) - C0;
+
+	unsigned long I0 = ECALL_CSRR(CSR_MINSTRET);
+					   ECALL_CSRR(CSR_MCYCLE);
+					   ECALL_CSRR(CSR_MCYCLE);
+				  I0 = ECALL_CSRR(CSR_MINSTRET) - I0;
+
+    printf(">>> C0 = %lu, I0 = %lu \n", C0, I0);
+
+	for (int i=0; i<COUNT; i++)	{cycles[i] -= C0; instrs[i] -= I0;}
+	// ------------------------------------------------------------
+
 	int max_cycle = 0;
 	for (int i=0; i<COUNT; i++)	max_cycle = (cycles[i] > max_cycle ? cycles[i] : max_cycle);
 	char str[16]; sprintf(str, "%lu", max_cycle); const int col_len = strlen(str);
 
 	for (int i=0; i<COUNT; i++)
-		printf("%*d instr %*d cycles %*d us \n", col_len, instrs[i], col_len, cycles[i], col_len-2, cycles[i]/MHZ);
+		printf("%*d cycles %*d instr %*d us \n", col_len, cycles[i], col_len, instrs[i], col_len-1, cycles[i]/MHZ);
 
 	qsort(cycles, COUNT, sizeof(int), cmpfunc);
 	qsort(instrs, COUNT, sizeof(int), cmpfunc);
 
 	printf("-----------------------------------------\n");
-	int min = instrs[0], med = instrs[COUNT/2], max = instrs[COUNT-1];
-	printf("instrs min/med/max = %d/%d/%d \n", min, med, max);
-		min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
+	int min = cycles[0], med = cycles[COUNT/2], max = cycles[COUNT-1];
 	printf("cycles min/med/max = %d/%d/%d \n", min, med, max);
+	    min = instrs[0], med = instrs[COUNT/2], max = instrs[COUNT-1];
+	printf("instrs min/med/max = %d/%d/%d \n", min, med, max);
 	printf("time   min/med/max = %d/%d/%d us \n", min/MHZ, med/MHZ, max/MHZ);
 
-	// Kernel stats - may not be available (#ifdef STATS)
+	// Kernel stats (#ifdef STATS)
+	const unsigned long instr_min = ECALL_CSRR(CSR_MHPMCOUNTER28);
+	const unsigned long instr_max = ECALL_CSRR(CSR_MHPMCOUNTER29);
+	const unsigned long cycle_min = ECALL_CSRR(CSR_MHPMCOUNTER30);
+	const unsigned long cycle_max = ECALL_CSRR(CSR_MHPMCOUNTER31); // reset
 	if (instr_min>0){
 		printf("\n");
 		printf("Kernel\n");
 		printf("-----------------------------------------\n");
-		printf("instrs min/max = %lu/%lu \n", instr_min, instr_max);
 		printf("cycles min/max = %lu/%lu \n", cycle_min, cycle_max);
+		printf("instrs min/max = %lu/%lu \n", instr_min, instr_max);
 		printf("time   min/max = %lu/%lu us\n", cycle_min/MHZ, cycle_max/MHZ);
 		printf("-----------------------------------------\n");
-		printf("irq lat instrs = %lu \n", irq_instr);
 		printf("irq lat cycles = %lu \n", irq_cycle);
+		printf("irq lat instrs = %lu \n", irq_instr);
 		printf("time           = %lu us\n", irq_cycle/MHZ);
 	}
 
@@ -388,8 +401,10 @@ void cmd_handler(){
 		const unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
 		ECALL_YIELD();
 		const unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
-		const int TC = (C2-C1)/(CPU_FREQ/1000000);
-		printf( (TC>0 ? "yield : elapsed time %dus \n" : "yield : n/a \n"), TC);
+		const unsigned long C0 = ECALL_CSRR(CSR_MCYCLE)-ECALL_CSRR(CSR_MCYCLE);
+		const unsigned long C = C2-C1+C0;
+		const int T = C/(CPU_FREQ/1000000);
+		printf( (C>0 ? "yield : elapsed cycles %d / time %dus \n" : "yield : n/a \n"), C, T);
 
 	// --------------------------------------------------------------------
 	} else if (strcmp(tk1, "timer")==0){

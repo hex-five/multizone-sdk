@@ -81,9 +81,10 @@
 #define ECALL_SETTIMECMP(val) ({ \
 			asm volatile ( \
 			"mv a1, %0; " \
+			"mv a2, %1; " \
 			"li a0, 7;  " \
 			"ecall" \
-			: : "r"((uint32_t)val) : "a0","a1"); \
+			: : "r"((uint32_t)val), "r"((uint32_t)(val>>32)): "a0","a1","a2"); \
 		})
 
 #define ECALL_CSRR(csr) ({ unsigned long rd; \

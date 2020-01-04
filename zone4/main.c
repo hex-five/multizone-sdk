@@ -20,7 +20,7 @@ __attribute__((interrupt())) void trap_handler(void){
 
 		case 0x80000007 : {
 			ECALL_SEND(1, "IRQ 7 [TMR]");
-			ECALL_SETTIMECMP(+5*RTC_FREQ); // clear mip
+			ECALL_SETTIMECMP((uint64_t)5*RTC_FREQ); // clear mip
 		} break;
 
 		case 0x80000000+16+BTN3 : {
@@ -54,7 +54,7 @@ int main (void){
     CSRS(mie, 1<<(16+BTN3));
 
     // set timer += 5sec
-	ECALL_SETTIMECMP(+5*RTC_FREQ);
+	ECALL_SETTIMECMP((uint64_t)5*RTC_FREQ);
     CSRS(mie, 1<<7);
     //CSRS(mstatus, 1<<3);
 
@@ -70,6 +70,8 @@ int main (void){
 		}
 
 		ECALL_WFI();
+
+		ECALL_SEND(1, "WFI Resume");
 
 	}
 

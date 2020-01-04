@@ -48,7 +48,7 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
 	// set timer (clears mip)
-	ECALL_SETTIMECMP(+25*RTC_FREQ/1000);
+	ECALL_SETTIMECMP((uint64_t)25*RTC_FREQ/1000);
 
 }
 
@@ -198,7 +198,7 @@ int main (void){
 	CSRW(mtvec, trap_vect); CSRS(mtvec, 0x1);
 
     // set & enable timer
-	ECALL_SETTIMECMP(+25*RTC_FREQ/1000);
+	ECALL_SETTIMECMP((uint64_t)25*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
     // enable global interrupts (BTN0, BTN1, BTN2, TMR)

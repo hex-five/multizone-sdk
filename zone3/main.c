@@ -36,8 +36,7 @@ static uint8_t CRC8(const uint8_t const bytes[]){
 static uint32_t spi_rw(const uint32_t cmd){
 
 	const uint8_t const bytes[] = {(uint8_t)cmd, (uint8_t)(cmd>>8), (uint8_t)(cmd>>16)};
-	const uint8_t CRC = CRC8(bytes);
-	const uint32_t tx_data = bytes[0]<<24 | bytes[1]<<16 | bytes[2]<<8 | CRC;
+	const uint32_t tx_data = bytes[0]<<24 | bytes[1]<<16 | bytes[2]<<8 | CRC8(bytes);
 
 	uint32_t rx_data = 0;
 
@@ -71,7 +70,7 @@ uint64_t task3(); // LED off
 static struct {
 	uint64_t (*task)(void);
 	uint64_t timecmp;
-} timer[] = {{&task0, UINT64_MAX}, {&task1, UINT64_MAX}, {&task2, 0}, {&task3, UINT64_MAX}};
+} timer[] = {{&task0, UINT64_MAX}, {&task1, UINT64_MAX}, {&task2, UINT64_MAX}, {&task3, UINT64_MAX}};
 void timer_set(const int i, const uint64_t timecmp){
 
 	timer[i].timecmp = timecmp;
@@ -98,13 +97,9 @@ uint64_t task0(){ // OWI sequence
 
 	if (usb_state==0x12670000){
 
-		const int owi_step = owi_sequence_next();
-		const int owi_cmd = owi_sequence_get_cmd();
-		const int owi_time = owi_sequence_get_ms();
-
-		if (owi_step!=-1){
-			spi_rw(owi_cmd);
-			timecmp = ECALL_RDTIME() + owi_time*RTC_FREQ/1000;
+		if (owi_sequence_next()!=-1){
+			spi_rw(owi_sequence_get_cmd());
+			timecmp = ECALL_RDTIME() + owi_sequence_get_ms()*RTC_FREQ/1000;
 		}
 
 	}
@@ -218,6 +213,9 @@ int main (void){
 	CSRW(mtvec, trap_handler);  	// register trap handler
 	CSRS(mie, 1<<7); 				// enable timer interrupts
     CSRS(mstatus, 1<<3);			// enable global interrupts
+
+    // Start task2: Hartbeat LED, USB status, Keep alive pkt
+    timer_set(2, 0);
 
 	while(1){
 
