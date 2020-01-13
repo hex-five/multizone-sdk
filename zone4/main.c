@@ -39,6 +39,8 @@ __attribute__((interrupt())) void trap_handler(void){
 
 int main (void){
 
+	asm volatile("nop;nop;nop;nop;nop;nop;nop;nop");
+
 	//volatile int i=0; while(1){i++;}
 	//while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
@@ -56,7 +58,7 @@ int main (void){
     // set timer += 5sec
 	ECALL_SETTIMECMP((uint64_t)5*RTC_FREQ);
     CSRS(mie, 1<<7);
-    //CSRS(mstatus, 1<<3);
+    CSRS(mstatus, 1<<3);
 
 	while(1){
 
@@ -71,7 +73,7 @@ int main (void){
 
 		ECALL_WFI();
 
-		ECALL_SEND(1, "WFI Resume");
+		//ECALL_SEND(1, "WFI Resume");
 
 	}
 

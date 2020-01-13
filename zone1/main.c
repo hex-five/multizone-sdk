@@ -5,6 +5,7 @@
 #include <string.h>	// strxxx()
 #include <stdio.h>	// printf() sprintf()
 #include <stdlib.h> // qsort() strtoul()
+#include <limits.h> // UINT_MAX ULONG_MAX
 
 #include "platform.h"
 #include "plic_driver.h"
@@ -70,12 +71,12 @@ __attribute__((interrupt())) void trap_handler(void){
 					 break;
 
 	case 0x80000007: // Machine timer interrupt
-					 write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
+					 write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
 					 printf("\rMachine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 					 write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
-					 write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
+					 write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
 					 ECALL_WRTIMECMP((uint64_t)-1); // reset mip.7
-					 CSRC(mie, 1<<7); // disable mie.7
+					 CSRC(mie, 1<<7); 				// disable mie.7
 					 return;
 
 	case 0x8000000B: // Machine external interrupt
@@ -171,22 +172,23 @@ void print_stats(void){
 		const unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
 		const unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
 
-		cycles[i] = C2-C1; instrs[i] = I2-I1;
+		cycles[i] = C2>C1 ? C2-C1 : (2^32+C2)-C1;
+		instrs[i] = I2>I1 ? I2-I1 : (2^32+I2)-I1;
 
 	}
 
-	// ------------------------------------------------------------
-	unsigned long C0 = ECALL_CSRR(CSR_MCYCLE);
-				  C0 = ECALL_CSRR(CSR_MCYCLE) - C0;
+	// --------------------- Adjustments --------------------------
+	const unsigned long ADJC1 = ECALL_CSRR(CSR_MCYCLE);
+	const unsigned long ADJC2 = ECALL_CSRR(CSR_MCYCLE);
+	const unsigned long ADJC = ADJC2 > ADJC1 ? ADJC2-ADJC1 : (2^32+ADJC2)-ADJC1;
 
-	unsigned long I0 = ECALL_CSRR(CSR_MINSTRET);
-					   ECALL_CSRR(CSR_MCYCLE);
-					   ECALL_CSRR(CSR_MCYCLE);
-				  I0 = ECALL_CSRR(CSR_MINSTRET) - I0;
+	const unsigned long ADJI1 = ECALL_CSRR(CSR_MINSTRET);
+								ECALL_CSRR(CSR_MCYCLE);
+								ECALL_CSRR(CSR_MCYCLE);
+	const unsigned long ADJI2 = ECALL_CSRR(CSR_MINSTRET);
+	const unsigned long ADJI = ADJI2 > ADJI1 ? ADJI2-ADJI1 : (2^32+ADJI2)-ADJI1;
 
-    printf(">>> C0 = %lu, I0 = %lu \n", C0, I0);
-
-	for (int i=0; i<COUNT; i++)	{cycles[i] -= C0; instrs[i] -= I0;}
+	for (int i=0; i<COUNT; i++)	{cycles[i] -= ADJC; instrs[i] -= ADJI;}
 	// ------------------------------------------------------------
 
 	int max_cycle = 0;
@@ -551,6 +553,8 @@ int readline() {
 // ------------------------------------------------------------------------
 int main (void) {
 
+	//asm volatile("rdcycle a0");
+
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
@@ -581,6 +585,9 @@ int main (void) {
 	printf("=====================================================================\n");
 
     print_cpu_info();
+
+	//printf("The maximum value of U INT  = %u\n",  UINT_MAX);  // rv32 4,294,967,295 32-bit
+	//printf("The maximum value of U LONG = %lu\n", ULONG_MAX); // rv32 4,294,967,295 32-bit
 
 	write(1, "\n\rZ1 > ", 7);
 

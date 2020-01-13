@@ -6,8 +6,8 @@ ENTRY( _start )
 
 MEMORY {
   flash (rxai!w) : ORIGIN = flash + 0x2000, LENGTH = 32K
-/*itim  (rxai!w) : ORIGIN = flash + 0x2000, LENGTH = 32K*/
-  itim  (rxai!w) : ORIGIN = dtim  + 0x8000, LENGTH = 32K
+  itim  (rxai!w) : ORIGIN = flash + 0x2000, LENGTH = 32K
+/*itim  (rxai!w) : ORIGIN = dtim  + 0x8000, LENGTH = 32K*/
   dtim  (wxa!ri) : ORIGIN = dtim  + 0x2000, LENGTH =  4K
 }
 
