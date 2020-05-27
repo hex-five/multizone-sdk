@@ -6,14 +6,14 @@ Hex Five's open standard technology provides hardware-enforced software-defined 
 MultiZone® Security SDK supports the following cores / boards:
  - Hex Five X300 - RV32ACIMU Board: Digilent ARTY7 FPGA
  - UCB E300 (Rocket) - RV32ACIMU Board: Digilent ARTY7 FPGA
- - Microchip PolarFire - RV64ACIMU Board: Aloe Vera Kit see [multizone-linux repo](https://github.com/hex-five/multizone-linux)
+ - Microchip PolarFire - RV64ACIMU Board: Aloe Vera Kit - see [multizone-linux repo](https://github.com/hex-five/multizone-linux)
  - Andes N22 - Board: Corvette F1 FPGA - see [dev/N22 branch](https://github.com/hex-five/multizone-sdk/tree/dev/N22)
  - GoWin N25 - Board: GW2A-55K/18K Eval Board Mini - see [dev/N22 branch](https://github.com/hex-five/multizone-sdk/tree/dev/N22)
  - Alibaba/T-Head/C-Sky E902 - RV32EMCU Board: Digilent ARTY7 FPGA (16 register ISA)
  - SiFive E21 - RV32ACIMU Board: Digilent ARTY7 FPGA 
  - SiFive E31 - RV32ACIMU Board: Digilent ARTY7 FPGA
  - SiFIve S51 - RV64ACIMU Board: Digilent ARTY7 FPGA
- - SiFIve U540 - RV64ACIMU Board: Unleashed
+ - SiFIve U540 - RV64ACIMU Board: Unleashed - see [multizone-linux repo](https://github.com/hex-five/multizone-linux)
 
 This repository, maintained by Hex Five Security, makes it easy to build robust Trusted Execution Environments on RISC-V cores. For Questions or feedback - send email to info 'at' hex-five.com
 
