@@ -5,31 +5,15 @@
 # Platform definitions
 #############################################################
 
-BOARD ?= E31
-ifeq ($(BOARD),E21)
+BOARD ?= X300
+ifeq ($(BOARD),X300)
 	ARCH := rv32
-	RISCV_ARCH := $(ARCH)imac
+	RISCV_ARCH := $(ARCH)ic
 	RISCV_ABI := ilp32
 else ifeq ($(BOARD),E31)
 	ARCH := rv32
-	RISCV_ARCH := $(ARCH)imac
+	RISCV_ARCH := $(ARCH)ic
 	RISCV_ABI := ilp32	
-else ifeq ($(BOARD),E51)
-	ARCH := rv64
-	RISCV_ARCH := $(ARCH)imac
-	RISCV_ABI := lp64
-else ifeq ($(BOARD),S51)
-	ARCH := rv64
-	RISCV_ARCH := $(ARCH)imac
-	RISCV_ABI := lp64
-else ifeq ($(BOARD),X300)
-	ARCH := rv32
-	RISCV_ARCH := $(ARCH)imac
-	RISCV_ABI := ilp32
-else ifeq ($(BOARD),E902)
-	ARCH := rv32
-	RISCV_ARCH := $(ARCH)emac
-	RISCV_ABI := ilp32e		
 else
 	$(error Unsupported board $(BOARD))
 endif
@@ -59,7 +43,6 @@ export OBJCOPY := $(CROSS_COMPILE)objcopy
 export GDB     := $(CROSS_COMPILE)gdb
 export AR      := $(CROSS_COMPILE)ar
 
-
 #############################################################
 # Rules for building multizone
 #############################################################
@@ -69,15 +52,22 @@ all: clean
 	$(MAKE) -C zone1
 	$(MAKE) -C zone2
 	$(MAKE) -C zone3
-	java -jar multizone.jar -c bsp/$(BOARD)/multizone.cfg zone1/zone1.hex zone2/zone2.hex zone3/zone3.hex --arch=$(BOARD)
+	$(MAKE) -C zone4	
+	java -jar multizone.jar \
+		--arch $(BOARD) \
+		--config bsp/$(BOARD)/multizone.cfg \
+		zone1/zone1.hex \
+		zone2/zone2.hex \
+		zone3/zone3.hex \
+		zone4/zone4.hex \
 
 .PHONY: clean
 clean: 
 	$(MAKE) -C zone1 clean
 	$(MAKE) -C zone2 clean
 	$(MAKE) -C zone3 clean
+	$(MAKE) -C zone4 clean	
 	rm -f multizone.hex
-
 
 #############################################################
 # Load and debug variables and rules

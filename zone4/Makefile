@@ -1,6 +1,6 @@
 # Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved
 
-TARGET = zone1.elf
+TARGET = zone4.elf
 
 BSP_BASE := ../bsp
 PLATFORM_DIR := $(BSP_BASE)/$(BOARD)
@@ -10,7 +10,7 @@ LINKER_SCRIPT := linker.lds
 
 C_SRCS += main.c
 
-INCLUDES += -I ../ 
+INCLUDES += -I ../
 
 include $(NEWLIB_DIR)/newlib.mk
 

@@ -1,4 +1,4 @@
-/* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
+/* Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved */
 
 	.section .init
 	.globl _start
@@ -38,8 +38,8 @@ _start:
 
 	/* Call global constructors */
 	la a0, __libc_fini_array
-	call atexit
-	call __libc_init_array
+	//call atexit
+	//call __libc_init_array
 
 	auipc ra, 0
 	addi sp, sp, -16
