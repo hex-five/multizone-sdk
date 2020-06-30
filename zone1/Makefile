@@ -10,7 +10,7 @@ LINKER_SCRIPT := linker.lds
 
 C_SRCS += main.c
 
-INCLUDES += -I ../
+INCLUDES += -I ../ 
 
 include $(NEWLIB_DIR)/newlib.mk
 

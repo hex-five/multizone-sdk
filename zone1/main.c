@@ -1,4 +1,4 @@
-/* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
+/* Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved */
 
 #include <fcntl.h>	// open()
 #include <unistd.h> // read() write()
@@ -22,7 +22,7 @@ static char inputline[32+1]="";
 
 plic_instance_t g_plic;
 
-__attribute__((interrupt())) void trap_handler(void){
+__attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 
 	const unsigned long mcause = ECALL_CSRR(CSR_MCAUSE);
 	const unsigned long mepc   = ECALL_CSRR(CSR_MEPC);
@@ -553,17 +553,14 @@ int readline() {
 // ------------------------------------------------------------------------
 int main (void) {
 
-	//asm volatile("rdcycle a0");
-
 	//volatile int w=0; while(1){w++;}
 	//while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
 
-	// Enable PLIC irq 17 (UART)
-	#define plic_irq_num 17
+	// Enable UART RX IRQ (PLIC)
 	PLIC_init(&g_plic, PLIC_BASE, PLIC_NUM_INTERRUPTS, PLIC_NUM_PRIORITIES);
-	PLIC_enable_interrupt (&g_plic, plic_irq_num);
-	PLIC_set_priority(&g_plic, plic_irq_num, 1);
+	PLIC_enable_interrupt (&g_plic, UART_RX_IRQ);
+	PLIC_set_priority(&g_plic, UART_RX_IRQ, 1);
 
 	CSRW(mtvec, trap_handler);  // register trap handler
 	CSRS(mie, 1<<11); 			// enable external interrupts (PLIC)

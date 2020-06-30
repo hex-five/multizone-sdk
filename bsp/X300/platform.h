@@ -1,19 +1,19 @@
-/* Copyright(C) 2019 Hex Five Security, Inc. - All Rights Reserved */
+/* Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved */
 
 #ifndef HEXFIVE_PLATFORM_H
 #define HEXFIVE_PLATFORM_H
 
-#define CPU_FREQ	64998442
+#define CPU_FREQ	64998442 
 #define RTC_FREQ 	   16416
 
 // -----------------------------------------------------------------------------
 // RTC (CLINT)
 // -----------------------------------------------------------------------------
 #define CLINT_BASE	0x02000000
+
 #define CLINT_MSIP	    0x0000
 #define CLINT_MTIMECMP  0x4000
 #define CLINT_MTIME	    0xBFF8
-
 
 // -----------------------------------------------------------------------------
 // UART
@@ -27,6 +27,7 @@
 #define UART_IE 	0x10
 #define UART_IP 	0x14
 #define UART_DIV 	0x18
+#define UART_RX_IRQ 3	// PLIC.3
 
 // -----------------------------------------------------------------------------
 // PWM
@@ -64,7 +65,6 @@
 // GPIO
 // ------------------------------------------------------------------------------
 #define GPIO_BASE 	0x10012000
-#define GPIO_INT_BASE 22
 
 #define GPIO_INPUT_VAL  0x00
 #define GPIO_INPUT_EN   0x04
@@ -91,16 +91,17 @@
 #define BTN1  30
 #define BTN2  31
 
-#define LOCAL_INT_BTN_0  0
-#define LOCAL_INT_BTN_1  1
-#define LOCAL_INT_BTN_2  2
+#define BTN0_IRQ 16 // CLINT
+#define BTN1_IRQ 17 // CLINT
+#define BTN2_IRQ 18 // CLINT
+
 
 // -----------------------------------------------------------------------------
-// LEDs
+// LED0 (GPIO)
 // ------------------------------------------------------------------------------
-#define LED_RED   (1 << 1)
-#define LED_GREEN (1 << 2)
-#define LED_BLUE  (1 << 3)
+#define LED_RED	 1
+#define LED_GRN	 2
+#define LED_BLUE 3
 
 // -----------------------------------------------------------------------------
 // PLIC
@@ -118,13 +119,10 @@
 #define _REG32(base, offset) (*(volatile uint32_t *)((base) + (offset)))
 #define _REG16(base, offset) (*(volatile uint16_t *)((base) + (offset)))
 
-#define CLINT_REG(offset)  _REG64(CLINT_BASE, offset)
-#define GPIO_REG(offset) _REG32(GPIO_BASE, offset)
-#define PWM_REG(offset)  _REG32(PWM_BASE, offset)
-#define UART_REG(offset) _REG32(UART_BASE, offset)
+#define CLINT_REG(offset)	_REG64(CLINT_BASE, offset)
+#define GPIO_REG(offset) 	_REG32(GPIO_BASE, offset)
+#define PWM_REG(offset)  	_REG32(PWM_BASE, offset)
+#define UART_REG(offset) 	_REG32(UART_BASE, offset)
 
-
-#define IOF0_UART0_MASK         0x00030000UL
-#define IOF1_PWM1_MASK          0x00680000UL
 
 #endif /* HEXFIVE_PLATFORM_H */

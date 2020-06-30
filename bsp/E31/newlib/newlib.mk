@@ -1,4 +1,4 @@
-# Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved
+# Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved
 
 .PHONY: all
 all: $(TARGET)
@@ -23,13 +23,12 @@ LINK_DEPS += $(LINKER_SCRIPT)
 
 CLEAN_OBJS += $(TARGET) $(LINK_OBJS)
 
-CFLAGS += -g2
-CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -march=$(RISCV_ARCH)
 CFLAGS += -mabi=$(RISCV_ABI)
 CFLAGS += -mcmodel=medany
 CFLAGS += -msmall-data-limit=8
-CFLAGS += -Os
+CFLAGS += -ffunction-sections -fdata-sections
+CFLAGS += -g3 -O2
 
 HEX = $(subst .elf,.hex,$(TARGET))
 LST = $(subst .elf,.lst,$(TARGET))

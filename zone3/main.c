@@ -1,4 +1,4 @@
-/* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
+/* Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved */
 
 #include <string.h>	// strcmp()
 
@@ -43,13 +43,13 @@ static uint32_t spi_rw(const uint32_t cmd){
 	for (int i=32-1, bit; i>=0; i--){
 
 		bit = (tx_data >> i) & 1U;
-		GPIO_REG(GPIO_OUTPUT_VAL) = (bit==1 ? GPIO_REG(GPIO_OUTPUT_VAL) | (0x1 << SPI_TDO) :
-											  GPIO_REG(GPIO_OUTPUT_VAL) & ~(0x1 << SPI_TDO)  );
+		GPIO_REG(GPIO_OUTPUT_VAL) = (bit==1 ? GPIO_REG(GPIO_OUTPUT_VAL) | (1 << SPI_TDO) :
+											  GPIO_REG(GPIO_OUTPUT_VAL) & ~(1 << SPI_TDO)  );
 
-		GPIO_REG(GPIO_OUTPUT_VAL) |= (0x1 << SPI_TCK); volatile int w1=0; while(w1<5) w1++;
-		GPIO_REG(GPIO_OUTPUT_VAL) ^= (0x1 << SPI_TCK); volatile int w2=0; while(w2<5) w2++;
+		GPIO_REG(GPIO_OUTPUT_VAL) |= (1 << SPI_TCK); volatile int w1=0; while(w1<5) w1++;
+		GPIO_REG(GPIO_OUTPUT_VAL) ^= (1 << SPI_TCK); volatile int w2=0; while(w2<5) w2++;
 		bit = ( GPIO_REG(GPIO_INPUT_VAL) >> SPI_TDI) & 1U;
-		rx_data = ( bit==1 ? rx_data |  (0x1 << i) : rx_data & ~(0x1 << i) );
+		rx_data = ( bit==1 ? rx_data |  (1 << i) : rx_data & ~(1 << i) );
 
 	}
 
@@ -67,10 +67,12 @@ uint64_t task0(); // OWI Sequence
 uint64_t task1(); // Manual cmd stop
 uint64_t task2(); // Keep alive
 uint64_t task3(); // LED off
+
 static struct {
 	uint64_t (*task)(void);
 	uint64_t timecmp;
-} timer[] = {{&task0, UINT64_MAX}, {&task1, UINT64_MAX}, {&task2, UINT64_MAX}, {&task3, UINT64_MAX}};
+} timer[] = {{task0, UINT64_MAX}, {task1, UINT64_MAX}, {task2, UINT64_MAX}, {task3, UINT64_MAX}};
+
 void timer_set(const int i, const uint64_t timecmp){
 
 	timer[i].timecmp = timecmp;
@@ -113,17 +115,15 @@ uint64_t task1(){ // Manual cmd stop
 }
 uint64_t task2(){ // Keep alive 1sec
 
-	const uint64_t time = ECALL_RDTIME();
-
 	// Send keep alive packet and check ret value
-	const uint32_t rx_data = spi_rw(CMD_DUMMY);
+	volatile uint32_t rx_data = spi_rw(CMD_DUMMY);
 
     // Update USB state (0xFFFFFFFF no spi/usb adapter)
     if (rx_data != usb_state){
-    	if (rx_data==0x12670000 && usb_state==0x0){
-    		LED = LED_GREEN;
+    	if (rx_data==0x12670000){
+    		LED = LED_GRN;
     		ECALL_SEND(1, "USB ID 0x12670000");
-    	} else if (rx_data==0x0 && usb_state==0x12670000){
+    	} else if (usb_state==0x12670000){
     		LED = LED_RED;
     		ECALL_SEND(1, "USB DISCONNECT");
     		owi_sequence_stop();
@@ -131,18 +131,20 @@ uint64_t task2(){ // Keep alive 1sec
     	usb_state=rx_data;
     }
 
+	const uint64_t time = ECALL_RDTIME();
+
     // Turn on LED & start LED timer
-    GPIO_REG(GPIO_OUTPUT_VAL) |= LED;
+    GPIO_REG(GPIO_OUTPUT_VAL) |= (1<<LED);
     timer_set(3, time + LED_TIME);
 
 	return time + KEEP_ALIVE_TIME;
 }
 uint64_t task3(){ // LED off
-	GPIO_REG(GPIO_OUTPUT_VAL) &= ~LED;
+	GPIO_REG(GPIO_OUTPUT_VAL) &= ~(1<<LED);
 	return UINT64_MAX;
 }
 
-__attribute__((interrupt())) void trap_handler(void){
+__attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 
 	switch(ECALL_CSRR(CSR_MCAUSE)){
 		case 0 : break; // Instruction address misaligned
@@ -205,10 +207,10 @@ int main (void){
 	//while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
 
-	GPIO_REG(GPIO_INPUT_EN)  |= (0x1 << SPI_TDI);
-	GPIO_REG(GPIO_PULLUP_EN) |= (0x1 << SPI_TDI);
-	GPIO_REG(GPIO_OUTPUT_EN) |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO) | (0x1 << LED_RED) | (0x1 << LED_GREEN));
-    GPIO_REG(GPIO_DRIVE)     |= ((0x1 << SPI_TCK) | (0x1<< SPI_TDO)) ;
+	GPIO_REG(GPIO_INPUT_EN)  |= (1 << SPI_TDI);
+	GPIO_REG(GPIO_PULLUP_EN) |= (1 << SPI_TDI);
+	GPIO_REG(GPIO_OUTPUT_EN) |= ((1 << SPI_TCK) | (1<< SPI_TDO) | (1 << LED_RED) | (1 << LED_GRN));
+    GPIO_REG(GPIO_DRIVE)     |= ((1 << SPI_TCK) | (1<< SPI_TDO)) ;
 
 	CSRW(mtvec, trap_handler);  	// register trap handler
 	CSRS(mie, 1<<7); 				// enable timer interrupts

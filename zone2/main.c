@@ -1,4 +1,4 @@
-/* Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved */
+/* Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved */
 #include <string.h>	// strcmp()
 #include <inttypes.h> // uint16_t, ...
 
@@ -13,7 +13,9 @@
 #define LD1_GRN_OFF PWM_REG(PWM_CMP2)  = 0xFF;
 #define LD1_BLU_OFF PWM_REG(PWM_CMP3)  = 0xFF;
 
-__attribute__((interrupt())) void trp_handler(void)	 { // trap handler
+__attribute__((interrupt())) void trp_handler(void)	 { // trap handler (0)
+
+	asm volatile("ebreak");
 
 	const unsigned long mcause = ECALL_CSRR(CSR_MCAUSE);
 
@@ -28,7 +30,6 @@ __attribute__((interrupt())) void trp_handler(void)	 { // trap handler
 	case 8:	break; // Environment call from U-mode
 	}
 
-	asm volatile("ebreak");
 }
 __attribute__((interrupt())) void msi_handler(void)  { // machine software interrupt (3)
 	asm volatile("ebreak");
@@ -52,132 +53,97 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 
 }
 
-__attribute__((interrupt())) void btn0_handler(void) { // local interrupt (16+4)
+__attribute__((interrupt())) void btn0_handler(void) {
 
 	static uint64_t debounce = 0;
 	const uint64_t T = ECALL_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		ECALL_SEND(1, "IRQ 20 [BTN0]");
+		ECALL_SEND(1, "IRQ BTN0");
 		LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
+		ECALL_SETTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
-	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN0); //clear gpio irq
+	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN0); //clear gpio irq
 
 }
-__attribute__((interrupt())) void btn1_handler(void) { // local interrupt (16+5)
+__attribute__((interrupt())) void btn1_handler(void) {
 
 	static uint64_t debounce = 0;
 	const uint64_t T = ECALL_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		ECALL_SEND(1, "IRQ 21 [BTN1]");
+		ECALL_SEND(1, "IRQ BTN1");
 		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
+		ECALL_SETTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
-	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN1); //clear gpio irq
+	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN1); //clear gpio irq
 
 }
-__attribute__((interrupt())) void btn2_handler(void) { // local interrupt (16+6)
+__attribute__((interrupt())) void btn2_handler(void) {
 
 	static uint64_t debounce = 0;
 	const uint64_t T = ECALL_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		ECALL_SEND(1, "IRQ 22 [BTN2]");
-		LD1_BLU_ON; LD1_GRN_OFF; LD1_RED_OFF;
+		ECALL_SEND(1, "IRQ BTN2");
+		LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
+		ECALL_SETTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
-	GPIO_REG(GPIO_RISE_IP) |= (1<<BTN2); //clear gpio irq
+	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN2); //clear gpio irq
 
 }
 
-__attribute__((naked, aligned(4))) void trap_vect(void) { // irqs vector
-
-	asm (
-		"j trp_handler;"	//  0
-		".word 0x0;" //  1
-		".word 0x0;" //  2
-		"j msi_handler;" 	//  3
-		".word 0x0;" //  4
-		".word 0x0;" //  5
-		".word 0x0;" //  6
-		"j tmr_handler;" 	//  7
-		".word 0x0;" //  8
-		".word 0x0;" //  9
-		".word 0x0;" // 10
-		".word 0x0;" // 11
-		".word 0x0;" // 12
-		".word 0x0;" // 13
-		".word 0x0;" // 14
-		".word 0x0;" // 15
-		".word 0x0;" // 16
-		".word 0x0;" // 17
-		".word 0x0;" // 18
-		".word 0x0;" // 19
-		"j btn0_handler;"	// 20
-		"j btn1_handler;"	// 21
-		"j btn2_handler;"	// 22
-		".word 0x0;" // 23
-		".word 0x0;" // 24
-		".word 0x0;" // 25
-		".word 0x0;" // 26
-		".word 0x0;" // 27
-		".word 0x0;" // 28
-		".word 0x0;" // 29
-		".word 0x0;" // 30
-		".word 0x0;" // 31
-	);
-}
-
-/*configures Button0 as local interrupt*/
+// configures Button0 as local interrupt
 void b0_irq_init()  {
 
-    //dissable hw io function
+    // disable hw io function
     GPIO_REG(GPIO_IOF_EN ) &= ~(1 << BTN0);
 
-    //set to input
+    // set to input
     GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN0);
     GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BTN0);
 
-    //set to interrupt on rising edge
-    GPIO_REG(GPIO_RISE_IE)    |= (1<<BTN0);
+    // set to interrupt on rising edge
+    GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN0);
 
     // enable irq
-    CSRS(mie, 1<<(16+BTN0));
+    CSRS(mie, 1<<(BTN0_IRQ));
 
 }
 
-/*configures Button1 as local interrupt*/
+// configures Button1 as local interrupt
 void b1_irq_init()  {
 
-    //dissable hw io function
+    // disable hw io function
     GPIO_REG(GPIO_IOF_EN ) &= ~(1 << BTN1);
 
-    //set to input
+    // set to input
     GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN1);
     GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BTN1);
 
-    //set to interrupt on rising edge
-    GPIO_REG(GPIO_RISE_IE)    |= (1<<BTN1);
+    // set to interrupt on rising edge
+    GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN1);
 
     // enable irq
-    CSRS(mie, 1<<(16+BTN1));
+    CSRS(mie, 1<<(BTN1_IRQ));
 
 }
 
-/*configures Button2 as local interrupt*/
+// configures Button2 as local interrupt
 void b2_irq_init()  {
 
-    //dissable hw io function
+    // disable hw io function
     GPIO_REG(GPIO_IOF_EN ) &= ~(1 << BTN2);
 
-    //set to input
+    // set to input
     GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN2);
     GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BTN2);
 
-    //set to interrupt on rising edge
-    GPIO_REG(GPIO_RISE_IE)    |= (1<<BTN2);
+    //s et to interrupt on rising edge
+    GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN2);
 
     // enable irq
-    CSRS(mie, 1<<(16+BTN2));
+    CSRS(mie, 1<<(BTN2_IRQ));
 }
 
 int main (void){
@@ -186,6 +152,16 @@ int main (void){
 	//while(1) ECALL_YIELD();
 	//while(1) ECALL_WFI();
 
+	// vectored trap handler
+	static __attribute__ ((aligned(4)))void (*trap_vect[32])(void) = {};
+	trap_vect[0] = trp_handler;
+	trap_vect[3] = msi_handler;
+	trap_vect[7] = tmr_handler;
+	trap_vect[BTN0_IRQ] = btn0_handler;
+	trap_vect[BTN1_IRQ] = btn1_handler;
+	trap_vect[BTN2_IRQ] = btn2_handler;
+	CSRW(mtvec, trap_vect);	CSRS(mtvec, 0x1);
+
 	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS) | (PWM_CFG_ZEROCMP) | (PWM_CFG_DEGLITCH);
 	PWM_REG(PWM_COUNT) = 0;
 	PWM_REG(PWM_CMP0)  = 0xFE;
@@ -193,9 +169,6 @@ int main (void){
 	b0_irq_init();
 	b1_irq_init();
 	b2_irq_init();
-
-	// vectored trap handler
-	CSRW(mtvec, trap_vect); CSRS(mtvec, 0x1);
 
     // set & enable timer
 	ECALL_SETTIMECMP((uint64_t)25*RTC_FREQ/1000);
