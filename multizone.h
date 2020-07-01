@@ -4,9 +4,11 @@
 #define MULTIZONE_H_
 
 
-#define MZONE_YIELD() asm volatile ("li a0, 0; ecall" : : : "a0")
+#define mzone ".word 0x00300073;"
 
-#define MZONE_WFI() asm volatile ("li a0, 1; ecall" : : : "a0")
+#define MZONE_YIELD() asm volatile ("li a0, 0;" mzone : : : "a0")
+
+#define MZONE_WFI() asm volatile ("li a0, 1;" mzone : : : "a0")
 
 #if __riscv_xlen==32
 
@@ -18,7 +20,7 @@
 				" lw a5, 3*4+%1; 	" \
 				" mv a1, %2; 	" \
 				" li a0, 2;  	" \
-				" ecall;     	" \
+				  mzone          \
 				" mv %0, a0;  	" \
 				: "=r"(sent) : "m"(*(const char (*)[16]) msg), "r"((const int)zone) : "a0","a1","a2","a3","a4","a5"); \
 			sent; })
@@ -27,7 +29,7 @@
 				asm volatile ( \
 				" mv a1, %2; " \
 				" li a0, 3;  " \
-				" ecall;     " \
+				  mzone       \
 				" mv %0, a0; " \
 				" sw a2, 0*4+%1; " \
 				" sw a3, 1*4+%1; " \
@@ -44,7 +46,7 @@
 				" ld a3, 1*4+%1; 	" \
 				" mv a1, %2; 	" \
 				" li a0, 2;  	" \
-				" ecall;     	" \
+				  mzone          \
 				" mv %0, a0;  	" \
 				: "=r"(sent) : "m"(*(const char (*)[16]) msg), "r"((const int)zone) : "a0","a1","a2","a3"); \
 			sent; })
@@ -53,7 +55,7 @@
 				asm volatile ( \
 				" mv a1, %2; " \
 				" li a0, 3;  " \
-				" ecall;     " \
+				  mzone       \
 				" mv %0, a0; " \
 				" sd a2, 0*4+%1; " \
 				" sd a3, 1*4+%1; " \
@@ -63,11 +65,11 @@
 #endif
 
 #define MZONE_RDTIME() ({ register uint32_t a0 asm ("a0"), a1 asm ("a1"); \
-			asm volatile ("li a0, 4; ecall" : "=r"(a0), "=r"(a1)); \
+			asm volatile ("li a0, 4;" mzone : "=r"(a0), "=r"(a1)); \
 		(uint64_t)a1<<32|a0; })
 
 #define MZONE_RDTIMECMP() ({ register uint32_t a0 asm ("a0"), a1 asm ("a1"); \
-			asm volatile ("li a0, 5; ecall" : "=r"(a0), "=r"(a1)); \
+			asm volatile ("li a0, 5;" mzone : "=r"(a0), "=r"(a1)); \
 		(uint64_t)a1<<32|a0; })
 
 #define MZONE_WRTIMECMP(val) ({ \
@@ -75,7 +77,7 @@
 			"mv a1, %0; " \
 			"mv a2, %1; " \
 			"li a0, 6;  " \
-			"ecall" \
+			 mzone       \
 			: : "r"((uint32_t)val), "r"((uint32_t)(val>>32)): "a0","a1","a2"); \
 		})
 
@@ -84,12 +86,12 @@
 			"mv a1, %0; " \
 			"mv a2, %1; " \
 			"li a0, 7;  " \
-			"ecall" \
+			mzone        \
 			: : "r"((uint32_t)val), "r"((uint32_t)(val>>32)): "a0","a1","a2"); \
 		})
 
 #define MZONE_CSRR(csr) ({ unsigned long rd; \
-  asm volatile ("li a1, %1; li a0, 8; ecall; mv %0, a0" : "=r"(rd) : "I"(csr) : "a0", "a1"); \
+  asm volatile ("li a1, %1; li a0, 8;" mzone "mv %0, a0" : "=r"(rd) : "I"(csr) : "a0", "a1"); \
   rd; })
 
 #define CSR_MSTATUS			 0
