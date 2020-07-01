@@ -1,4 +1,4 @@
-# Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved
+# Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved
 
 TARGET = zone1.elf
 

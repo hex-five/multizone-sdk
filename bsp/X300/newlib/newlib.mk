@@ -3,7 +3,6 @@
 .PHONY: all
 all: $(TARGET)
 
-
 ASM_SRCS += $(NEWLIB_DIR)/crt0.S
 C_SRCS += $(NEWLIB_DIR)/newlib.c
 C_SRCS += $(PLATFORM_DIR)/plic_driver.c
@@ -29,7 +28,7 @@ CFLAGS += -mabi=$(RISCV_ABI)
 CFLAGS += -mcmodel=medany
 CFLAGS += -msmall-data-limit=8
 CFLAGS += -ffunction-sections -fdata-sections
-CFLAGS += -g3 -Og
+CFLAGS += -O2
 
 HEX = $(subst .elf,.hex,$(TARGET))
 LST = $(subst .elf,.lst,$(TARGET))

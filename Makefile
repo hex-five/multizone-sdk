@@ -1,5 +1,4 @@
-# Copyright(C) 2018 Hex Five Security, Inc. - All Rights Reserved
-
+# Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved
 
 #############################################################
 # Platform definitions
@@ -18,7 +17,6 @@ else
 	$(error Unsupported board $(BOARD))
 endif
 
-
 #############################################################
 # Arguments/variables available to all submakes
 #############################################################
@@ -26,7 +24,6 @@ endif
 export BOARD
 export RISCV_ARCH
 export RISCV_ABI
-
 
 #############################################################
 # Toolchain definitions
@@ -59,7 +56,7 @@ all: clean
 		zone1/zone1.hex \
 		zone2/zone2.hex \
 		zone3/zone3.hex \
-		zone4/zone4.hex \
+		zone4/zone4.hex
 
 .PHONY: clean
 clean: 

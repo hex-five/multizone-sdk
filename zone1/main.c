@@ -583,9 +583,6 @@ int main (void) {
 
     print_cpu_info();
 
-	//printf("The maximum value of U INT  = %u\n",  UINT_MAX);  // rv32 4,294,967,295 32-bit
-	//printf("The maximum value of U LONG = %lu\n", ULONG_MAX); // rv32 4,294,967,295 32-bit
-
 	write(1, "\n\rZ1 > ", 7);
 
     while(1){
@@ -602,6 +599,6 @@ int main (void) {
 
 	}
 
-} // main()
+}
 
 
