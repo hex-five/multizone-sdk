@@ -8,7 +8,6 @@
 #include <limits.h> // UINT_MAX ULONG_MAX
 
 #include "platform.h"
-#include "plic_driver.h"
 #include "multizone.h"
 
 #define BUFFER_SIZE 16
@@ -19,8 +18,6 @@ static struct{
 } buffer;
 
 static char inputline[32+1]="";
-
-plic_instance_t g_plic;
 
 __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 
@@ -79,13 +76,13 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 					 CSRC(mie, 1<<7); 				// disable mie.7
 					 return;
 
-	case 0x8000000B: // Machine external interrupt
-					 ;const plic_source int_num  = PLIC_claim_interrupt(&g_plic); // claim
-						 if (buffer.p0==buffer.p1) {buffer.p0=0; buffer.p1=0;}
-						 read(0, &buffer.data[buffer.p1++], 1);
-						 if (buffer.p1> BUFFER_SIZE-1) buffer.p1 = BUFFER_SIZE-1;
-					 PLIC_complete_interrupt(&g_plic, int_num); // complete
-					 return;
+	case 0x8000000B: // Machine external interrupt (PLIC)
+					;const uint32_t plic_int = PLIC_REG(PLIC_CLAIM_OFFSET); // PLIC claim
+					if (buffer.p0==buffer.p1) {buffer.p0=0; buffer.p1=0;}
+					read(0, &buffer.data[buffer.p1++], 1);
+					if (buffer.p1> BUFFER_SIZE-1) buffer.p1 = BUFFER_SIZE-1;
+					PLIC_REG(PLIC_CLAIM_OFFSET) = plic_int; // PLIC complete
+					return;
 
 	default : printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 
@@ -558,9 +555,8 @@ int main (void) {
 	//while(1) ECALL_WFI();
 
 	// Enable UART RX IRQ (PLIC)
-	PLIC_init(&g_plic, PLIC_BASE, PLIC_NUM_INTERRUPTS, PLIC_NUM_PRIORITIES);
-	PLIC_enable_interrupt (&g_plic, UART_RX_IRQ);
-	PLIC_set_priority(&g_plic, UART_RX_IRQ, 1);
+	PLIC_REG(PLIC_PRI_OFFSET + (PLIC_UART_RX_SOURCE << PLIC_PRI_SHIFT_PER_SOURCE)) = 0x1;
+	PLIC_REG(PLIC_EN_OFFSET) |= 1 << (PLIC_UART_RX_SOURCE & 0x1F);
 
 	CSRW(mtvec, trap_handler);  // register trap handler
 	CSRS(mie, 1<<11); 			// enable external interrupts (PLIC)

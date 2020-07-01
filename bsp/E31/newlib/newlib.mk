@@ -5,7 +5,6 @@ all: $(TARGET)
 
 ASM_SRCS += $(NEWLIB_DIR)/crt0.S
 C_SRCS += $(NEWLIB_DIR)/newlib.c
-C_SRCS += $(PLATFORM_DIR)/plic_driver.c
 
 INCLUDES += -I$(PLATFORM_DIR)
 

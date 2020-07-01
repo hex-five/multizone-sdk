@@ -3,6 +3,7 @@
 #ifndef HEXFIVE_PLATFORM_H
 #define HEXFIVE_PLATFORM_H
 
+
 #define CPU_FREQ	65074974
 #define RTC_FREQ 	   32833
 
@@ -27,7 +28,6 @@
 #define UART_IE 	0x10
 #define UART_IP 	0x14
 #define UART_DIV 	0x18
-#define UART_RX_IRQ 17	// PLIC.17
 
 // -----------------------------------------------------------------------------
 // PWM
@@ -108,8 +108,12 @@
 // ------------------------------------------------------------------------------
 #define PLIC_BASE 	0x0C000000
 
-#define PLIC_NUM_INTERRUPTS 28
-#define PLIC_NUM_PRIORITIES 7
+#define PLIC_PRI_OFFSET 			0x0
+#define PLIC_PRI_SHIFT_PER_SOURCE 	0x2
+#define PLIC_EN_OFFSET				0x2000
+#define PLIC_ENE_SHIFT_PER_TARGET	0x7
+#define PLIC_CLAIM_OFFSET			0x200004
+#define PLIC_UART_RX_SOURCE			17
 
 // -----------------------------------------------------------------------------
 // C Helper functions
@@ -123,6 +127,7 @@
 #define GPIO_REG(offset)  _REG32(GPIO_BASE, offset)
 #define PWM_REG(offset)   _REG32(PWM_BASE, offset)
 #define UART_REG(offset)  _REG32(UART_BASE, offset)
+#define PLIC_REG(offset) _REG32(PLIC_BASE, offset)
 
 
 #endif /* HEXFIVE_PLATFORM_H */
