@@ -21,9 +21,9 @@ static char inputline[32+1]="";
 
 __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 
-	const unsigned long mcause = ECALL_CSRR(CSR_MCAUSE);
-	const unsigned long mepc   = ECALL_CSRR(CSR_MEPC);
-	const unsigned long mtval  = ECALL_CSRR(CSR_MTVAL);
+	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
+	const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
+	const unsigned long mtval  = MZONE_CSRR(CSR_MTVAL);
 
 	switch(mcause){
 
@@ -72,7 +72,7 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 					 printf("\rMachine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 					 write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
 					 write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
-					 ECALL_WRTIMECMP((uint64_t)-1); // reset mip.7
+					 MZONE_WRTIMECMP((uint64_t)-1); // reset mip.7
 					 CSRC(mie, 1<<7); 				// disable mie.7
 					 return;
 
@@ -157,17 +157,17 @@ void print_stats(void){
 	int cycles[COUNT], instrs[COUNT];
 
 	// Kernel stats - read irq latency
-	const unsigned long irq_instr = ECALL_CSRR(CSR_MHPMCOUNTER26);
-	const unsigned long irq_cycle = ECALL_CSRR(CSR_MHPMCOUNTER27);
-	ECALL_CSRR(CSR_MHPMCOUNTER31); // reset kernel stats
+	const unsigned long irq_instr = MZONE_CSRR(CSR_MHPMCOUNTER26);
+	const unsigned long irq_cycle = MZONE_CSRR(CSR_MHPMCOUNTER27);
+	MZONE_CSRR(CSR_MHPMCOUNTER31); // reset kernel stats
 
 	for (int i=0; i<COUNT; i++){
 
-		const unsigned long I1 = ECALL_CSRR(CSR_MINSTRET);
-		const unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
-		ECALL_YIELD();
-		const unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
-		const unsigned long I2 = ECALL_CSRR(CSR_MINSTRET);
+		const unsigned long I1 = MZONE_CSRR(CSR_MINSTRET);
+		const unsigned long C1 = MZONE_CSRR(CSR_MCYCLE);
+		MZONE_YIELD();
+		const unsigned long C2 = MZONE_CSRR(CSR_MCYCLE);
+		const unsigned long I2 = MZONE_CSRR(CSR_MINSTRET);
 
 		cycles[i] = C2>C1 ? C2-C1 : (2^32+C2)-C1;
 		instrs[i] = I2>I1 ? I2-I1 : (2^32+I2)-I1;
@@ -175,14 +175,14 @@ void print_stats(void){
 	}
 
 	// --------------------- Adjustments --------------------------
-	const unsigned long ADJC1 = ECALL_CSRR(CSR_MCYCLE);
-	const unsigned long ADJC2 = ECALL_CSRR(CSR_MCYCLE);
+	const unsigned long ADJC1 = MZONE_CSRR(CSR_MCYCLE);
+	const unsigned long ADJC2 = MZONE_CSRR(CSR_MCYCLE);
 	const unsigned long ADJC = ADJC2 > ADJC1 ? ADJC2-ADJC1 : (2^32+ADJC2)-ADJC1;
 
-	const unsigned long ADJI1 = ECALL_CSRR(CSR_MINSTRET);
-								ECALL_CSRR(CSR_MCYCLE);
-								ECALL_CSRR(CSR_MCYCLE);
-	const unsigned long ADJI2 = ECALL_CSRR(CSR_MINSTRET);
+	const unsigned long ADJI1 = MZONE_CSRR(CSR_MINSTRET);
+								MZONE_CSRR(CSR_MCYCLE);
+								MZONE_CSRR(CSR_MCYCLE);
+	const unsigned long ADJI2 = MZONE_CSRR(CSR_MINSTRET);
 	const unsigned long ADJI = ADJI2 > ADJI1 ? ADJI2-ADJI1 : (2^32+ADJI2)-ADJI1;
 
 	for (int i=0; i<COUNT; i++)	{cycles[i] -= ADJC; instrs[i] -= ADJI;}
@@ -206,10 +206,10 @@ void print_stats(void){
 	printf("time   min/med/max = %d/%d/%d us \n", min/MHZ, med/MHZ, max/MHZ);
 
 	// Kernel stats (#ifdef STATS)
-	const unsigned long instr_min = ECALL_CSRR(CSR_MHPMCOUNTER28);
-	const unsigned long instr_max = ECALL_CSRR(CSR_MHPMCOUNTER29);
-	const unsigned long cycle_min = ECALL_CSRR(CSR_MHPMCOUNTER30);
-	const unsigned long cycle_max = ECALL_CSRR(CSR_MHPMCOUNTER31); // reset
+	const unsigned long instr_min = MZONE_CSRR(CSR_MHPMCOUNTER28);
+	const unsigned long instr_max = MZONE_CSRR(CSR_MHPMCOUNTER29);
+	const unsigned long cycle_min = MZONE_CSRR(CSR_MHPMCOUNTER30);
+	const unsigned long cycle_max = MZONE_CSRR(CSR_MHPMCOUNTER31); // reset
 	if (instr_min>0){
 		printf("\n");
 		printf("Kernel\n");
@@ -313,10 +313,10 @@ void msg_handler() {
 
 		char msg[16];
 
-		if (ECALL_RECV(zone, msg)) {
+		if (MZONE_RECV(zone, msg)) {
 
 			if (strcmp("ping", msg) == 0)
-				ECALL_SEND(zone, "pong");
+				MZONE_SEND(zone, "pong");
 
 			else {
 				write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
@@ -379,7 +379,7 @@ void cmd_handler(){
 	// --------------------------------------------------------------------
 		if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
 			char msg[16]; strncpy(msg, tk3, 16);
-			if (!ECALL_SEND( tk2[0]-'0', msg) )
+			if (!MZONE_SEND( tk2[0]-'0', msg) )
 				printf("Error: Inbox full.\n");
 		} else printf("Syntax: send {1|2|3|4} message \n");
 
@@ -388,7 +388,7 @@ void cmd_handler(){
 	// --------------------------------------------------------------------
 		if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
 			char msg[16];
-			if (ECALL_RECV(tk2[0]-'0', msg))
+			if (MZONE_RECV(tk2[0]-'0', msg))
 				printf("msg : %.16s\n", msg);
 			else
 				printf("Error: Inbox empty.\n");
@@ -397,10 +397,10 @@ void cmd_handler(){
 	// --------------------------------------------------------------------
 	} else if (strcmp(tk1, "yield")==0){
 	// --------------------------------------------------------------------
-		const unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
-		ECALL_YIELD();
-		const unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
-		const unsigned long C0 = ECALL_CSRR(CSR_MCYCLE)-ECALL_CSRR(CSR_MCYCLE);
+		const unsigned long C1 = MZONE_CSRR(CSR_MCYCLE);
+		MZONE_YIELD();
+		const unsigned long C2 = MZONE_CSRR(CSR_MCYCLE);
+		const unsigned long C0 = MZONE_CSRR(CSR_MCYCLE)-MZONE_CSRR(CSR_MCYCLE);
 		const unsigned long C = C2-C1+C0;
 		const int T = C/(CPU_FREQ/1000000);
 		printf( (C>0 ? "yield : elapsed cycles %d / time %dus \n" : "yield : n/a \n"), C, T);
@@ -410,9 +410,9 @@ void cmd_handler(){
 	// --------------------------------------------------------------------
 		if (tk2 != NULL){
 			const uint64_t ms = abs(strtoull(tk2, NULL, 10));
-			const uint64_t T0 = ECALL_RDTIME();
+			const uint64_t T0 = MZONE_RDTIME();
 			const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-			ECALL_WRTIMECMP(T1); CSRS(mie, 1<<7);
+			MZONE_WRTIMECMP(T1); CSRS(mie, 1<<7);
 			printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 												  (unsigned long)(T1*1000/RTC_FREQ) );
 		} else printf("Syntax: timer ms \n");
@@ -432,10 +432,10 @@ void cmd_handler(){
 	// --------------------------------------------------------------------
 	else if (strcmp(tk1, "csrr")==0){
 	// --------------------------------------------------------------------
-		//unsigned long C0 = ECALL_CSRR(CSR_MCYCLE);
-		unsigned long C1 = ECALL_CSRR(CSR_MCYCLE);
+		//unsigned long C0 = MZONE_CSRR(CSR_MCYCLE);
+		unsigned long C1 = MZONE_CSRR(CSR_MCYCLE);
 		volatile unsigned long misa; asm volatile( "csrr %0, misa" : "=r"(misa) );
-		unsigned long C2 = ECALL_CSRR(CSR_MCYCLE);
+		unsigned long C2 = MZONE_CSRR(CSR_MCYCLE);
 		printf( "csrr: cycles %d \n", (int)(C2-C1)); //-(int)(C1-C0));
 
 	} else printf("Commands: yield send recv pmp load store exec stats timer restart \n");
@@ -551,8 +551,8 @@ int readline() {
 int main (void) {
 
 	//volatile int w=0; while(1){w++;}
-	//while(1) ECALL_YIELD();
-	//while(1) ECALL_WFI();
+	//while(1) MZONE_YIELD();
+	//while(1) MZONE_WFI();
 
 	// Enable UART RX IRQ (PLIC)
 	PLIC_REG(PLIC_PRI_OFFSET + (PLIC_UART_RX_SOURCE << PLIC_PRI_SHIFT_PER_SOURCE)) = 0x1;
@@ -591,7 +591,7 @@ int main (void) {
 
 		msg_handler();
 
-		ECALL_WFI();
+		MZONE_WFI();
 
 	}
 

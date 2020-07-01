@@ -81,7 +81,7 @@ void timer_set(const int i, const uint64_t timecmp){
 	for (int i=0; i<sizeof(timer)/sizeof(timer[0]); i++)
 		timecmp_min = timer[i].timecmp < timecmp_min ? timer[i].timecmp : timecmp_min;
 
-	ECALL_WRTIMECMP(timecmp_min);
+	MZONE_WRTIMECMP(timecmp_min);
 
 }
 void timer_handler(const uint64_t time){
@@ -101,7 +101,7 @@ uint64_t task0(){ // OWI sequence
 
 		if (owi_sequence_next()!=-1){
 			spi_rw(owi_sequence_get_cmd());
-			timecmp = ECALL_RDTIME() + owi_sequence_get_ms()*RTC_FREQ/1000;
+			timecmp = MZONE_RDTIME() + owi_sequence_get_ms()*RTC_FREQ/1000;
 		}
 
 	}
@@ -122,16 +122,16 @@ uint64_t task2(){ // Keep alive 1sec
     if (rx_data != usb_state){
     	if (rx_data==0x12670000){
     		LED = LED_GRN;
-    		ECALL_SEND(1, "USB ID 0x12670000");
+    		MZONE_SEND(1, "USB ID 0x12670000");
     	} else if (usb_state==0x12670000){
     		LED = LED_RED;
-    		ECALL_SEND(1, "USB DISCONNECT");
+    		MZONE_SEND(1, "USB DISCONNECT");
     		owi_sequence_stop();
     	}
     	usb_state=rx_data;
     }
 
-	const uint64_t time = ECALL_RDTIME();
+	const uint64_t time = MZONE_RDTIME();
 
     // Turn on LED & start LED timer
     GPIO_REG(GPIO_OUTPUT_VAL) |= (1<<LED);
@@ -146,7 +146,7 @@ uint64_t task3(){ // LED off
 
 __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 
-	switch(ECALL_CSRR(CSR_MCAUSE)){
+	switch(MZONE_CSRR(CSR_MCAUSE)){
 		case 0 : break; // Instruction address misaligned
 		case 1 : break; // Instruction access fault
 		case 3 : break; // Breakpoint
@@ -156,7 +156,7 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 		case 7 : break; // Store access fault
 		case 8 : break; // Environment call from U-mode
 
-		case 0x80000007 : timer_handler(ECALL_RDTIME()); break; // Muliplexed timer
+		case 0x80000007 : timer_handler(MZONE_RDTIME()); break; // Muliplexed timer
 
 	}
 
@@ -165,7 +165,7 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 void msg_handler(const char *msg){
 
 	if (strcmp("ping", msg)==0){
-		ECALL_SEND(1, "pong");
+		MZONE_SEND(1, "pong");
 
 	} else if (usb_state==0x12670000 && man_cmd==CMD_STOP){
 
@@ -192,7 +192,7 @@ void msg_handler(const char *msg){
 
 			if (man_cmd != CMD_STOP){
 				spi_rw(man_cmd);
-				timer_set(1, ECALL_RDTIME() + MAN_CMD_TIME);
+				timer_set(1, MZONE_RDTIME() + MAN_CMD_TIME);
 			}
 
 		}
@@ -204,8 +204,8 @@ void msg_handler(const char *msg){
 int main (void){
 
 	//volatile int w=0; while(1){w++;}
-	//while(1) ECALL_YIELD();
-	//while(1) ECALL_WFI();
+	//while(1) MZONE_YIELD();
+	//while(1) MZONE_WFI();
 
 	GPIO_REG(GPIO_INPUT_EN)  |= (1 << SPI_TDI);
 	GPIO_REG(GPIO_PULLUP_EN) |= (1 << SPI_TDI);
@@ -222,9 +222,9 @@ int main (void){
 	while(1){
 
 		// Message handler
-		char msg[16]; if (ECALL_RECV(1, msg)) msg_handler(msg);
+		char msg[16]; if (MZONE_RECV(1, msg)) msg_handler(msg);
 
-	    ECALL_WFI();
+	    MZONE_WFI();
 
 	}
 

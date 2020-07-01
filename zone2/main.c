@@ -17,7 +17,7 @@ __attribute__((interrupt())) void trp_handler(void)	 { // trap handler (0)
 
 	asm volatile("ebreak");
 
-	const unsigned long mcause = ECALL_CSRR(CSR_MCAUSE);
+	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
 
 	switch (mcause) {
 	case 0:	break; // Instruction address misaligned
@@ -49,19 +49,19 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
 
 	// set timer (clears mip)
-	ECALL_SETTIMECMP((uint64_t)25*RTC_FREQ/1000);
+	MZONE_ADTIMECMP((uint64_t)25*RTC_FREQ/1000);
 
 }
 
 __attribute__((interrupt())) void btn0_handler(void) {
 
 	static uint64_t debounce = 0;
-	const uint64_t T = ECALL_RDTIME();
+	const uint64_t T = MZONE_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		ECALL_SEND(1, "IRQ BTN0");
+		MZONE_SEND(1, "IRQ BTN0");
 		LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
-		ECALL_SETTIMECMP((uint64_t)250*RTC_FREQ/1000);
+		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
 	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN0); //clear gpio irq
 
@@ -69,12 +69,12 @@ __attribute__((interrupt())) void btn0_handler(void) {
 __attribute__((interrupt())) void btn1_handler(void) {
 
 	static uint64_t debounce = 0;
-	const uint64_t T = ECALL_RDTIME();
+	const uint64_t T = MZONE_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		ECALL_SEND(1, "IRQ BTN1");
+		MZONE_SEND(1, "IRQ BTN1");
 		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
-		ECALL_SETTIMECMP((uint64_t)250*RTC_FREQ/1000);
+		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
 	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN1); //clear gpio irq
 
@@ -82,12 +82,12 @@ __attribute__((interrupt())) void btn1_handler(void) {
 __attribute__((interrupt())) void btn2_handler(void) {
 
 	static uint64_t debounce = 0;
-	const uint64_t T = ECALL_RDTIME();
+	const uint64_t T = MZONE_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		ECALL_SEND(1, "IRQ BTN2");
+		MZONE_SEND(1, "IRQ BTN2");
 		LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
-		ECALL_SETTIMECMP((uint64_t)250*RTC_FREQ/1000);
+		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
 	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN2); //clear gpio irq
 
@@ -149,8 +149,8 @@ void b2_irq_init()  {
 int main (void){
 
 	//volatile int w=0; while(1){w++;}
-	//while(1) ECALL_YIELD();
-	//while(1) ECALL_WFI();
+	//while(1) MZONE_YIELD();
+	//while(1) MZONE_WFI();
 
 	// vectored trap handler
 	static __attribute__ ((aligned(4)))void (*trap_vect[32])(void) = {};
@@ -171,7 +171,7 @@ int main (void){
 	b2_irq_init();
 
     // set & enable timer
-	ECALL_SETTIMECMP((uint64_t)25*RTC_FREQ/1000);
+	MZONE_ADTIMECMP((uint64_t)25*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
     // enable global interrupts (BTN0, BTN1, BTN2, TMR)
@@ -180,16 +180,16 @@ int main (void){
 	while(1){
 
 		// Message handler
-		char msg[16]; if (ECALL_RECV(1, msg)) {
-			if (strcmp("ping", msg)==0) ECALL_SEND(1, "pong");
+		char msg[16]; if (MZONE_RECV(1, msg)) {
+			if (strcmp("ping", msg)==0) MZONE_SEND(1, "pong");
 			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
 			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
 			else if (strcmp("block", msg)==0) {volatile int i=0; while(1) i++; }
-			else if (strcmp("loop",  msg)==0) {while(1) ECALL_YIELD();}
+			else if (strcmp("loop",  msg)==0) {while(1) MZONE_YIELD();}
 		}
 
 		// Wait For Interrupt
-		ECALL_WFI();
+		MZONE_WFI();
 
 	}
 

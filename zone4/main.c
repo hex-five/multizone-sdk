@@ -6,8 +6,8 @@
 int main (void){
 
 	//volatile int i=0; while(1){i++;}
-	//while(1) ECALL_YIELD();
-	//while(1) ECALL_WFI();
+	//while(1) MZONE_YIELD();
+	//while(1) MZONE_WFI();
 
 	while(1){
 
@@ -15,15 +15,15 @@ int main (void){
 		for(int zone=1; zone<4; zone++){
 
 			char msg[16];
-			if (ECALL_RECV(zone, msg)) {
-				if (strcmp("ping", msg)==0) ECALL_SEND(zone, "pong");
-				else if (strcmp("PING", msg)==0) ECALL_SEND(zone, "PONG");
-				else ECALL_SEND(zone, msg);
+			if (MZONE_RECV(zone, msg)) {
+				if (strcmp("ping", msg)==0) MZONE_SEND(zone, "pong");
+				else if (strcmp("PING", msg)==0) MZONE_SEND(zone, "PONG");
+				else MZONE_SEND(zone, msg);
 			}
 
 		}
 
-		ECALL_WFI();
+		MZONE_WFI();
 
 	}
 
