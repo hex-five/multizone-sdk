@@ -7,11 +7,11 @@
 BOARD ?= X300
 ifeq ($(BOARD),X300)
 	ARCH := rv32
-	RISCV_ARCH := $(ARCH)ic
+	RISCV_ARCH := $(ARCH)imac
 	RISCV_ABI := ilp32
 else ifeq ($(BOARD),E31)
 	ARCH := rv32
-	RISCV_ARCH := $(ARCH)ic
+	RISCV_ARCH := $(ARCH)imac
 	RISCV_ABI := ilp32	
 else
 	$(error Unsupported board $(BOARD))
