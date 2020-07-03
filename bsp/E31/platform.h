@@ -127,7 +127,7 @@
 #define GPIO_REG(offset)  _REG32(GPIO_BASE, offset)
 #define PWM_REG(offset)   _REG32(PWM_BASE, offset)
 #define UART_REG(offset)  _REG32(UART_BASE, offset)
-#define PLIC_REG(offset) _REG32(PLIC_BASE, offset)
+#define PLIC_REG(offset)  _REG32(PLIC_BASE, offset)
 
 
 #endif /* HEXFIVE_PLATFORM_H */
