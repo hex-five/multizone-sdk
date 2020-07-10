@@ -1,15 +1,163 @@
 # multizone-sdk
 MultiZone® Security for RISC-V processors
 
-**MultiZone® Security** is the quick and safe way to add security and separation to RISC-V processors. MultiZone software can retrofit existing designs. If you don’t have TrustZone-like hardware, or if you require finer granularity than one secure world, you can take advantage of high security separation without the need for hardware and software redesign, eliminating the complexity associated with managing a hybrid hardware/software security scheme. RISC-V standard ISA does't include TrustZone-like primitives to provide the necessary separation, thus leading to larger attack surface and increased likelihood of vulnerability. To shield critical functionality from untrusted third-party components, MultiZone provides hardware-enforced, software-defined separation of multiple equally secure worlds. Unlike antiquated hypervisor-like solutions, MultiZone is self-contained, presents an extremely small attack surface, and it is policy driven, meaning that no coding is required – and in fact even allowed.
+**MultiZone® Security** is the quick and safe way to add security and separation to RISC-V processors. MultiZone software can retrofit existing designs. If you don’t have TrustZone-like hardware, or if you require finer granularity than one secure world, you can take advantage of high security separation without the need for hardware and software redesign, eliminating the complexity associated with managing a hybrid hardware/software security scheme. RISC-V standard ISA does't include TrustZone-like primitives to provide hardware separation. To shield critical functionality from untrusted third-party components, MultiZone provides hardware-enforced, software-defined separation of multiple equally secure worlds. Unlike antiquated hypervisor-like solutions, MultiZone is self-contained, presents an extremely small attack surface, and it is policy driven, meaning that no coding is required – and in fact even allowed.
 
-MultiZone works with any RISC-V processors with PMP and U mode (rv32, rv32e, rv64, ICU).
+MultiZone works with any 32-bit or 64-bit RISC-V standard processors  with Phisical Memory Protection PMP and U mode.
 
 This version of the GNU-based SDK supports the following development hardware:
 
- - Hex Five X300 - RV32ACIMU Board: Digilent ARTY7 FPGA
- - UCB E300 (Rocket) - RV32ACIMU Board: Digilent ARTY7 FPGA
- - SiFive E31 - RV32ACIMU Board: Digilent ARTY7 FPGA
- - SiFIve S51 - RV64ACIMU Board: Digilent ARTY7 FPGA
+- [Xilinx Artix-7 Arty FPGA Evaluation Kit](https://www.xilinx.com/products/boards-and-kits/arty.html)
+- [Microchip PolarFire SoC FPGA Icicle Kit](https://www.microsemi.com/existing-parts/parts/152514)
 
-WIP ...
+The Arty FPGA Evaluation Kit works with the following softcore bitstreams:
+
+- [Hex Five X300 RV32ACIMU - Permissive open source free for any use.](https://github.com/hex-five/multizone-fpga)
+- [SiFive E31 RV32ACIMU - Proprietary. Evaluation license required.](https://www.sifive.com/cores/e31)
+- [SiFive S51 RV64ACIMU - Proprietary. Evaluation license required.](https://www.sifive.com/cores/s51)
+
+For instructions on how to upload the bitsream to the ARTY board and how to connect the Olimex debug head ARM-USB-TINY-H see [Arty FPGA Dev Kit Getting Started Guide](https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf)
+
+
+### MultiZone SDK Installation ###
+
+The MultiZone SDK works with any versions of Linux, Windows, and Mac capable of running Java 1.8 or greater. The directions in this readme are specific to a fresh installation of Ubuntu 18.04.4 LTS. Other Linux distros are similar.
+
+**Linux prerequisites**
+
+```
+sudo apt update
+sudo apt install make default-jre gtkterm
+```
+Note: GtkTerm is optional and required only to connect to the reference application via UART. It is not required to build, debug, and load the MultiZone software. Any other serial terminal application of choice would do.
+
+**GNU RISC-V Toolchain**
+
+Hex Five reference build: RISC-V GNU Toolchain Linux 64-bit June 13, 2020
+```
+cd ~
+wget https://hex-five.com/wp-content/uploads/riscv-gnu-toolchain-20200613.zip
+unzip riscv-gnu-toolchain-20200613.zip
+```
+
+**OpenOCD on-chip debugger**
+
+Hex Five reference build: RISC-V openocd Linux 64-bit June 13, 2020
+```
+cd ~
+wget https://hex-five.com/wp-content/uploads/riscv-openocd-20200613.zip
+unzip riscv-openocd-20200613.zip
+```
+
+**Linux USB udev rules**
+
+```
+sudo vi /etc/udev/rules.d/99-openocd.rules
+
+# Future Technology Devices International, Ltd FT2232C Dual USB-UART/FIFO IC
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403",ATTRS{idProduct}=="6010", MODE="664", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor} =="0403",ATTR{idProduct} =="6010", MODE="664", GROUP="plugdev"
+
+# Olimex Ltd. ARM-USB-TINY-H JTAG interface
+SUBSYSTEM=="tty", ATTRS{idVendor}=="15ba",ATTRS{idProduct}=="002a", MODE="664", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor} =="15ba",ATTR{idProduct} =="002a", MODE="664", GROUP="plugdev"
+```
+Reboot for these changes to take effect.
+
+**MultiZone Security SDK**
+
+```
+cd ~
+wget https://github.com/hex-five/multizone-sdk/archive/master.zip
+unzip master.zip
+```
+
+### Build & load the MultiZone reference application ###
+
+Connect the target board to the development workstation as indicated in the user manual.
+
+'ls bsp' shows the list of supported targets: X300, E31, S51, PFSOC.
+
+Assign one of these values to the BOARD variable - default is X300.
+
+```
+cd ~/multizone-sdk
+export RISCV=~/riscv-gnu-toolchain-20200613
+export OPENOCD=~/riscv-openocd-20200613
+export BOARD=X300
+make 
+make load
+```
+Note: the first OpenOCD upload after power cycling the ARTY board may take a bit longer. If you don't want to wait, the simple workaround is to reset the FPGA board or to restart the openOCD session on your computer. If you do this, make sure you actually kill any running openocd and gdb process. Subsequent loads should work as expected and take approximately 10 seconds.
+
+
+### Run the MultiZone reference application ###
+
+Connect the UART port (ARTY micro USB J10) as indicated in the user manual.
+
+On your computer, start a serial terminal console (GtkTerm) and connect to /dev/ttyUSB1 at 115200-8-N-1
+
+Hit the enter key a few times until the cursor 'Z1 >' appears on the screen
+
+Enter 'restart' to display the splash screen
+
+Hit enter again to show the list of available commands
+
+```
+=====================================================================
+                       Hex Five MultiZone® Security                    
+    Copyright© 2020 Hex Five Security, Inc. - All Rights Reserved    
+=====================================================================
+This version of MultiZone® Security is meant for evaluation purposes 
+only. As such, use of this software is governed by the Evaluation    
+License. There may be other functional limitations as described in   
+the evaluation SDK documentation. The commercial version of the      
+software does not have these restrictions.                           
+=====================================================================
+Machine ISA   : 0x40101105 RV32 ACIMU 
+Vendor        : 0x0000057c Hex Five, Inc. 
+Architecture  : 0x00000001 X300 
+Implementation: 0x20181004 
+Hart id       : 0x0 
+CPU clock     : 64 MHz 
+RTC clock     : 16 KHz 
+
+Z1 > Commands: yield send recv pmp load store exec stats timer restart 
+
+Z1 > 
+```
+
+### Technical Specs ###
+| |
+|---|
+| Up to 8 hardware threads (zones) hardware-enforced, software-defined |
+| Up to 8 memory mapped resources per zone – i.e. flash, ram, rom, i/o, etc. |
+| Scheduler: preemptive, cooperative, round robin, configurable tick |
+| Secure interzone communications based on messages – no shared memory |
+| Built-in trap & emulation for privileged instructions – CSRR, CSRW, WFI, etc. |
+| Support for secure user-mode interrupt handlers mapped to zones – up to 32 sources PLIC / CLIC|
+| Support for Wait For Interrupt and CPU suspend mode for low power applications |
+| Formally verifiable runtime ~2KB, 100% written in assembly, no 3rd-party dependencies |
+| C library wrapper for protected mode execution – optional for high speed / low-latency |
+| Hardware requirements: RV32, RV32e, RV64 processor with Memory Protection Unit | 
+| System requirements: 4KB FLASH, 2KB RAM - CPU overhead < 0.01% | 
+| Development environment: any versions of Linux, Windows, Mac running Java 1.8 |
+
+
+### Additional Resources ###
+
+- [MultiZone Reference Manual](http://github.com/hex-five/multizone-sdk/blob/master/manual.pdf)
+- [MultiZone Datasheet](https://hex-five.com/wp-content/uploads/2020/01/multizone-datasheet-20200109.pdf)
+- [Frequently Asked Questions](http://hex-five.com/faq/)
+- [Contact Hex Five http://hex-five.com/contact](http://hex-five.com/contact)
+
+
+### Legalities ###
+
+Please remember that export/import and/or use of strong cryptography software, providing cryptography hooks, or even just communicating technical details about cryptography software is illegal in some parts of the world. So when you import this software to your country, re-distribute it from there or even just email technical suggestions or even source patches to the authors or other people you are strongly advised to pay close attention to any laws or regulations which apply to you. Hex Five Security, Inc. and the authors of the software included in this repository are not liable for any violations you make here. So be careful, it is your responsibility.
+
+MultiZone and HEX-Five are registered trademarks of Hex Five Security, Inc.
+
+MultiZone technology is patent pending US 16450826, PCT US1938774.
+
+
