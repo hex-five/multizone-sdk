@@ -36,8 +36,8 @@ Note: GtkTerm is optional and required only to connect to the reference applicat
 Hex Five reference build: RISC-V GNU Toolchain Linux 64-bit June 13, 2020
 ```
 cd ~
-wget hhttps://hex-five.com/wp-content/uploads/2020/07/riscv-gnu-toolchain-20200613.zip
-unzip riscv-gnu-toolchain-20200613.zip
+wget https://hex-five.com/wp-content/uploads/riscv-gnu-toolchain-20200613.tar.xz
+tar -xvf riscv-gnu-toolchain-20200613.tar.xz
 ```
 
 **OpenOCD on-chip debugger**
@@ -45,8 +45,8 @@ unzip riscv-gnu-toolchain-20200613.zip
 Hex Five reference build: RISC-V openocd Linux 64-bit June 13, 2020
 ```
 cd ~
-wget https://hex-five.com/wp-content/uploads/2020/07/riscv-openocd-20200613.zip
-unzip riscv-openocd-20200613.zip
+wget https://hex-five.com/wp-content/uploads/riscv-openocd-20200613.tar.xz
+tar -xvf riscv-openocd-20200613.tar.xz
 ```
 
 **Linux USB udev rules**
