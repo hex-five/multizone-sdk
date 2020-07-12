@@ -17,7 +17,6 @@ int main (void){
 			char msg[16];
 			if (MZONE_RECV(zone, msg)) {
 				if (strcmp("ping", msg)==0) MZONE_SEND(zone, "pong");
-				else if (strcmp("PING", msg)==0) MZONE_SEND(zone, "PONG");
 				else MZONE_SEND(zone, msg);
 			}
 

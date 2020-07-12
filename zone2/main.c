@@ -148,10 +148,6 @@ void b2_irq_init()  {
 
 int main (void){
 
-	//volatile int w=0; while(1){w++;}
-	//while(1) MZONE_YIELD();
-	//while(1) MZONE_WFI();
-
 	// vectored trap handler
 	static __attribute__ ((aligned(4)))void (*trap_vect[32])(void) = {};
 	trap_vect[0] = trp_handler;
@@ -180,12 +176,14 @@ int main (void){
 	while(1){
 
 		// Message handler
-		char msg[16]; if (MZONE_RECV(1, msg)) {
+		char msg[16];
+		if (MZONE_RECV(1, msg)) {
 			if (strcmp("ping", msg)==0) MZONE_SEND(1, "pong");
 			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
 			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
 			else if (strcmp("block", msg)==0) {volatile int i=0; while(1) i++; }
 			else if (strcmp("loop",  msg)==0) {while(1) MZONE_YIELD();}
+			else MZONE_SEND(1, msg);
 		}
 
 		// Wait For Interrupt

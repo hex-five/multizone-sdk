@@ -550,10 +550,6 @@ int readline() {
 // ------------------------------------------------------------------------
 int main (void) {
 
-	//volatile int w=0; while(1){w++;}
-	//while(1) MZONE_YIELD();
-	//while(1) MZONE_WFI();
-
 	// Enable UART RX IRQ (PLIC)
 	PLIC_REG(PLIC_PRI_OFFSET + (PLIC_UART_RX_SOURCE << PLIC_PRI_SHIFT_PER_SOURCE)) = 0x1;
 	PLIC_REG(PLIC_EN_OFFSET) |= 1 << (PLIC_UART_RX_SOURCE & 0x1F);
