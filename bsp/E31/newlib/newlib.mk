@@ -11,6 +11,7 @@ INCLUDES += -I$(PLATFORM_DIR)
 LDFLAGS += -T $(PLATFORM_DIR)/memory.lds
 LDFLAGS += -T $(LINKER_SCRIPT)
 LDFLAGS += --specs=nano.specs
+LDFLAGS += --specs=nosys.specs
 LDFLAGS += -nostartfiles
 LDFLAGS += -Xlinker --gc-sections
 
