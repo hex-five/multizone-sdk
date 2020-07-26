@@ -68,15 +68,24 @@
 			asm volatile ("li a0, 4;" mzone : "=r"(a0), "=r"(a1)); \
 		(uint64_t)a1<<32|a0; })
 
+#define MZONE_WRTIME(val) ({ \
+			asm volatile ( \
+			"mv a1, %0; " \
+			"mv a2, %1; " \
+			"li a0, 5;  " \
+			 mzone       \
+			: : "r"((uint32_t)val), "r"((uint32_t)(val>>32)): "a0","a1","a2"); \
+		})
+
 #define MZONE_RDTIMECMP() ({ register uint32_t a0 asm ("a0"), a1 asm ("a1"); \
-			asm volatile ("li a0, 5;" mzone : "=r"(a0), "=r"(a1)); \
+			asm volatile ("li a0, 6;" mzone : "=r"(a0), "=r"(a1)); \
 		(uint64_t)a1<<32|a0; })
 
 #define MZONE_WRTIMECMP(val) ({ \
 			asm volatile ( \
 			"mv a1, %0; " \
 			"mv a2, %1; " \
-			"li a0, 6;  " \
+			"li a0, 7;  " \
 			 mzone       \
 			: : "r"((uint32_t)val), "r"((uint32_t)(val>>32)): "a0","a1","a2"); \
 		})
@@ -85,13 +94,13 @@
 			asm volatile ( \
 			"mv a1, %0; " \
 			"mv a2, %1; " \
-			"li a0, 7;  " \
+			"li a0, 8;  " \
 			mzone        \
 			: : "r"((uint32_t)val), "r"((uint32_t)(val>>32)): "a0","a1","a2"); \
 		})
 
 #define MZONE_CSRR(csr) ({ unsigned long rd; \
-  asm volatile ("li a1, %1; li a0, 8;" mzone "mv %0, a0" : "=r"(rd) : "I"(csr) : "a0", "a1"); \
+  asm volatile ("li a1, %1; li a0, 9;" mzone "mv %0, a0" : "=r"(rd) : "I"(csr) : "a0", "a1"); \
   rd; })
 
 #define CSR_MSTATUS			 0
