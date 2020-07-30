@@ -88,7 +88,12 @@ export BOARD=X300
 make 
 make load
 ```
-Note: the first OpenOCD upload after power cycling the ARTY board may take a bit longer. If you don't want to wait, the simple workaround is to reset the FPGA board or to restart the openOCD session on your computer. If you do this, make sure you actually kill any running openocd and gdb process. Subsequent loads should work as expected and take approximately 10 seconds.
+Note: the first OpenOCD upload after power cycling the ARTY board may take a bit longer. If you don't want to wait, the simple workaround is to reset the FPGA board or to restart the openOCD session on your computer. If you do this, make sure you actually kill any running openocd process. Subsequent loads should work as expected and take approximately 10 seconds.
+
+Important: make sure that switch SW3 is positioned close to the edge of the board.
+
+Important: open jumper JP2 (CK RST) to prevent system reset upon UART connection.
+
 
 
 ### Run the MultiZone reference application ###
