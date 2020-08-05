@@ -554,13 +554,13 @@ int readline() {
 // ------------------------------------------------------------------------
 int main (void) {
 
-	// Enable UART RX IRQ (PLIC)
-	PLIC_REG(PLIC_PRI_OFFSET + (PLIC_UART_RX_SOURCE << PLIC_PRI_SHIFT_PER_SOURCE)) = 0x1;
-	PLIC_REG(PLIC_EN_OFFSET) |= 1 << (PLIC_UART_RX_SOURCE & 0x1F);
-
 	CSRW(mtvec, trap_handler);  // register trap handler
 	CSRS(mie, 1<<11); 			// enable external interrupts (PLIC)
     CSRS(mstatus, 1<<3);		// enable global interrupts (PLIC, TMR)
+
+	// Enable UART RX IRQ (PLIC)
+    PLIC_REG(PLIC_PRI_OFFSET + (PLIC_UART_RX_SOURCE << PLIC_PRI_SHIFT_PER_SOURCE)) = 0x1;
+	PLIC_REG(PLIC_EN_OFFSET) |= 1 << (PLIC_UART_RX_SOURCE & 0x1F);
 
 	open("UART", 0, 0);
 

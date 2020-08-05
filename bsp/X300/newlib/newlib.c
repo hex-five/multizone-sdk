@@ -56,7 +56,6 @@ int _lseek(int file, off_t ptr, int dir) {
 int _open(const char* name, int flags, int mode) {
 // ----------------------------------------------------------------------------
 
-
 	if (strcmp(name, "UART")==0){
 
 		UART_REG(UART_DIV) = CPU_FREQ/115200-1;
