@@ -70,13 +70,14 @@ Reboot for these changes to take effect.
 cd ~
 wget https://github.com/hex-five/multizone-sdk/archive/master.zip
 unzip master.zip
+mv multizone-sdk-master multizone-sdk
 ```
 
 ### Build & load the MultiZone reference application ###
 
 Connect the target board to the development workstation as indicated in the user manual.
 
-'ls bsp' shows the list of supported targets: X300, E31, S51, PFSOC.
+'ls multizone-sdk/bsp' shows the list of supported targets: X300, E31, S51, PFSOC.
 
 Assign one of these values to the BOARD variable - default is X300.
 
