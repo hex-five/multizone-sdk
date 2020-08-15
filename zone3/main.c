@@ -122,7 +122,7 @@ uint64_t task2(){ // Keep alive 1sec
     if (rx_data != usb_state){
     	if (rx_data==0x12670000){
     		LED = LED_GRN;
-    		MZONE_SEND(1, "USB ID 0x12670000");
+    		MZONE_SEND(1, "USB ID 12670000");
     	} else if (usb_state==0x12670000){
     		LED = LED_RED;
     		MZONE_SEND(1, "USB DISCONNECT");

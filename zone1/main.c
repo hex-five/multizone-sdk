@@ -321,7 +321,7 @@ void msg_handler() {
 			else {
 				write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
 				printf("\rZ%d > %.16s\n", zone, msg);
-				write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
+				write(1, "\nZ1 > ", 6); write(1, inputline, strlen(inputline));
 				write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
 			}
 		}
