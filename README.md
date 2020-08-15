@@ -21,13 +21,20 @@ For instructions on how to upload the bitstream to the ARTY board and how to con
 
 ### MultiZone SDK Installation ###
 
-The MultiZone SDK works with any versions of Linux, Windows, and Mac capable of running Java 1.8 or greater. The directions in this readme are specific to a fresh installation of Ubuntu 18.04.4 LTS. Other Linux distros are similar.
+The MultiZone SDK works with any versions of Linux, Windows, and Mac capable of running Java 1.8 or greater. The directions in this readme have been verified with fresh installations of Ubuntu 20.04, Ubuntu 19.10, Ubuntu 18.04.5, and Debian 10.5. Other Linux distros are similar. Windows developers may want to install a Linux emulation environment like Cygwin or run the SDK in a vm (2GB Disk, 2GB Ram)
 
 **Linux prerequisites**
 
 ```
 sudo apt update
-sudo apt install make default-jre gtkterm
+sudo apt install make default-jre gtkterm libhidapi-dev libftdi1-2
+```
+Ubuntu 18.04 LTS additional dependency
+
+```
+sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ focal main universe"
+sudo apt update
+sudo apt install libncurses-dev
 ```
 Note: GtkTerm is optional and required only to connect to the reference application via UART. It is not required to build, debug, and load the MultiZone software. Any other serial terminal application of choice would do.
 
