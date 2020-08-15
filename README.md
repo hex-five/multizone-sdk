@@ -16,18 +16,25 @@ The Arty FPGA Evaluation Kit works with the following softcore bitstreams:
 - [SiFive E31 RV32ACIMU - Proprietary. Evaluation license required.](https://www.sifive.com/cores/e31)
 - [SiFive S51 RV64ACIMU - Proprietary. Evaluation license required.](https://www.sifive.com/cores/s51)
 
-For instructions on how to upload the bitstream to the ARTY board and how to connect the {Olimex debug head ARM-USB-TINY-H](https://www.olimex.com/Products/ARM/JTAG/ARM-USB-TINY-H/) see [Arty FPGA Dev Kit Getting Started Guide](https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf)
+For instructions on how to upload the bitstream to the ARTY board and how to connect the [Olimex debug head ARM-USB-TINY-H](https://www.olimex.com/Products/ARM/JTAG/ARM-USB-TINY-H/) see [Arty FPGA Dev Kit Getting Started Guide](https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf)
 
 
 ### MultiZone SDK Installation ###
 
-The MultiZone SDK works with any versions of Linux, Windows, and Mac capable of running Java 1.8 or greater. The directions in this readme are specific to a fresh installation of Ubuntu 18.04.4 LTS. Other Linux distros are similar.
+The MultiZone SDK works with any versions of Linux, Windows, and Mac capable of running Java 1.8 or greater. The directions in this readme have been verified with fresh installations of Ubuntu 20.04, Ubuntu 19.10, Ubuntu 18.04.5, and Debian 10.5. Other Linux distros are similar. Windows developers may want to install a Linux emulation environment like Cygwin or run the SDK in a Linux VM guest (2GB Disk, 2GB Ram)
 
 **Linux prerequisites**
 
 ```
 sudo apt update
-sudo apt install make default-jre gtkterm
+sudo apt install make default-jre gtkterm libhidapi-dev libftdi1-2
+```
+Ubuntu 18.04 LTS additional dependency
+
+```
+sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ focal main universe"
+sudo apt update
+sudo apt install libncurses-dev
 ```
 Note: GtkTerm is optional and required only to connect to the reference application via UART. It is not required to build, debug, and load the MultiZone software. Any other serial terminal application of choice would do.
 
@@ -70,13 +77,14 @@ Reboot for these changes to take effect.
 cd ~
 wget https://github.com/hex-five/multizone-sdk/archive/master.zip
 unzip master.zip
+mv multizone-sdk-master multizone-sdk
 ```
 
 ### Build & load the MultiZone reference application ###
 
 Connect the target board to the development workstation as indicated in the user manual.
 
-'ls bsp' shows the list of supported targets: X300, E31, S51, PFSOC.
+'ls multizone-sdk/bsp' shows the list of supported targets: X300, E31, S51, PFSOC.
 
 Assign one of these values to the BOARD variable - default is X300.
 
@@ -88,11 +96,11 @@ export BOARD=X300
 make 
 make load
 ```
-Note: the first OpenOCD upload after power cycling the ARTY board may take a bit longer. If you don't want to wait, the simple workaround is to reset the FPGA board or to restart the openOCD session on your computer. If you do this, make sure you actually kill any running openocd process. Subsequent loads should work as expected and take approximately 10 seconds.
+Note: With some older versions of the ftdi libraries, the first "make load" after powering the board may take a bit longer than it should. If you don't want to wait, the simple workaround is to reset the FPGA board to abort the openOCD session. If you do this, make sure to kill the openocd process on your computer. Subsequent loads will work as expected and take approximately 10 seconds.
 
 Important: make sure that switch SW3 is positioned close to the edge of the board.
 
-Important: open jumper JP2 (CK RST) to prevent system reset upon UART connection.
+Important: open jumper JP2 (CK RST) to prevent a system reset upon UART connection.
 
 
 
