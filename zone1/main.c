@@ -175,15 +175,17 @@ void print_stats(void){
 	}
 
 	// --------------------- Adjustments --------------------------
+	MZONE_CSRR(CSR_MCYCLE); // prime cache for accurate reading
 	const unsigned long ADJC1 = MZONE_CSRR(CSR_MCYCLE);
 	const unsigned long ADJC2 = MZONE_CSRR(CSR_MCYCLE);
-	const unsigned long ADJC = ADJC2 > ADJC1 ? ADJC2-ADJC1 : (2^32+ADJC2)-ADJC1;
+	const int ADJC = ADJC2-ADJC1; // ignore wrap around
 
+	MZONE_CSRR(CSR_MCYCLE); // prime cache for accurate reading
 	const unsigned long ADJI1 = MZONE_CSRR(CSR_MINSTRET);
 								MZONE_CSRR(CSR_MCYCLE);
 								MZONE_CSRR(CSR_MCYCLE);
 	const unsigned long ADJI2 = MZONE_CSRR(CSR_MINSTRET);
-	const unsigned long ADJI = ADJI2 > ADJI1 ? ADJI2-ADJI1 : (2^32+ADJI2)-ADJI1;
+	const int ADJI = ADJI2-ADJI1; // ignore wrap around
 
 	for (int i=0; i<COUNT; i++)	{cycles[i] -= ADJC; instrs[i] -= ADJI;}
 	// ------------------------------------------------------------

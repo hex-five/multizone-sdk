@@ -3,11 +3,8 @@
 #include <string.h>
 #include "multizone.h"
 
-int main (void){
 
-	//volatile int i=0; while(1){i++;}
-	//while(1) MZONE_YIELD();
-	//while(1) MZONE_WFI();
+int main (void){
 
 	while(1){
 
