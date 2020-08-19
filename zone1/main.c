@@ -40,7 +40,7 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 			 break;
 
 	case 4 : printf("Load address missaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-	 	 	 CSRW(mepc, mepc+4); // skip
+ 	 	 	 CSRW(mepc, mepc + (*(char *)mepc & 0b11 ==0b11 ? 4 : 2) ); // skip
 	 	 	 return;
 
 	case 5 : printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
@@ -48,11 +48,11 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 	 	 	 return;
 
 	case 6 : printf("Store/AMO address missaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
- 	 	 	 CSRW(mepc, mepc+4); // skip
+ 	 	 	 CSRW(mepc, mepc + (*(char *)mepc & 0b11 ==0b11 ? 4 : 2) ); // skip
 	 	 	 return;
 
 	case 7 : printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
- 	 	 	 CSRW(mepc, mepc+4); // skip
+	 	 	 CSRW(mepc, mepc + (*(char *)mepc & 0b11 ==0b11 ? 4 : 2) ); // skip
 	 	 	 return;
 
 	case 8 : printf("Environment call from U-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
@@ -335,32 +335,30 @@ void msg_handler() {
 // ------------------------------------------------------------------------
 void cmd_handler(){
 
-	char * tk1 = strtok (inputline, " ");
-	char * tk2 = strtok (NULL, " ");
-	char * tk3 = strtok (NULL, " ");
+	const char * tk[4] = { strtok(inputline, " "), strtok(NULL, " "), strtok(NULL, " "), strtok(NULL, " ")};
 
-	if (tk1 == NULL) tk1 = "help";
+	if (tk[0] == NULL) tk[0] = "help";
 
 	// --------------------------------------------------------------------
-	if (strcmp(tk1, "load")==0){
+	if (strcmp(tk[0], "load")==0){
 	// --------------------------------------------------------------------
-		if (tk2 != NULL){
+		if (tk[1] != NULL){
 			uint8_t data = 0x00;
-			const unsigned long addr = strtoull(tk2, NULL, 16);
+			const unsigned long addr = strtoull(tk[1], NULL, 16);
 			asm ("lbu %0, (%1)" : "+r"(data) : "r"(addr));
 			printf("0x%08x : 0x%02x \n", (unsigned int)addr, data);
 		} else printf("Syntax: load address \n");
 
 	// --------------------------------------------------------------------
-	} else if (strcmp(tk1, "store")==0){
+	} else if (strcmp(tk[0], "store")==0){
 	// --------------------------------------------------------------------
-		if (tk2 != NULL && tk3 != NULL){
-			const uint32_t data = (uint32_t)strtoul(tk3, NULL, 16);
-			const unsigned long addr = strtoull(tk2, NULL, 16);
+		if (tk[1] != NULL && tk[2] != NULL){
+			const uint32_t data = (uint32_t)strtoul(tk[2], NULL, 16);
+			const unsigned long addr = strtoull(tk[1], NULL, 16);
 
-			if ( strlen(tk3) <=2 )
+			if ( strlen(tk[2]) <=2 )
 				asm ( "sb %0, (%1)" : : "r"(data), "r"(addr));
-			else if ( strlen(tk3) <=4 )
+			else if ( strlen(tk[2]) <=4 )
 				asm ( "sh %0, (%1)" : : "r"(data), "r"(addr));
 			else
 				asm ( "sw %0, (%1)" : : "r"(data), "r"(addr));
@@ -369,35 +367,45 @@ void cmd_handler(){
 		} else printf("Syntax: store address data \n");
 
 	// --------------------------------------------------------------------
-	} else if (strcmp(tk1, "exec")==0){
+	} else if (strcmp(tk[0], "exec")==0){
 	// --------------------------------------------------------------------
-		if (tk2 != NULL){
-			const unsigned long addr = strtoull(tk2, NULL, 16);
+		if (tk[1] != NULL){
+			const unsigned long addr = strtoull(tk[1], NULL, 16);
 			asm ( "jr (%0)" : : "r"(addr));
 		} else printf("Syntax: exec address \n");
 
 	// --------------------------------------------------------------------
-	} else if (strcmp(tk1, "send")==0){
+	} else if (strcmp(tk[0], "dma")==0){
 	// --------------------------------------------------------------------
-		if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4' && tk3 != NULL){
-			char msg[16]; strncpy(msg, tk3, 16);
-			if (!MZONE_SEND( tk2[0]-'0', msg) )
+		if (tk[1] != NULL && tk[2] != NULL && tk[3] != NULL){
+			DMA_REG(DMA_TR_SRC_OFF)  = strtoull(tk[1], NULL, 16);
+			DMA_REG(DMA_TR_DEST_OFF) = strtoull(tk[2], NULL, 16);
+			DMA_REG(DMA_TR_SIZE_OFF) = strtoull(tk[3], NULL, 16);
+			DMA_REG(DMA_CH_CTRL_OFF) = 0x1; // start transfer
+		} else printf("Syntax: dma source dest size \n");
+
+	// --------------------------------------------------------------------
+	} else if (strcmp(tk[0], "send")==0){
+	// --------------------------------------------------------------------
+		if (tk[1] != NULL && tk[1][0]>='1' && tk[1][0]<='4' && tk[2] != NULL){
+			char msg[16]; strncpy(msg, tk[2], 16);
+			if (!MZONE_SEND( tk[1][0]-'0', msg) )
 				printf("Error: Inbox full.\n");
 		} else printf("Syntax: send {1|2|3|4} message \n");
 
 	// --------------------------------------------------------------------
-	} else if (strcmp(tk1, "recv")==0){
+	} else if (strcmp(tk[0], "recv")==0){
 	// --------------------------------------------------------------------
-		if (tk2 != NULL && tk2[0]>='1' && tk2[0]<='4'){
+		if (tk[1] != NULL && tk[1][0]>='1' && tk[1][0]<='4'){
 			char msg[16];
-			if (MZONE_RECV(tk2[0]-'0', msg))
+			if (MZONE_RECV(tk[1][0]-'0', msg))
 				printf("msg : %.16s\n", msg);
 			else
 				printf("Error: Inbox empty.\n");
 		} else printf("Syntax: recv {1|2|3|4} \n");
 
 	// --------------------------------------------------------------------
-	} else if (strcmp(tk1, "yield")==0){
+	} else if (strcmp(tk[0], "yield")==0){
 	// --------------------------------------------------------------------
 		const unsigned long C1 = MZONE_CSRR(CSR_MCYCLE);
 		MZONE_YIELD();
@@ -408,10 +416,10 @@ void cmd_handler(){
 		printf( (C>0 ? "yield : elapsed cycles %d / time %dus \n" : "yield : n/a \n"), C, T);
 
 	// --------------------------------------------------------------------
-	} else if (strcmp(tk1, "timer")==0){
+	} else if (strcmp(tk[0], "timer")==0){
 	// --------------------------------------------------------------------
-		if (tk2 != NULL){
-			const uint64_t ms = abs(strtoull(tk2, NULL, 10));
+		if (tk[1] != NULL){
+			const uint64_t ms = abs(strtoull(tk[1], NULL, 10));
 			const uint64_t T0 = MZONE_RDTIME();
 			const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
 			MZONE_WRTIMECMP(T1); CSRS(mie, 1<<7);
@@ -420,23 +428,23 @@ void cmd_handler(){
 		} else printf("Syntax: timer ms \n");
 
 	// --------------------------------------------------------------------
-	} else if (strcmp(tk1, "stats")==0)	print_stats();
+	} else if (strcmp(tk[0], "stats")==0)	print_stats();
 	// --------------------------------------------------------------------
 
 	// --------------------------------------------------------------------
-	else if (strcmp(tk1, "restart")==0) asm ("j _start");
+	else if (strcmp(tk[0], "restart")==0) asm ("j _start");
 	// --------------------------------------------------------------------
 
 	// --------------------------------------------------------------------
-	else if (strcmp(tk1, "pmp")==0) print_pmp();
+	else if (strcmp(tk[0], "pmp")==0) print_pmp();
 	// --------------------------------------------------------------------
 
 	// --------------------------------------------------------------------
-	else if (strcmp(tk1, "ecall")==0) asm ("ecall"); // test
+	else if (strcmp(tk[0], "ecall")==0) asm ("ecall"); // test
 	// --------------------------------------------------------------------
 
 	// --------------------------------------------------------------------
-	else if (strcmp(tk1, "csrr")==0){ // test
+	else if (strcmp(tk[0], "csrr")==0){ // test
 	// --------------------------------------------------------------------
 		//unsigned long C0 = MZONE_CSRR(CSR_MCYCLE);
 		unsigned long C1 = MZONE_CSRR(CSR_MCYCLE);
@@ -444,7 +452,7 @@ void cmd_handler(){
 		unsigned long C2 = MZONE_CSRR(CSR_MCYCLE);
 		printf( "csrr: cycles %d \n", (int)(C2-C1)); //-(int)(C1-C0));
 
-	} else printf("Commands: yield send recv pmp load store exec stats timer restart \n");
+	} else printf("Commands: yield send recv pmp load store exec dma stats timer restart \n");
 
 }
 

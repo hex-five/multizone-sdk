@@ -104,7 +104,7 @@
 #define LED_BLUE 3
 
 // -----------------------------------------------------------------------------
-// PLIC
+// PLIC (shared)
 // ------------------------------------------------------------------------------
 #define PLIC_BASE 	0x0C000000
 
@@ -118,6 +118,25 @@
 #define PLIC_XEMAC_RX_SOURCE		21
 
 // -----------------------------------------------------------------------------
+// DMA (single channel mockup)
+// ------------------------------------------------------------------------------
+#define DMA_BASE 	0x10040000
+
+#define DMA_VER_OFF			0x00
+#define DMA_CFG_OFF			0x10
+#define DMA_CTRL_OFF		0x20
+#define DMA_CH_STATUS_OFF	0x30 /* 1<<ch+16  1<<ch+0 */
+#define DMA_CH_ENABLE_OFF	0x34 /* 1<<ch */
+#define DMA_CH_ABORT_OFF	0x40 /* 1<<ch */
+#define DMA_CH_CTRL_OFF		0x44 /* +ch*0x14 */
+#define DMA_TR_SRC_OFF		0x48 /* +ch*0x14 */
+#define DMA_TR_DEST_OFF		0x4C /* +ch*0x14 */
+#define DMA_TR_SIZE_OFF		0x50 /* +ch*0x14 */
+
+#define DMA_IRQ				3
+
+
+// -----------------------------------------------------------------------------
 // C Helper functions
 // -----------------------------------------------------------------------------
 
@@ -126,10 +145,11 @@
 #define _REG16(base, offset) (*(volatile uint16_t *)((base) + (offset)))
 
 #define CLINT_REG(offset) _REG64(CLINT_BASE, offset)
-#define GPIO_REG(offset)  _REG32(GPIO_BASE, offset)
-#define PWM_REG(offset)   _REG32(PWM_BASE, offset)
-#define UART_REG(offset)  _REG32(UART_BASE, offset)
+#define GPIO_REG(offset) _REG32(GPIO_BASE, offset)
+#define PWM_REG(offset) _REG32(PWM_BASE, offset)
+#define UART_REG(offset) _REG32(UART_BASE, offset)
 #define PLIC_REG(offset) _REG32(PLIC_BASE, offset)
+#define DMA_REG(offset) _REG32(DMA_BASE, offset)
 
 
 #endif /* HEXFIVE_PLATFORM_H */
