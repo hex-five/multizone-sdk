@@ -175,18 +175,15 @@ void print_stats(void){
 		const unsigned long C2 = MZONE_CSRR(CSR_MCYCLE);
 		const unsigned long I2 = MZONE_CSRR(CSR_MINSTRET);
 
-		cycles[i] = C2-C1; //C2>C1 ? C2-C1 : (2^32+C2)-C1;
-		instrs[i] = I2-I1; //I2>I1 ? I2-I1 : (2^32+I2)-I1;
+		cycles[i] = C2-C1; instrs[i] = I2-I1;
 
 	}
 
 	// --------------------- Adjustments --------------------------
-	//MZONE_CSRR(CSR_MCYCLE); // prime cache for accurate reading
 	const unsigned long ADJC1 = MZONE_CSRR(CSR_MCYCLE);
 	const unsigned long ADJC2 = MZONE_CSRR(CSR_MCYCLE);
 	const int ADJC = ADJC2-ADJC1; // ignore wrap around
 
-	//MZONE_CSRR(CSR_MCYCLE); // prime cache for accurate reading
 	const unsigned long ADJI1 = MZONE_CSRR(CSR_MINSTRET);
 								MZONE_CSRR(CSR_MCYCLE);
 								MZONE_CSRR(CSR_MCYCLE);

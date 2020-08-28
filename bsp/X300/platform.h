@@ -17,6 +17,21 @@
 #define CLINT_MTIME	    0xBFF8
 
 // -----------------------------------------------------------------------------
+// PLIC (shared)
+// ------------------------------------------------------------------------------
+#define PLIC_BASE 	0x0C000000
+
+#define PLIC_PRI_OFFSET 			0
+#define PLIC_PRI_SHIFT_PER_SOURCE 	2
+#define PLIC_EN_OFFSET				0x2000
+#define PLIC_EN_SHIFT_PER_TARGET	1
+#define PLIC_THRES_OFFSET			0x200000
+#define PLIC_CLAIM_OFFSET			0x200004
+
+#define PLIC_UART_RX_SOURCE			3
+#define PLIC_XEMAC_RX_SOURCE		21
+
+// -----------------------------------------------------------------------------
 // UART
 // -----------------------------------------------------------------------------
 #define UART_BASE 	0x10013000
@@ -95,7 +110,6 @@
 #define BTN1_IRQ 17 // CLINT
 #define BTN2_IRQ 18 // CLINT
 
-
 // -----------------------------------------------------------------------------
 // LED0 (GPIO)
 // ------------------------------------------------------------------------------
@@ -104,19 +118,9 @@
 #define LED_BLUE 3
 
 // -----------------------------------------------------------------------------
-// PLIC (shared)
-// ------------------------------------------------------------------------------
-#define PLIC_BASE 	0x0C000000
-
-#define PLIC_PRI_OFFSET 			0x0
-#define PLIC_PRI_SHIFT_PER_SOURCE 	2
-#define PLIC_EN_OFFSET				0x2000
-#define PLIC_EN_SHIFT_PER_TARGET	1
-#define PLIC_THRES_OFFSET			0x200000
-#define PLIC_CLAIM_OFFSET			0x200004
-
-#define PLIC_UART_RX_SOURCE			3
-#define PLIC_XEMAC_RX_SOURCE		21
+// Ethernet
+// -----------------------------------------------------------------------------
+#define XEMAC_BASE 0x60000000
 
 // -----------------------------------------------------------------------------
 // DMA (single channel mockup)
@@ -135,7 +139,6 @@
 #define DMA_TR_SIZE_OFF		0x50 /* +ch*0x14 */
 
 #define DMA_IRQ				3
-
 
 // -----------------------------------------------------------------------------
 // C Helper functions
