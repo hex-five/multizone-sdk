@@ -104,7 +104,7 @@
 #define LED_BLUE 2
 
 // -----------------------------------------------------------------------------
-// PLIC
+// PLIC (shared)
 // ------------------------------------------------------------------------------
 #define PLIC_BASE 	0x0C000000
 
@@ -114,7 +114,27 @@
 #define PLIC_EN_SHIFT_PER_TARGET	1
 #define PLIC_THRES_OFFSET			0x200000
 #define PLIC_CLAIM_OFFSET			0x200004
+
 #define PLIC_UART_RX_SOURCE			17
+
+// -----------------------------------------------------------------------------
+// DMA (single channel mockup)
+// ------------------------------------------------------------------------------
+#define DMA_BASE 	0x20001000
+
+#define DMA_VER_OFF			0x00
+#define DMA_CFG_OFF			0x10
+#define DMA_CTRL_OFF		0x20
+#define DMA_CH_STATUS_OFF	0x30 /* TC: 1<<ch+16, AB: 1<<ch+8,  ERR: 1<<ch+0 */
+#define DMA_CH_ENABLE_OFF	0x34 /* 1<<ch */
+#define DMA_CH_ABORT_OFF	0x40 /* 1<<ch */
+#define DMA_CH_CTRL_OFF		0x44 /* +ch*0x14 */
+#define DMA_TR_SRC_OFF		0x48 /* +ch*0x14 */
+#define DMA_TR_DEST_OFF		0x4C /* +ch*0x14 */
+#define DMA_TR_SIZE_OFF		0x50 /* +ch*0x14 */
+
+#define DMA_IRQ				3
+
 
 // -----------------------------------------------------------------------------
 // C Helper functions
@@ -129,6 +149,7 @@
 #define PWM_REG(offset)   _REG32(PWM_BASE, offset)
 #define UART_REG(offset)  _REG32(UART_BASE, offset)
 #define PLIC_REG(offset)  _REG32(PLIC_BASE, offset)
+#define DMA_REG(offset) _REG32(DMA_BASE, offset)
 
 
 #endif /* HEXFIVE_PLATFORM_H */

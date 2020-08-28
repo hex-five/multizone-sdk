@@ -64,16 +64,22 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 	case 11: printf("Environment call from M-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 			 break;
 
-	case 0x80000003: printf("Machine software interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					 break;
+	case 0x80000003: // Machine software interrupt (DMA)
+					 write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
+					 printf("\rDMA transfer complete \n", mcause, mepc, mtval);
+					 printf("source : 0x%08x \n", DMA_REG(DMA_TR_SRC_OFF));
+					 printf("dest   : 0x%08x \n", DMA_REG(DMA_TR_DEST_OFF));
+					 printf("size   : 0x%08x \n", DMA_REG(DMA_TR_SIZE_OFF));
+					 write(1, "\e8\e[4B", 6);   	// restore curs pos & curs down 4x
+					 DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
+					 return;
 
 	case 0x80000007: // Machine timer interrupt
 					 write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
-					 printf("\rMachine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+					 	 printf("\rMachine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 					 write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
 					 write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
-					 MZONE_WRTIMECMP((uint64_t)-1); // reset mip.7
-					 CSRC(mie, 1<<7); 				// disable mie.7
+					 MZONE_WRTIMECMP((uint64_t)-1); // clear mip.7
 					 return;
 
 	case 0x8000000B: // Machine external interrupt (PLIC)
@@ -169,18 +175,18 @@ void print_stats(void){
 		const unsigned long C2 = MZONE_CSRR(CSR_MCYCLE);
 		const unsigned long I2 = MZONE_CSRR(CSR_MINSTRET);
 
-		cycles[i] = C2>C1 ? C2-C1 : (2^32+C2)-C1;
-		instrs[i] = I2>I1 ? I2-I1 : (2^32+I2)-I1;
+		cycles[i] = C2-C1; //C2>C1 ? C2-C1 : (2^32+C2)-C1;
+		instrs[i] = I2-I1; //I2>I1 ? I2-I1 : (2^32+I2)-I1;
 
 	}
 
 	// --------------------- Adjustments --------------------------
-	MZONE_CSRR(CSR_MCYCLE); // prime cache for accurate reading
+	//MZONE_CSRR(CSR_MCYCLE); // prime cache for accurate reading
 	const unsigned long ADJC1 = MZONE_CSRR(CSR_MCYCLE);
 	const unsigned long ADJC2 = MZONE_CSRR(CSR_MCYCLE);
 	const int ADJC = ADJC2-ADJC1; // ignore wrap around
 
-	MZONE_CSRR(CSR_MCYCLE); // prime cache for accurate reading
+	//MZONE_CSRR(CSR_MCYCLE); // prime cache for accurate reading
 	const unsigned long ADJI1 = MZONE_CSRR(CSR_MINSTRET);
 								MZONE_CSRR(CSR_MCYCLE);
 								MZONE_CSRR(CSR_MCYCLE);
@@ -344,7 +350,7 @@ void cmd_handler(){
 	// --------------------------------------------------------------------
 		if (tk[1] != NULL){
 			uint8_t data = 0x00;
-			const unsigned long addr = strtoull(tk[1], NULL, 16);
+			const unsigned long addr = strtoul(tk[1], NULL, 16);
 			asm ("lbu %0, (%1)" : "+r"(data) : "r"(addr));
 			printf("0x%08x : 0x%02x \n", (unsigned int)addr, data);
 		} else printf("Syntax: load address \n");
@@ -354,7 +360,7 @@ void cmd_handler(){
 	// --------------------------------------------------------------------
 		if (tk[1] != NULL && tk[2] != NULL){
 			const uint32_t data = (uint32_t)strtoul(tk[2], NULL, 16);
-			const unsigned long addr = strtoull(tk[1], NULL, 16);
+			const unsigned long addr = strtoul(tk[1], NULL, 16);
 
 			if ( strlen(tk[2]) <=2 )
 				asm ( "sb %0, (%1)" : : "r"(data), "r"(addr));
@@ -370,7 +376,7 @@ void cmd_handler(){
 	} else if (strcmp(tk[0], "exec")==0){
 	// --------------------------------------------------------------------
 		if (tk[1] != NULL){
-			const unsigned long addr = strtoull(tk[1], NULL, 16);
+			const unsigned long addr = strtoul(tk[1], NULL, 16);
 			asm ( "jr (%0)" : : "r"(addr));
 		} else printf("Syntax: exec address \n");
 
@@ -378,10 +384,10 @@ void cmd_handler(){
 	} else if (strcmp(tk[0], "dma")==0){
 	// --------------------------------------------------------------------
 		if (tk[1] != NULL && tk[2] != NULL && tk[3] != NULL){
-			DMA_REG(DMA_TR_SRC_OFF)  = strtoull(tk[1], NULL, 16);
-			DMA_REG(DMA_TR_DEST_OFF) = strtoull(tk[2], NULL, 16);
-			DMA_REG(DMA_TR_SIZE_OFF) = strtoull(tk[3], NULL, 16);
-			DMA_REG(DMA_CH_CTRL_OFF) = 0x1; // start transfer
+			DMA_REG(DMA_TR_SRC_OFF)  = strtoul(tk[1], NULL, 16);
+			DMA_REG(DMA_TR_DEST_OFF) = strtoul(tk[2], NULL, 16);
+			DMA_REG(DMA_TR_SIZE_OFF) = strtoul(tk[3], NULL, 16);
+			DMA_REG(DMA_CH_CTRL_OFF) = 0b0001; // en irqs & start transfer
 		} else printf("Syntax: dma source dest size \n");
 
 	// --------------------------------------------------------------------
@@ -422,7 +428,7 @@ void cmd_handler(){
 			const uint64_t ms = abs(strtoull(tk[1], NULL, 10));
 			const uint64_t T0 = MZONE_RDTIME();
 			const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-			MZONE_WRTIMECMP(T1); CSRS(mie, 1<<7);
+			MZONE_WRTIMECMP(T1);
 			printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 												  (unsigned long)(T1*1000/RTC_FREQ) );
 		} else printf("Syntax: timer ms \n");
@@ -564,9 +570,9 @@ int readline() {
 // ------------------------------------------------------------------------
 int main (void) {
 
-	CSRW(mtvec, trap_handler);  // register trap handler
-	CSRS(mie, 1<<11); 			// enable external interrupts (PLIC)
-    CSRS(mstatus, 1<<3);		// enable global interrupts (PLIC, TMR)
+	CSRW(mtvec, trap_handler);  	// register trap handler
+	CSRS(mie, 1<<11 | 1<<7 | 1<<3); // enable external interrupts (PLIC/UART, TMR, SW/DMA)
+    CSRS(mstatus, 1<<3);			// enable global interrupts (PLIC, TMR, SW)
 
 	// Enable UART RX IRQ (PLIC)
     PLIC_REG(PLIC_PRI_OFFSET + (PLIC_UART_RX_SOURCE << PLIC_PRI_SHIFT_PER_SOURCE)) = 0x1;

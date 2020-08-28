@@ -114,6 +114,7 @@
 #define PLIC_EN_SHIFT_PER_TARGET	1
 #define PLIC_THRES_OFFSET			0x200000
 #define PLIC_CLAIM_OFFSET			0x200004
+
 #define PLIC_UART_RX_SOURCE			3
 #define PLIC_XEMAC_RX_SOURCE		21
 
@@ -125,7 +126,7 @@
 #define DMA_VER_OFF			0x00
 #define DMA_CFG_OFF			0x10
 #define DMA_CTRL_OFF		0x20
-#define DMA_CH_STATUS_OFF	0x30 /* 1<<ch+16  1<<ch+0 */
+#define DMA_CH_STATUS_OFF	0x30 /* TC: 1<<ch+16, AB: 1<<ch+8,  ERR: 1<<ch+0 */
 #define DMA_CH_ENABLE_OFF	0x34 /* 1<<ch */
 #define DMA_CH_ABORT_OFF	0x40 /* 1<<ch */
 #define DMA_CH_CTRL_OFF		0x44 /* +ch*0x14 */
