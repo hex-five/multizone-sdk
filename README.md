@@ -135,7 +135,7 @@ Hart id       : 0x0
 CPU clock     : 64 MHz 
 RTC clock     : 16 KHz 
 
-Z1 > Commands: yield send recv pmp load store exec stats timer restart 
+Z1 > Commands: yield send recv pmp load store exec dma stats timer restart 
 
 Z1 > 
 ```
@@ -147,6 +147,7 @@ Z1 >
 | Up to 8 memory mapped resources per zone – i.e. flash, ram, rom, i/o, etc. |
 | Scheduler: preemptive, cooperative, round robin, configurable tick |
 | Secure interzone communications based on messages – no shared memory |
+| Built-in support for protected DMA transfers |
 | Built-in trap & emulation for privileged instructions – CSRR, CSRW, WFI, etc. |
 | Support for secure user-mode interrupt handlers mapped to zones – up to 32 sources PLIC / CLIC|
 | Support for Wait For Interrupt and CPU suspend mode for low power applications |
