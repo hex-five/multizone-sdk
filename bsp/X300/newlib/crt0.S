@@ -28,7 +28,7 @@ _start:
 
 	/* Clear bss section */
 	la a0, __bss_start
-	la a1, _end
+	la a1, __bss_end
 	bgeu a0, a1, 2f
 1:
 	sw zero, (a0)
@@ -38,7 +38,9 @@ _start:
 
 
 	/* Call global constructors */
-  call    __libc_init_array
+	la a0, __libc_fini_array
+	call atexit
+    call    __libc_init_array
 
 	auipc ra, 0
 	addi sp, sp, -16
