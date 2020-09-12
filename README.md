@@ -16,6 +16,11 @@ The Arty FPGA Evaluation Kit works with the following softcore bitstreams:
 - [SiFive E31 RV32ACIMU - Proprietary. Evaluation license required.](https://www.sifive.com/cores/e31)
 - [SiFive S51 RV64ACIMU - Proprietary. Evaluation license required.](https://www.sifive.com/cores/s51)
 
+The Xilinx Arty FPGA comes in two versions: 35T and 100T
+- Hex Five's X300 bitstream works with version 35T
+- SiFive's bitstreams up to v19.02 work with version 35T
+- SiFive's bitstreams after v19.02 work with version 100T
+
 For instructions on how to upload the bitstream to the ARTY board and how to connect the [Olimex debug head ARM-USB-TINY-H](https://www.olimex.com/Products/ARM/JTAG/ARM-USB-TINY-H/) see [Arty FPGA Dev Kit Getting Started Guide](https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf)
 
 
@@ -147,14 +152,16 @@ Z1 >
 | Up to 8 memory mapped resources per zone – i.e. flash, ram, rom, i/o, etc. |
 | Scheduler: preemptive, cooperative, round robin, configurable tick |
 | Secure interzone communications based on messages – no shared memory |
-| Built-in support for protected DMA transfers |
-| Built-in trap & emulation for privileged instructions – CSRR, CSRW, WFI, etc. |
-| Support for secure user-mode interrupt handlers mapped to zones – up to 32 sources PLIC / CLIC|
+| Built-in support for secure shared Timer interrupt |
+| Built-in support for secure shared PLIC interrupt |
+| Built-in support for secure DMA transfers |
+| Built-in trap & emulation for all privileged instructions – CSRR, CSRW, WFI, etc. |
+| Support for secure user-mode interrupt handlers mapped to zones – up to 32 sources PLIC / CLIC |
 | Support for Wait For Interrupt and CPU suspend mode for low power applications |
 | Formally verifiable runtime ~2KB, 100% written in assembly, no 3rd-party dependencies |
 | C library wrapper for protected mode execution – optional for high speed / low-latency |
-| Hardware requirements: RV32, RV32e, RV64 processor with Memory Protection Unit | 
-| System requirements: 4KB FLASH, 2KB RAM - CPU overhead < 0.01% | 
+| Hardware requirements: RV32, RV32e, RV64 cpu with Memory Protection Unit and U extension | 
+| System requirements: 6KB FLASH, 4KB RAM - CPU overhead < 0.01% | 
 | Development environment: any versions of Linux, Windows, Mac running Java 1.8 |
 
 
