@@ -25,10 +25,10 @@ CLEAN_OBJS += $(TARGET) $(LINK_OBJS)
 
 CFLAGS += -march=$(RISCV_ARCH)
 CFLAGS += -mabi=$(RISCV_ABI)
-CFLAGS += -mcmodel=medany
+CFLAGS += -mcmodel=medlow
 CFLAGS += -msmall-data-limit=8
 CFLAGS += -ffunction-sections -fdata-sections
-CFLAGS += -g3 -O3
+CFLAGS += -g3 -Os
 
 HEX = $(subst .elf,.hex,$(TARGET))
 LST = $(subst .elf,.lst,$(TARGET))

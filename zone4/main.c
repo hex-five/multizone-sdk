@@ -9,14 +9,17 @@ int main (void){
 	while(1){
 
 		// Message handler
-		for(int zone=1; zone<4; zone++){
-
-			char msg[16];
-			if (MZONE_RECV(zone, msg)) {
-				if (strcmp("ping", msg)==0) MZONE_SEND(zone, "pong");
-				else MZONE_SEND(zone, msg);
+		char msg[16];
+		if (MZONE_RECV(1, msg)) {
+			if (strcmp("ping", msg)==0) MZONE_SEND(1, "pong");
+			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
+			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
+			else if (strcmp("block", msg)==0) {
+				CSRC(mstatus, 1<<3);
+				while(!MZONE_RECV(1, msg)) {;}
+				CSRS(mstatus, 1<<3);
 			}
-
+			else MZONE_SEND(1, msg);
 		}
 
 		MZONE_WFI();

@@ -5,14 +5,18 @@
 #############################################################
 
 BOARD ?= X300
-ifeq ($(BOARD),X300)
+ifeq ($(BOARD), X300)
 	ARCH := rv32
 	RISCV_ARCH := $(ARCH)imac
 	RISCV_ABI := ilp32
-else ifeq ($(BOARD),E31)
+else ifeq ($(BOARD), E31)
 	ARCH := rv32
 	RISCV_ARCH := $(ARCH)imac
-	RISCV_ABI := ilp32	
+	RISCV_ABI := ilp32
+else ifeq ($(BOARD), S51)
+	ARCH := rv64
+	RISCV_ARCH := $(ARCH)imac
+	RISCV_ABI := lp64		
 else
 	$(error Unsupported board $(BOARD))
 endif

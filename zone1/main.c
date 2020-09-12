@@ -19,7 +19,9 @@ static struct{
 
 static char inputline[32+1]="";
 
-__attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
+__attribute__(( interrupt())) void trap_handler(void){
+
+	#define MCAUSE_IRQ_MASK ( 1UL<< (__riscv_xlen-1) )
 
 	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
 	const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
@@ -64,31 +66,31 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 	case 11: printf("Environment call from M-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 			 break;
 
-	case 0x80000003: // Machine software interrupt (DMA)
-					 write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
-					 printf("\rDMA transfer complete \n", mcause, mepc, mtval);
-					 printf("source : 0x%08x \n", DMA_REG(DMA_TR_SRC_OFF));
-					 printf("dest   : 0x%08x \n", DMA_REG(DMA_TR_DEST_OFF));
-					 printf("size   : 0x%08x \n", DMA_REG(DMA_TR_SIZE_OFF));
-					 write(1, "\e8\e[4B", 6);   	// restore curs pos & curs down 4x
-					 DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
-					 return;
+	case MCAUSE_IRQ_MASK | 3 : // Machine software interrupt (DMA)
+			 write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
+			 printf("\rDMA transfer complete \n", mcause, mepc, mtval);
+			 printf("source : 0x%08x \n", DMA_REG(DMA_TR_SRC_OFF));
+			 printf("dest   : 0x%08x \n", DMA_REG(DMA_TR_DEST_OFF));
+			 printf("size   : 0x%08x \n", DMA_REG(DMA_TR_SIZE_OFF));
+			 write(1, "\e8\e[4B", 6);   	// restore curs pos & curs down 4x
+			 DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
+			 return;
 
-	case 0x80000007: // Machine timer interrupt
-					 write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
-					 	 printf("\rMachine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					 write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
-					 write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
-					 MZONE_WRTIMECMP((uint64_t)-1); // clear mip.7
-					 return;
+	case MCAUSE_IRQ_MASK | 7 : // Machine timer interrupt
+			 write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
+			 printf("\rTimer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			 write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
+			 write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
+			 MZONE_WRTIMECMP((uint64_t)-1); // clear mip.7
+			 return;
 
-	case 0x8000000B: // Machine external interrupt (PLIC)
-					;const uint32_t plic_int = PLIC_REG(PLIC_CLAIM_OFFSET); // PLIC claim
-					if (buffer.p0==buffer.p1) {buffer.p0=0; buffer.p1=0;}
-					read(0, &buffer.data[buffer.p1++], 1);
-					if (buffer.p1> BUFFER_SIZE-1) buffer.p1 = BUFFER_SIZE-1;
-					PLIC_REG(PLIC_CLAIM_OFFSET) = plic_int; // PLIC complete
-					return;
+	case MCAUSE_IRQ_MASK | 11 : // Machine external interrupt (PLIC)
+			;const uint32_t plic_int = PLIC_REG(PLIC_CLAIM_OFFSET); // PLIC claim
+			if (buffer.p0==buffer.p1) {buffer.p0=0; buffer.p1=0;}
+			read(0, &buffer.data[buffer.p1++], 1);
+			if (buffer.p1> BUFFER_SIZE-1) buffer.p1 = BUFFER_SIZE-1;
+			PLIC_REG(PLIC_CLAIM_OFFSET) = plic_int; // PLIC complete
+			return;
 
 	default : printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 
@@ -253,11 +255,7 @@ void print_pmp(void){
 	asm ( "csrr %0, pmpcfg0" : "=r"(pmpcfg) );
 #endif
 
-#if __riscv_xlen==32
-	uint32_t pmpaddr[8];
-#else
-	uint64_t pmpaddr[8];
-#endif
+	unsigned long pmpaddr[8];
 	asm ( "csrr %0, pmpaddr0" : "=r"(pmpaddr[0]) );
 	asm ( "csrr %0, pmpaddr1" : "=r"(pmpaddr[1]) );
 	asm ( "csrr %0, pmpaddr2" : "=r"(pmpaddr[2]) );
@@ -273,7 +271,7 @@ void print_pmp(void){
 
 		char rwx[3+1] = {cfg & PMP_R ? 'r':'-', cfg & PMP_W ? 'w':'-', cfg & PMP_X ? 'x':'-', '\0'};
 
-		uint64_t start=0, end=0;
+		unsigned long start=0, end=0;
 
 		char type[5+1]="";
 
@@ -300,11 +298,7 @@ void print_pmp(void){
 
 		} else break;
 
-#if __riscv_xlen==32
 		printf("0x%08x 0x%08x %s %s \n", (unsigned long)start, (unsigned int)end, rwx, type);
-#else
-		printf("0x%08" PRIX64 " 0x%08" PRIX64 " %s %s \n", start, end, rwx, type);
-#endif
 
 	}
 

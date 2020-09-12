@@ -144,7 +144,9 @@ uint64_t task3(){ // LED off
 	return UINT64_MAX;
 }
 
-__attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
+__attribute__(( interrupt())) void trap_handler(void){
+
+	#define MCAUSE_IRQ_MASK ( 1UL<< (__riscv_xlen-1) )
 
 	switch(MZONE_CSRR(CSR_MCAUSE)){
 		case 0 : break; // Instruction address misaligned
@@ -156,7 +158,7 @@ __attribute__(( interrupt(), aligned(4) )) void trap_handler(void){
 		case 7 : break; // Store access fault
 		case 8 : break; // Environment call from U-mode
 
-		case 0x80000007 : timer_handler(MZONE_RDTIME()); break; // Muliplexed timer
+		case MCAUSE_IRQ_MASK | 7 : timer_handler(MZONE_RDTIME()); break; // Muliplexed timer
 
 	}
 
@@ -203,10 +205,10 @@ void msg_handler(const char *msg){
 
 int main (void){
 
-	GPIO_REG(GPIO_INPUT_EN)  |= (1 << SPI_TDI);
-	GPIO_REG(GPIO_PULLUP_EN) |= (1 << SPI_TDI);
-	GPIO_REG(GPIO_OUTPUT_EN) |= ((1 << SPI_TCK) | (1<< SPI_TDO) | (1 << LED_RED) | (1 << LED_GRN));
-    GPIO_REG(GPIO_DRIVE)     |= ((1 << SPI_TCK) | (1<< SPI_TDO)) ;
+	GPIO_REG(GPIO_INPUT_EN)  |=  (1 << SPI_TDI);
+	GPIO_REG(GPIO_PULLUP_EN) |=  (1 << SPI_TDI);
+	GPIO_REG(GPIO_OUTPUT_EN) |=  (1 << SPI_TCK | 1<< SPI_TDO | 1 << LED_RED | 1 << LED_GRN );
+    GPIO_REG(GPIO_DRIVE)     |=  (1 << SPI_TCK | 1<< SPI_TDO );
 
 	CSRW(mtvec, trap_handler);  	// register trap handler
 	CSRS(mie, 1<<7); 				// enable timer interrupts

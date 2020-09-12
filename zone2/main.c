@@ -15,8 +15,6 @@
 
 __attribute__((interrupt())) void trp_handler(void)	 { // trap handler (0)
 
-	asm volatile("ebreak");
-
 	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
 
 	switch (mcause) {
@@ -149,7 +147,7 @@ void b2_irq_init()  {
 int main (void){
 
 	// vectored trap handler
-	static __attribute__ ((aligned(4)))void (*trap_vect[32])(void) = {};
+	static void (*trap_vect[32])(void) = {};
 	trap_vect[0] = trp_handler;
 	trap_vect[3] = msi_handler;
 	trap_vect[7] = tmr_handler;
@@ -158,8 +156,7 @@ int main (void){
 	trap_vect[BTN2_IRQ] = btn2_handler;
 	CSRW(mtvec, trap_vect);	CSRS(mtvec, 0x1);
 
-	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS) | (PWM_CFG_ZEROCMP) | (PWM_CFG_DEGLITCH);
-	PWM_REG(PWM_COUNT) = 0;
+	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS | PWM_CFG_ZEROCMP);
 	PWM_REG(PWM_CMP0)  = 0xFE;
 
 	b0_irq_init();

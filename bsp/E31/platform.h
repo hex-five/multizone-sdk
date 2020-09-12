@@ -4,7 +4,7 @@
 #define HEXFIVE_PLATFORM_H
 
 
-#define CPU_FREQ	65074974
+#define CPU_FREQ	32537487
 #define RTC_FREQ 	   32833
 
 // -----------------------------------------------------------------------------
@@ -142,7 +142,6 @@
 
 #define _REG64(base, offset) (*(volatile uint64_t *)((base) + (offset)))
 #define _REG32(base, offset) (*(volatile uint32_t *)((base) + (offset)))
-#define _REG16(base, offset) (*(volatile uint16_t *)((base) + (offset)))
 
 #define CLINT_REG(offset) _REG64(CLINT_BASE, offset)
 #define GPIO_REG(offset)  _REG32(GPIO_BASE, offset)
