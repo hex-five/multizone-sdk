@@ -6,6 +6,7 @@ ENTRY( _start )
 
 MEMORY {
   flash (rxai!w) : ORIGIN = flash + 0xA000, LENGTH = 8K
+  code  (rxai!w) : ORIGIN = flash + 0xA000, LENGTH = 8K
   ram   (wa!xri) : ORIGIN = dtim  + 0x3000, LENGTH = 4K
 }
 
@@ -20,19 +21,19 @@ SECTIONS {
   .init : ALIGN(64 / 8)
   {
     KEEP (*(SORT_NONE(.init)))
-  } >flash AT>flash 
+  } >code AT>flash 
 
   .fini : ALIGN(64 / 8)
   {
     KEEP (*(SORT_NONE(.fini)))
-  } >flash AT>flash 
+  } >code AT>flash 
 
   .preinit_array : ALIGN(64 / 8) 
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array))
     PROVIDE_HIDDEN (__preinit_array_end = .);
-  } >flash AT>flash
+  } >code AT>flash
 
   .init_array : ALIGN(64 / 8) 
   {
@@ -40,7 +41,7 @@ SECTIONS {
     KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
     KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
     PROVIDE_HIDDEN (__init_array_end = .);
-  } >flash AT>flash
+  } >code AT>flash
 
   .fini_array : ALIGN(64 / 8)
   {
@@ -48,7 +49,7 @@ SECTIONS {
     KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
     KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
     PROVIDE_HIDDEN (__fini_array_end = .);
-  } >flash AT>flash 
+  } >code AT>flash 
 
   .ctors : ALIGN(64 / 8)
   {
@@ -57,7 +58,7 @@ SECTIONS {
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .ctors))
     KEEP (*(SORT(.ctors.*)))
     KEEP (*(.ctors))
-  } >flash AT>flash 
+  } >code AT>flash 
 
   .dtors : ALIGN(64 / 8)
   {
@@ -66,7 +67,7 @@ SECTIONS {
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
-  } >flash AT>flash 
+  } >code AT>flash 
 
 
   /** Text section | program - can be loaded to faster memory **/
@@ -81,7 +82,7 @@ SECTIONS {
     *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf.em.  */
     *(.gnu.warning)
-  } >flash AT>flash 
+  } >code AT>flash 
 
   PROVIDE (__etext = .);
   PROVIDE (_etext = .);
@@ -92,7 +93,7 @@ SECTIONS {
     *(.rdata)
     *(.rodata .rodata.*)
     *(.gnu.linkonce.r.*)
-  } >flash AT>flash 
+  } >code AT>flash 
 
 
   /* Data section - copied from rom to ram */
@@ -100,7 +101,7 @@ SECTIONS {
   .lalign : ALIGN(64 / 8) 
   {
     PROVIDE( _data_lma = . );
-  } >flash AT>flash  
+  } >code AT>flash  
 
   .data : ALIGN(64 / 8)    
   {
