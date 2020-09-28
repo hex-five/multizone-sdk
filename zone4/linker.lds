@@ -6,7 +6,7 @@ ENTRY( _start )
 
 MEMORY {
   flash (rxai!w) : ORIGIN = flash + 0xE000, LENGTH = 8K
-  prog  (rxai!w) : ORIGIN = flash + 0xE000, LENGTH = 8K
+  prog  (rxai!w) : ORIGIN = dtim  + 0x6000, LENGTH = 8K
   ram   (wa!xri) : ORIGIN = dtim  + 0x5000, LENGTH = 4K
 }
 
