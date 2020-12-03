@@ -146,6 +146,10 @@ void b2_irq_init()  {
 
 int main (void){
 
+	//while(1) MZONE_WFI();
+	//while(1) MZONE_YIELD();
+	//while(1);
+
 	// vectored trap handler
 	static void (*trap_vect[32])(void) = {};
 	trap_vect[0] = trp_handler;

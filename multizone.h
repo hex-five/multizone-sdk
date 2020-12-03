@@ -90,18 +90,18 @@
 		(uint64_t)a1<<32 | a0; \
 	})
 
-#define MZONE_WRTIMECMP(val) ({ \
+	#define MZONE_WRTIMECMP(val) ({ \
 		const register volatile uint32_t a0 asm ("a0") = 6; \
 		const register volatile uint32_t a1 asm ("a1") = (uint32_t)((uint64_t)val); \
 		const register volatile uint32_t a2 asm ("a2") = (uint32_t)((uint64_t)val>>32); \
 		asm volatile (mzone : : "r"(a0), "r"(a1), "r"(a2) ); \
 	})
 
-#define MZONE_ADTIMECMP(val) ({ \
+	#define MZONE_ADTIMECMP(val) ({ \
 		const register volatile uint32_t a0 asm ("a0") = 7; \
-		const register volatile uint32_t a1 asm ("a1") = (uint32_t)((uint64_t)val); \
-		const register volatile uint32_t a2 asm ("a2") = (uint32_t)((uint64_t)val>>32); \
-		asm volatile (mzone : : "r"(a0), "r"(a1), "r"(a2) ); \
+			  register volatile uint32_t a1 asm ("a1") = (uint32_t)((uint64_t)val); \
+		      register volatile uint32_t a2 asm ("a2") = (uint32_t)((uint64_t)val>>32); \
+		asm volatile (mzone : "+r"(a1), "+r"(a2) : "r"(a0) ); \
 	})
 
 #else
@@ -126,8 +126,8 @@
 
 	#define MZONE_ADTIMECMP(val) ({ \
 		const register volatile uint64_t a0 asm ("a0") = 7; \
-		const register volatile uint64_t a1 asm ("a1") = (uint64_t)val; \
-		asm volatile (mzone : : "r"(a0), "r"(a1) ); \
+		      register volatile uint64_t a1 asm ("a1") = (uint64_t)val; \
+		asm volatile (mzone : "+r"(a1) : "r"(a0) ); \
 	})
 
 #endif
@@ -147,8 +147,8 @@
 #define CSR_MEPC             4
 #define CSR_MCAUSE			 5
 #define CSR_MTVAL			 6
-#define CSR_MIP				 7
 
+#define CSR_MIP				 7
 #define CSR_MISA			 8
 #define CSR_MVENDORID		 9
 #define CSR_MARCHID			10
@@ -167,12 +167,13 @@
 	#define CSR_MHPMCOUNTER4H 	20
 #endif
 
-#define CSR_MHPMCOUNTER26 	24 // kernel irq lat cycle min
-#define CSR_MHPMCOUNTER27 	25 // kernel irq lat cycle max
-#define CSR_MHPMCOUNTER28 	27 // kernel ctx sw instr min
-#define CSR_MHPMCOUNTER29 	28 // kernel ctx sw instr max
-#define CSR_MHPMCOUNTER30 	29 // kernel ctx sw cycle min
-#define CSR_MHPMCOUNTER31 	30 // kernel ctx sw cycle max
+#define CSR_MHPMCOUNTER26 	21 // kernel irq lat cycle min
+#define CSR_MHPMCOUNTER27 	22 // kernel irq lat cycle max
+//                          23 //
+#define CSR_MHPMCOUNTER28 	24 // kernel ctx sw instr min
+#define CSR_MHPMCOUNTER29 	25 // kernel ctx sw instr max
+#define CSR_MHPMCOUNTER30 	26 // kernel ctx sw cycle min
+#define CSR_MHPMCOUNTER31 	27 // kernel ctx sw cycle max
 
 
 /* Privileged Pseudoinstructions */

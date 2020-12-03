@@ -205,6 +205,10 @@ void msg_handler(const char *msg){
 
 int main (void){
 
+	//while(1) MZONE_WFI();
+	//while(1) MZONE_YIELD();
+	//while(1);
+
 	GPIO_REG(GPIO_INPUT_EN)  |=  (1 << SPI_TDI);
 	GPIO_REG(GPIO_PULLUP_EN) |=  (1 << SPI_TDI);
 	GPIO_REG(GPIO_OUTPUT_EN) |=  (1 << SPI_TCK | 1<< SPI_TDO | 1 << LED_RED | 1 << LED_GRN );

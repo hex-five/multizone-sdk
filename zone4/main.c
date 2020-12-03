@@ -6,6 +6,10 @@
 
 int main (void){
 
+	//while(1) MZONE_WFI();
+	//while(1) MZONE_YIELD();
+	//while(1);
+
 	while(1){
 
 		// Message handler
