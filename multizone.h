@@ -10,38 +10,33 @@
 #define mzone ".word 0x00300073;"
 
 /* Thread Management */
-#define MZONE_YIELD() ({ \
-	const register volatile unsigned long a0  asm ("a0") = 0; \
-	asm volatile (mzone : : "r"(a0)); \
-})
-
-#define MZONE_WFI() ({ \
-	const register volatile unsigned long a0 asm ("a0") = 1; \
-	asm volatile (mzone : : "r"(a0)); \
-})
+#define MZONE_YIELD() asm volatile ("li a0, 0;" mzone : : : "a0");
+#define MZONE_WFI()   asm volatile ("li a0, 1;" mzone : : : "a0");
 
 /* Secure Messaging */
 #if __riscv_xlen==32
 
 	#define MZONE_SEND(zone, msg) ({ \
-		      register volatile uint32_t a0 asm ("a0") = 2; \
-		const register volatile uint32_t a1 asm ("a1") = (const int)zone ; \
-		const register volatile uint32_t a2 asm ("a2") = *((uint32_t *)(msg+0*4)) ; \
-		const register volatile uint32_t a3 asm ("a3") = *((uint32_t *)(msg+1*4)) ; \
-		const register volatile uint32_t a4 asm ("a4") = *((uint32_t *)(msg+2*4)) ; \
-		const register volatile uint32_t a5 asm ("a5") = *((uint32_t *)(msg+3*4)) ; \
-		asm volatile (mzone	: "+r"(a0) : "r"(a1),"r"(a2),"r"(a3),"r"(a4),"r"(a5)); \
+		register uint32_t a0 asm ("a0"); \
+		asm volatile ( \
+		"mv a1, %2;" \
+		"lw a2, 0*4+%1;" \
+		"lw a3, 1*4+%1;" \
+		"lw a4, 2*4+%1;" \
+		"lw a5, 3*4+%1;" \
+		"li a0, 2;" mzone : "=r"(a0) : "m"(*(const char (*)[16]) msg), "r"((int)zone) : "a1","a2","a3","a4","a5"); \
 		a0; \
 	})
 
 	#define MZONE_RECV(zone, msg) ({ \
-		      register volatile uint32_t a0 asm ("a0") = 3; \
-		const register volatile uint32_t a1 asm ("a1") = (const int)zone ; \
-		      register volatile uint32_t a2 asm ("a2"); \
-		      register volatile uint32_t a3 asm ("a3"); \
-		      register volatile uint32_t a4 asm ("a4"); \
-		      register volatile uint32_t a5 asm ("a5"); \
-		asm volatile (mzone	: "+r"(a0), "=r"(a2),"=r"(a3),"=r"(a4),"=r"(a5) : "r"(a1)); \
+		register uint32_t a0 asm ("a0"); \
+		register uint32_t a2 asm ("a2"); \
+		register uint32_t a3 asm ("a3"); \
+		register uint32_t a4 asm ("a4"); \
+		register uint32_t a5 asm ("a5"); \
+		asm volatile ( \
+		"mv a1, %5; " \
+		"li a0, 3;" mzone : "=r"(a0), "=r"(a2),"=r"(a3),"=r"(a4),"=r"(a5) : "r"((int)zone) : "a1"); \
 		*((uint32_t *)(msg+0*4)) = a2; \
 		*((uint32_t *)(msg+1*4)) = a3; \
 		*((uint32_t *)(msg+2*4)) = a4; \
@@ -52,20 +47,22 @@
 #else
 
 	#define MZONE_SEND(zone, msg) ({ \
-		      register volatile uint64_t a0 asm ("a0") = 2; \
-		const register volatile uint64_t a1 asm ("a1") = (const int)zone ; \
-		const register volatile uint64_t a2 asm ("a2") = *((uint64_t *)(msg+0*8)) ; \
-		const register volatile uint64_t a3 asm ("a3") = *((uint64_t *)(msg+1*8)) ; \
-		asm volatile (mzone	: "+r"(a0) : "r"(a1),"r"(a2),"r"(a3)); \
+		register uint64_t a0 asm ("a0"); \
+		asm volatile ( \
+		"mv a1, %2;" \
+		"ld a2, 0*8+%1;" \
+		"ld a3, 1*8+%1;" \
+		"li a0, 2;" mzone : "=r"(a0) : "m"(*(const char (*)[16]) msg), "r"((int)zone) : "a1","a2","a3"); \
 		a0; \
 	})
 
 	#define MZONE_RECV(zone, msg) ({ \
-		      register volatile uint64_t a0 asm ("a0") = 3; \
-		const register volatile uint64_t a1 asm ("a1") = (const int)zone ; \
-		      register volatile uint64_t a2 asm ("a2"); \
-		      register volatile uint64_t a3 asm ("a3"); \
-		asm volatile (mzone	: "+r"(a0), "=r"(a2),"=r"(a3) : "r"(a1)); \
+		register uint64_t a0 asm ("a0"); \
+		register uint64_t a2 asm ("a2"); \
+		register uint64_t a3 asm ("a3"); \
+		asm volatile ( \
+		"mv a1, %3; " \
+		"li a0, 3;" mzone : "=r"(a0), "=r"(a2),"=r"(a3) : "r"((int)zone) : "a1"); \
 		*((uint64_t *)(msg+0*8)) = a2; \
 		*((uint64_t *)(msg+1*8)) = a3; \
 		a0; \
@@ -77,67 +74,60 @@
 #if __riscv_xlen==32
 
 	#define MZONE_RDTIME() ({ \
-		register volatile uint32_t a0 asm ("a0") = 4; \
-		register volatile uint32_t a1 asm ("a1"); \
-		asm volatile (mzone : "+r"(a0), "=r"(a1)); \
+		register uint32_t a0 asm ("a0"), a1 asm ("a1"); \
+		asm volatile ("li a0, 4;" mzone : "=r"(a0), "=r"(a1)); \
 		(uint64_t)a1<<32 | a0; \
 	})
 
 	#define MZONE_RDTIMECMP() ({ \
-		register volatile uint32_t a0 asm ("a0") = 5; \
-		register volatile uint32_t a1 asm ("a1"); \
-		asm volatile (mzone : "+r"(a0), "=r"(a1)); \
+		register uint32_t a0 asm ("a0"), a1 asm ("a1"); \
+		asm volatile ("li a0, 5;" mzone : "=r"(a0), "=r"(a1)); \
 		(uint64_t)a1<<32 | a0; \
 	})
 
-	#define MZONE_WRTIMECMP(val) ({ \
-		const register volatile uint32_t a0 asm ("a0") = 6; \
-		const register volatile uint32_t a1 asm ("a1") = (uint32_t)((uint64_t)val); \
-		const register volatile uint32_t a2 asm ("a2") = (uint32_t)((uint64_t)val>>32); \
-		asm volatile (mzone : : "r"(a0), "r"(a1), "r"(a2) ); \
-	})
+	#define MZONE_WRTIMECMP(val) \
+		asm volatile ( \
+		"mv a1, %0; mv a2, %1;" \
+		"li a0, 6;" mzone : : "r"((uint32_t)val), "r"((uint32_t)((uint64_t)val>>32)) : "a0", "a1", "a2" );
 
-	#define MZONE_ADTIMECMP(val) ({ \
-		const register volatile uint32_t a0 asm ("a0") = 7; \
-			  register volatile uint32_t a1 asm ("a1") = (uint32_t)((uint64_t)val); \
-		      register volatile uint32_t a2 asm ("a2") = (uint32_t)((uint64_t)val>>32); \
-		asm volatile (mzone : "+r"(a1), "+r"(a2) : "r"(a0) ); \
-	})
+	#define MZONE_ADTIMECMP(val) \
+		asm volatile ( \
+		"mv a1, %0; mv a2, %1;" \
+		"li a0, 7;" mzone : : "r"((uint32_t)val), "r"((uint32_t)((uint64_t)val>>32)) : "a0", "a1", "a2" );
 
 #else
 
 	#define MZONE_RDTIME() ({ \
-		register volatile uint64_t a0 asm ("a0") = 4; \
-		asm volatile (mzone : "+r"(a0)); \
+		register uint64_t a0 asm ("a0"); \
+		asm volatile ("li a0, 4;" mzone : "=r"(a0)); \
 		a0; \
 	})
 
 	#define MZONE_RDTIMECMP() ({ \
-		register volatile uint64_t a0 asm ("a0") = 5; \
-		asm volatile (mzone : "+r"(a0)); \
+		register uint64_t a0 asm ("a0"); \
+		asm volatile ("li a0, 5;" mzone : "=r"(a0)); \
 		a0; \
 	})
 
-	#define MZONE_WRTIMECMP(val) ({ \
-		const register volatile uint64_t a0 asm ("a0") = 6; \
-		const register volatile uint64_t a1 asm ("a1") = (uint64_t)val; \
-		asm volatile (mzone : : "r"(a0), "r"(a1) ); \
-	})
+	#define MZONE_WRTIMECMP(val) \
+		asm volatile ( \
+		"mv a1, %0;" \
+		"li a0, 6;" mzone : : "r"((uint64_t)val) : "a0", "a1");
 
-	#define MZONE_ADTIMECMP(val) ({ \
-		const register volatile uint64_t a0 asm ("a0") = 7; \
-		      register volatile uint64_t a1 asm ("a1") = (uint64_t)val; \
-		asm volatile (mzone : "+r"(a1) : "r"(a0) ); \
-	})
+	#define MZONE_ADTIMECMP(val) \
+		asm volatile ( \
+		"mv a1, %0;" \
+		"li a0, 7;" mzone : : "r"((uint64_t)val) : "a0", "a1");
 
 #endif
 
 /* Fast CSR read */
 #define MZONE_CSRR(CSR_XXX) ({	\
-		      register volatile unsigned long a0 asm ("a0") = 8; \
-		const register volatile unsigned long a1 asm ("a1") = CSR_XXX; \
-		asm volatile (mzone : "+r"(a0) : "r"(a1)); \
-	a0; \
+		register unsigned long a0 asm ("a0"); \
+		asm volatile ( \
+		"mv a1, %1;" \
+		"li a0, 8;" mzone : "=r"(a0) : "r"((unsigned long)CSR_XXX) : "a1"); \
+		a0; \
 })
 
 #define CSR_MSTATUS			 0

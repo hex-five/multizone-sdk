@@ -184,8 +184,8 @@ int main (void){
 			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
 			else if (strcmp("block", msg)==0) {
 				CSRC(mstatus, 1<<3);
-				while(!MZONE_RECV(1, msg)) {;}
-				CSRS(mstatus, 1<<3);
+				while(1); /* (!MZONE_RECV(zone, msg));
+				CSRS(mstatus, 1<<3); */
 			}
 			else MZONE_SEND(1, msg);
 		}
