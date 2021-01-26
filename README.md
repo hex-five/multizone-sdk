@@ -5,18 +5,19 @@ MultiZone® Security TEE for RISC-V processors
 
 MultiZone works with any 32-bit or 64-bit RISC-V standard processors  with Physical Memory Protection unit and U mode.
 
-This version of the GNU-based SDK supports the following development hardware:
-
-- [Xilinx Artix-7 Arty FPGA Evaluation Kit](https://www.xilinx.com/products/boards-and-kits/arty.html)
-- [Microchip PolarFire SoC FPGA Icicle Kit](https://www.microsemi.com/existing-parts/parts/152514)
+This version of the GNU-based SDK supports the following hardware:
+- [Digilent Arty A7 Development Board (Xilinx Artix-7 FPGA)](https://www.xilinx.com/products/boards-and-kits/arty.html)
+- [SiFive HiFive1 Rev B (Freedom E310 SoC)](https://www.sifive.com/boards/hifive1-rev-b)
+- [Microchip Icicle Kit (PolarFire SoC)](https://www.microsemi.com/existing-parts/parts/152514)
 
 The Arty FPGA Evaluation Kit works with the following softcore bitstreams:
 
-- [Hex Five X300 RV32ACIMU - Permissive open source free for any use.](https://github.com/hex-five/multizone-fpga)
-- [SiFive E31 RV32ACIMU - Proprietary. Evaluation license required.](https://www.sifive.com/cores/e31)
-- [SiFive S51 RV64ACIMU - Proprietary. Evaluation license required.](https://www.sifive.com/cores/s51)
+- [Hex Five X300 RV32ACIMU - Permissive open source. No license required.](https://github.com/hex-five/multizone-fpga)
+- [SiFive E31 RV32ACIMU - Proprietary. SiFive license required.](https://www.sifive.com/cores/e31)
+- [SiFive S51 RV64ACIMU - Proprietary. SiFive license required.](https://www.sifive.com/cores/s51)
 
 The Xilinx Arty FPGA comes in two versions: 35T and 100T
+
 - Hex Five's X300 bitstream works with version 35T
 - SiFive's bitstreams up to v19.02 work with version 35T
 - SiFive's bitstreams after v19.02 work with version 100T
@@ -60,6 +61,7 @@ cd ~
 wget https://hex-five.com/wp-content/uploads/riscv-openocd-20200613.tar.xz
 tar -xvf riscv-openocd-20200613.tar.xz
 ```
+Note: the SiFive HiFive1 board doesn't support OpenOCD and requires the Segger propietary package JLink_Linux_V694_x86_64.deb downloadable at [https://www.segger.com/downloads/jlink/](https://www.segger.com/downloads/jlink/). 
 
 **Linux USB udev rules**
 
@@ -73,6 +75,9 @@ SUBSYSTEM=="usb", ATTR{idVendor} =="0403",ATTR{idProduct} =="6010", MODE="664", 
 # Olimex Ltd. ARM-USB-TINY-H JTAG interface
 SUBSYSTEM=="tty", ATTRS{idVendor}=="15ba",ATTRS{idProduct}=="002a", MODE="664", GROUP="plugdev"
 SUBSYSTEM=="usb", ATTR{idVendor} =="15ba",ATTR{idProduct} =="002a", MODE="664", GROUP="plugdev"
+
+# SiFive HiFive1 Rev B00 - SEGGER
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1366",ATTRS{idProduct}=="1051", MODE="664", GROUP="plugdev"
 ```
 Reboot for these changes to take effect.
 
@@ -89,7 +94,7 @@ mv multizone-sdk-master multizone-sdk
 
 Connect the target board to the development workstation as indicated in the user manual.
 
-'ls multizone-sdk/bsp' shows the list of supported targets: X300, E31, S51, PFSOC.
+'ls multizone-sdk/bsp' shows the list of supported targets: X300, FE310, E31, S51, PFSOC.
 
 Assign one of these values to the BOARD variable - default is X300.
 
