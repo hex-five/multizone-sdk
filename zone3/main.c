@@ -9,7 +9,7 @@
 #define SPI_TDI 11 	// in
 #define SPI_TCK 10	// out (master)
 #define SPI_TDO  9  // out
-#define SPI_SYN  8  // out - not used
+//#define SPI_SYN  8  // out - not used
 
 #define MAN_CMD_TIME 250*RTC_FREQ/1000 // 250ms
 #define KEEP_ALIVE_TIME 1*RTC_FREQ // 1 sec

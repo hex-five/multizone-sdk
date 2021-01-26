@@ -66,6 +66,7 @@ __attribute__(( interrupt())) void trap_handler(void){
 
 	#define IRQ (1UL <<__riscv_xlen-1)
 
+#ifdef DMA_REG
 	case IRQ | 3:	// Machine software interrupt (DMA)
 			 		write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
 			 		printf("\rDMA transfer complete \n", mcause, mepc, mtval);
@@ -75,6 +76,7 @@ __attribute__(( interrupt())) void trap_handler(void){
 			 		write(1, "\e8\e[4B", 6);   	// restore curs pos & curs down 4x
 			 		DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
 			 		return;
+#endif
 
 	case IRQ | 7:	// Machine timer interrupt
 			 		write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
@@ -371,6 +373,7 @@ void cmd_handler(){
 			asm ( "jr (%0)" : : "r"(addr));
 		} else printf("Syntax: exec address \n");
 
+#ifdef DMA_REG
 	// --------------------------------------------------------------------
 	} else if (strcmp(tk[0], "dma")==0){
 	// --------------------------------------------------------------------
@@ -380,6 +383,7 @@ void cmd_handler(){
 			DMA_REG(DMA_TR_SIZE_OFF) = strtoul(tk[3], NULL, 16);
 			DMA_REG(DMA_CH_CTRL_OFF) = 0b0001; // en irqs & start transfer
 		} else printf("Syntax: dma source dest size \n");
+#endif
 
 	// --------------------------------------------------------------------
 	} else if (strcmp(tk[0], "send")==0){
@@ -452,7 +456,13 @@ void cmd_handler(){
 		unsigned long C1 = MZONE_CSRR(CSR_MCYCLE);
 		printf( "0x%08x (%d cycles) \n", regval, (int)(C1-C0) );
 
-	} else printf("Commands: yield send recv pmp load store exec dma stats timer restart \n");
+	} else {
+		printf("Commands: yield send recv pmp load store exec stats timer restart ");
+#ifdef DMA_REG
+		printf("dma ");
+#endif
+		printf("\n");
+	}
 
 }
 

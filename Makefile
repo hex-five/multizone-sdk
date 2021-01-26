@@ -6,19 +6,23 @@
 
 BOARD ?= X300
 ifeq ($(BOARD), X300)
-	ARCH := rv32
-	RISCV_ARCH := $(ARCH)imac
-	RISCV_ABI := ilp32
+    ARCH := rv32
+    RISCV_ARCH := $(ARCH)imac
+    RISCV_ABI := ilp32
 else ifeq ($(BOARD), E31)
-	ARCH := rv32
-	RISCV_ARCH := $(ARCH)imac
-	RISCV_ABI := ilp32
+    ARCH := rv32
+    RISCV_ARCH := $(ARCH)imac
+    RISCV_ABI := ilp32
+else ifeq ($(BOARD), FE310)
+    ARCH := rv32
+    RISCV_ARCH := $(ARCH)imac
+    RISCV_ABI := ilp32    
 else ifeq ($(BOARD), S51)
-	ARCH := rv64
-	RISCV_ARCH := $(ARCH)imac
-	RISCV_ABI := lp64		
+    ARCH := rv64
+    RISCV_ARCH := $(ARCH)imac
+    RISCV_ABI := lp64		
 else
-	$(error Unsupported board $(BOARD))
+    $(error Unsupported board $(BOARD))
 endif
 
 #############################################################
@@ -71,7 +75,7 @@ clean:
 	rm -f multizone.hex
 
 #############################################################
-# Load and debug variables and rules
+# Load to flash
 #############################################################
 
 ifndef OPENOCD
@@ -98,7 +102,16 @@ GDB_LOAD_CMDS += -ex "quit"
 
 .PHONY: load
 
+ifeq ($(BOARD),FE310)
+
+load:
+	echo "loadfile multizone.hex\nrnh\nexit\n" | JLinkExe -device FE310 -if JTAG -speed 4000 -jtagconf -1,-1 -autoconnect 1
+
+else
+
 load:
 	$(OPENOCD) $(OPENOCDARGS) & \
 	$(GDB) multizone.hex $(GDB_LOAD_ARGS) $(GDB_LOAD_CMDS)
 	
+
+endif

@@ -42,9 +42,15 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	if (g > 0 && r == 0) {g--; b++;}
 	if (b > 0 && g == 0) {r++; b--;}
 
+#ifdef FE310
+	PWM_REG(PWM_CMP1) = r;
+	PWM_REG(PWM_CMP2) = g;
+	PWM_REG(PWM_CMP3) = b;
+#else
 	PWM_REG(PWM_CMP1) = 0xFF - (r >> 2);
 	PWM_REG(PWM_CMP2) = 0xFF - (g >> 2);
 	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
+#endif
 
 	// set timer (clears mip)
 	MZONE_ADTIMECMP((uint64_t)25*RTC_FREQ/1000);

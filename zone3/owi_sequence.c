@@ -1,23 +1,24 @@
 /* Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved */
 
-#include <stddef.h> // NULL
 #include "owi_sequence.h"
+
+#include <stddef.h> // NULL
 
 typedef enum{
 	STOP 				= 0x000000,
 	GRIP_CLOSE			= 0x000001,
 	GRIP_OPEN 			= 0x000002,
 	WRIST_UP 			= 0x000004,
-	WRIST_DOWN 			= 0x000008,
+	WRIST_DWN 			= 0x000008,
 	ELBOW_UP   			= 0x000010,
-	ELBOW_DOWN			= 0x000020,
+	ELBOW_DWN			= 0x000020,
 	SHOULDER_UP   		= 0x000040,
-	SHOULDER_DOWN		= 0x000080,
+	SHOULDER_DWN		= 0x000080,
 	BASE_CLOCKWISE 	  	= 0x000100,
-	BASE_COUNTERCLOCK 	= 0x000200,
+	BASE_COUNTERCLK 	= 0x000200,
 	LIGHT_ON  			= 0x010000,
-	ARM_UP    = 0x000008 | 0x000010 | 0x000040, 		   // wrist down + elbow up   + shoulder up
-	ARM_DOWN  = 0x000004 | 0x000020 | 0x000080 | 0x000100, // wrist up   + elbow down + shoulder down + base clockwise
+	ARM_UP   = WRIST_DWN | ELBOW_UP  | SHOULDER_UP					,
+	ARM_DWN  = WRIST_UP  | ELBOW_DWN | SHOULDER_DWN | BASE_CLOCKWISE,
 } cmd;
 
 struct sequence_step{
@@ -25,43 +26,43 @@ struct sequence_step{
 	int duration_ms;
 };
 
-// R4 09-MAR-2019
+// R6 16-JAN-2021
 #define T_STOP 	1000
-#define T_GRIP 	1400
-#define T_WRIST 2600
+#define T_GRIP 	1200
+#define T_WRIST 1800
 #define T_ARM  	1800
 #define T_BASE	3000
 static struct sequence_step main_sequence[] = {
 	{ .command = STOP, 				.duration_ms = T_STOP },
 	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
 	{ .command = WRIST_UP, 			.duration_ms = T_WRIST},
-	{ .command = ARM_DOWN, 			.duration_ms = T_ARM  },
+	{ .command = ARM_DWN, 			.duration_ms = T_ARM  },
 	{ .command = BASE_CLOCKWISE,	.duration_ms = T_BASE },
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
 	{ .command = STOP, 				.duration_ms = T_STOP },
 	{ .command = GRIP_CLOSE, 		.duration_ms = T_GRIP },
-	{ .command = BASE_COUNTERCLOCK, .duration_ms = T_BASE+T_ARM-250},
-	{ .command = ARM_UP, 			.duration_ms = T_ARM  },
-    { .command = SHOULDER_UP, 		.duration_ms = +175 },
-    { .command = ELBOW_UP, 			.duration_ms = +100 },
-	{ .command = WRIST_DOWN, 		.duration_ms = T_WRIST-250},
-	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP},
+	{ .command = BASE_COUNTERCLK,	.duration_ms = T_BASE },
+    { .command = BASE_COUNTERCLK,	.duration_ms = T_ARM   * 0.75}, // 0.68
+	{ .command = ARM_UP, 			.duration_ms = T_ARM   * 1.05},
+	{ .command = ELBOW_UP, 			.duration_ms = T_ARM   * 0.05},
+	{ .command = WRIST_DWN, 		.duration_ms = T_WRIST * 0.80},
+	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
 };
 
 #define T_FOLD 4500
-#define T_FOLD_SHOULDER 800
+#define T_FOLD_SHOULDER 1200
 static struct sequence_step fold_sequence[] = {
 	{ .command = STOP, .duration_ms = 0},
 	{ .command = GRIP_OPEN, .duration_ms = 100},
-	{ .command = ELBOW_DOWN | SHOULDER_UP | WRIST_DOWN, .duration_ms = T_FOLD},
-	{ .command = ELBOW_DOWN, .duration_ms = 200},
+	{ .command = ELBOW_DWN | SHOULDER_UP | WRIST_DWN, .duration_ms = T_FOLD},
+	{ .command = ELBOW_DWN, .duration_ms = T_FOLD * 0.05},
 	{ .command = SHOULDER_UP, .duration_ms = T_FOLD_SHOULDER},
 };
 static struct sequence_step unfold_sequence[] = {
 	{ .command = STOP, .duration_ms = 0},
-	{ .command = ELBOW_UP, .duration_ms = 200},
-	{ .command = SHOULDER_DOWN, .duration_ms = T_FOLD_SHOULDER + 50},
-	{ .command = ELBOW_UP | SHOULDER_DOWN | WRIST_UP, .duration_ms = T_FOLD},
+	{ .command = ELBOW_UP, .duration_ms = T_FOLD * 0.10},
+	{ .command = SHOULDER_DWN, .duration_ms = T_FOLD_SHOULDER * 1.25},
+	{ .command = ELBOW_UP | SHOULDER_DWN | WRIST_UP, .duration_ms = T_FOLD},
 };
 
 static struct sequence_step *sequence = NULL;
