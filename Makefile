@@ -105,7 +105,7 @@ GDB_LOAD_CMDS += -ex "quit"
 ifeq ($(BOARD),FE310)
 
 load:
-	echo "loadfile multizone.hex\nrnh\nexit\n" | JLinkExe -device FE310 -if JTAG -speed 4000 -jtagconf -1,-1 -autoconnect 1
+	printf "loadfile multizone.hex\nrnh\nexit\n" | JLinkExe -device FE310 -if JTAG -speed 4000 -jtagconf -1,-1 -autoconnect 1
 
 else
 
