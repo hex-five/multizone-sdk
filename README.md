@@ -10,6 +10,8 @@ This version of the GNU-based SDK supports the following hardware:
 - [SiFive HiFive1 Rev B (Freedom E310 SoC)](https://www.sifive.com/boards/hifive1-rev-b)
 - [Microchip Icicle Kit (PolarFire SoC)](https://www.microsemi.com/existing-parts/parts/152514)
 
+Note: Microchip Icicle Kit see [https://github.com/hex-five/multizone-sdk-pfsc](https://github.com/hex-five/multizone-sdk-pfsc) 
+
 The Arty FPGA Evaluation Kit works with the following softcore bitstreams:
 
 - [Hex Five X300 RV32ACIMU - Permissive open source. No license required.](https://github.com/hex-five/multizone-fpga)
