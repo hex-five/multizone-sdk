@@ -57,10 +57,12 @@ all: clean
 	$(MAKE) -C zone1
 	$(MAKE) -C zone2
 	$(MAKE) -C zone3
-	$(MAKE) -C zone4	
+	$(MAKE) -C zone4
+	$(MAKE) -C bsp/$(BOARD)/boot
 	java -jar multizone.jar \
 		--arch $(BOARD) \
 		--config bsp/$(BOARD)/multizone.cfg \
+		--boot bsp/$(BOARD)/boot/boot.hex \
 		zone1/zone1.hex \
 		zone2/zone2.hex \
 		zone3/zone3.hex \
@@ -71,7 +73,8 @@ clean:
 	$(MAKE) -C zone1 clean
 	$(MAKE) -C zone2 clean
 	$(MAKE) -C zone3 clean
-	$(MAKE) -C zone4 clean	
+	$(MAKE) -C zone4 clean
+	$(MAKE) -C bsp/$(BOARD)/boot clean
 	rm -f multizone.hex
 
 #############################################################
@@ -112,6 +115,5 @@ else
 load:
 	$(OPENOCD) $(OPENOCDARGS) & \
 	$(GDB) multizone.hex $(GDB_LOAD_ARGS) $(GDB_LOAD_CMDS)
-	
 
 endif

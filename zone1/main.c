@@ -67,38 +67,37 @@ __attribute__(( interrupt())) void trap_handler(void){
 	#define IRQ (1UL <<__riscv_xlen-1)
 
 #ifdef DMA_REG
-	case IRQ | 3:	// Machine software interrupt (DMA)
-			 		write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
-			 		printf("\rDMA transfer complete \n", mcause, mepc, mtval);
-			 		printf("source : 0x%08x \n", DMA_REG(DMA_TR_SRC_OFF));
-			 		printf("dest   : 0x%08x \n", DMA_REG(DMA_TR_DEST_OFF));
-			 		printf("size   : 0x%08x \n", DMA_REG(DMA_TR_SIZE_OFF));
-			 		write(1, "\e8\e[4B", 6);   	// restore curs pos & curs down 4x
-			 		DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
-			 		return;
+	case IRQ | 3 :	// Machine software interrupt (DMA)
+			write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
+			printf("\rDMA transfer complete \n", mcause, mepc, mtval);
+			printf("source : 0x%08x \n", DMA_REG(DMA_TR_SRC_OFF));
+			printf("dest   : 0x%08x \n", DMA_REG(DMA_TR_DEST_OFF));
+			printf("size   : 0x%08x \n", DMA_REG(DMA_TR_SIZE_OFF));
+			write(1, "\e8\e[4B", 6);   	// restore curs pos & curs down 4x
+			DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
+			return;
 #endif
 
-	case IRQ | 7:	// Machine timer interrupt
-			 		write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
-					printf("\rMachine timer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-					write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
-			 		write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
-			 		MZONE_WRTIMECMP((uint64_t)-1); // clear mip.7
-					CSRC(mie, 1<<7);
-					return;
+	case IRQ | 7 :	// Machine timer interrupt (one-shot)
+			write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
+			printf("\rTimer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
+			write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
+			CSRC(mie, 1<<7); 			// disable one-shot timer
+			return;
 
-	case IRQ | 11:	// Machine external interrupt (PLIC)
-					;const uint32_t plic_int = PLIC_REG(PLIC_CLAIM_OFFSET); // PLIC claim
-					char temp[8]; int count = read(0, &temp, 8);
-					if (count > 0){
-						//if(buffer.w==BUFFER_SIZE){write(1, "\n>>> BUFFER FULL !!!\n", 21); while(1);}
-						#define MIN(a,b) (((a)<(b))?(a):(b))
-						count = MIN(count, BUFFER_SIZE - buffer.w);
-						memcpy(&buffer.data[buffer.w], temp, count);
-						buffer.w += count;
-					}
-					PLIC_REG(PLIC_CLAIM_OFFSET) = plic_int; // PLIC complete
-					return;
+	case IRQ | 11 :	// Machine external interrupt (PLIC)
+			;const uint32_t plic_int = PLIC_REG(PLIC_CLAIM_OFFSET); // PLIC claim
+			char temp[8]; int count = read(0, &temp, 8);
+			if (count > 0){
+				//if(buffer.w==BUFFER_SIZE){write(1, "\n>>> BUFFER FULL !!!\n", 21); while(1);}
+				#define MIN(a,b) (((a)<(b))?(a):(b))
+				count = MIN(count, BUFFER_SIZE - buffer.w);
+				memcpy(&buffer.data[buffer.w], temp, count);
+				buffer.w += count;
+			}
+			PLIC_REG(PLIC_CLAIM_OFFSET) = plic_int; // PLIC complete
+			return;
 
 	default : printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
 
@@ -422,10 +421,9 @@ void cmd_handler(){
 			const uint64_t ms = abs(strtoull(tk[1], NULL, 10));
 			const uint64_t T0 = MZONE_RDTIME();
 			const uint64_t T1 = T0 + ms*RTC_FREQ/1000;
-			MZONE_WRTIMECMP(T1);
 			printf("timer set T0=%lu, T1=%lu \n", (unsigned long)(T0*1000/RTC_FREQ),
 												  (unsigned long)(T1*1000/RTC_FREQ) );
-			CSRS(mie, 1<<7);
+			MZONE_WRTIMECMP(T1); CSRS(mie, 1<<7); // one-shot timer
 		} else printf("Syntax: timer ms \n");
 
 	// --------------------------------------------------------------------
