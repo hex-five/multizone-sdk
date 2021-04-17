@@ -2,7 +2,7 @@
 
 TARGET = boot.elf
 
-BSP_BASE := /home/cesare/multizone-sdk/bsp
+BSP_BASE := ../..
 PLATFORM_DIR := $(BSP_BASE)/$(BOARD)
 NEWLIB_DIR := $(PLATFORM_DIR)/newlib
 
