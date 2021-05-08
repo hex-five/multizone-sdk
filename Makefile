@@ -82,7 +82,7 @@ clean:
 #############################################################
 
 ifndef OPENOCD
-$(error OPENOCD not set)
+    $(error OPENOCD not set)
 endif
 
 OPENOCD := $(abspath $(OPENOCD))/bin/openocd
