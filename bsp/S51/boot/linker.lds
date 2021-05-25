@@ -5,7 +5,7 @@ OUTPUT_ARCH( "riscv" )
 ENTRY( boot )
 
 MEMORY {
-  flash (rxai!w) : ORIGIN = flash + 0x1C00, LENGTH = 1K
+  flash (rxai!w) : ORIGIN = flash + 0x2000, LENGTH = 2K
 }
 
 SECTIONS {
