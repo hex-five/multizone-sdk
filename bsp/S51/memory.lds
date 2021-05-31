@@ -2,4 +2,10 @@
 
 flash = 0x40400000;
 itim  = 0x40400000; /* ITIM 0x0800_0000 16K */
-dtim  = 0x80000000; /* DTIM 0x8000_0000 64K */
+dtim  = 0x80000800; /* DTIM 0x8000_0000 64K */
+
+/* Note:
+ dtim start value increased +2K to make room for the larger 8K rv64 kernel
+ while allowing for unchanged dtim/ram offsets in the zones linker sripts 
+ that fit the smaller 6K rv32 kernel and the DTIM 16K size limit imposed by the FE310
+ */ 
