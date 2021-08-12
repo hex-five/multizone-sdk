@@ -27,52 +27,52 @@ __attribute__(( interrupt())) void trap_handler(void){
 
 	switch(mcause){
 
-	case 0 : printf("Instruction address missaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 0 : printf("Instruction address missaligned : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			 break;
 
-	case 1 : printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 1 : printf("Instruction access fault : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			 break;
 
-	case 2 : printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 2 : printf("Illegal instruction : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			 break;
 
-	case 3 : printf("Breakpoint : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 3 : printf("Breakpoint : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			 break;
 
-	case 4 : printf("Load address missaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
- 	 	 	 CSRW(mepc, mepc + (*(char *)mepc & 0b11 ==0b11 ? 4 : 2) ); // skip
+	case 4 : printf("Load address missaligned : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
+ 	 	 	 CSRW(mepc, mepc + (*(char *)mepc & (0b11 == 0b11 ? 4 : 2)) ); // skip
 	 	 	 return;
 
-	case 5 : printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 5 : printf("Load access fault : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
  	 	 	 CSRW(mepc, mepc+4); // skip
 	 	 	 return;
 
-	case 6 : printf("Store/AMO address missaligned : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
- 	 	 	 CSRW(mepc, mepc + (*(char *)mepc & 0b11 ==0b11 ? 4 : 2) ); // skip
+	case 6 : printf("Store/AMO address missaligned : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
+ 	 	 	 CSRW(mepc, mepc + (*(char *)mepc & (0b11 == 0b11 ? 4 : 2)) ); // skip
 	 	 	 return;
 
-	case 7 : printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
-	 	 	 CSRW(mepc, mepc + (*(char *)mepc & 0b11 ==0b11 ? 4 : 2) ); // skip
+	case 7 : printf("Store access fault : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
+	 	 	 CSRW(mepc, mepc + (*(char *)mepc & (0b11 == 0b11 ? 4 : 2)) ); // skip
 	 	 	 return;
 
-	case 8 : printf("Environment call from U-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 8 : printf("Environment call from U-mode : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			 break;
 
-	case 9 : printf("Environment call from S-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 9 : printf("Environment call from S-mode : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			 break;
 
-	case 11: printf("Environment call from M-mode : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	case 11: printf("Environment call from M-mode : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			 break;
 
-	#define IRQ (1UL <<__riscv_xlen-1)
+	#define IRQ (1UL << (__riscv_xlen-1))
 
 #ifdef DMA_REG
 	case IRQ | 3 :	// Machine software interrupt (DMA)
 			write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
-			printf("\rDMA transfer complete \n", mcause, mepc, mtval);
-			printf("source : 0x%08x \n", DMA_REG(DMA_TR_SRC_OFF));
-			printf("dest   : 0x%08x \n", DMA_REG(DMA_TR_DEST_OFF));
-			printf("size   : 0x%08x \n", DMA_REG(DMA_TR_SIZE_OFF));
+			printf("\rDMA transfer complete \n");
+			printf("source : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_SRC_OFF));
+			printf("dest   : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_DEST_OFF));
+			printf("size   : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_SIZE_OFF));
 			write(1, "\e8\e[4B", 6);   	// restore curs pos & curs down 4x
 			DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
 			return;
@@ -80,7 +80,7 @@ __attribute__(( interrupt())) void trap_handler(void){
 
 	case IRQ | 7 :	// Machine timer interrupt (one-shot)
 			write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
-			printf("\rTimer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+			printf("\rTimer interrupt : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
 			write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
 			CSRC(mie, 1<<7); 			// disable one-shot timer
@@ -99,7 +99,7 @@ __attribute__(( interrupt())) void trap_handler(void){
 			PLIC_REG(PLIC_CLAIM_OFFSET) = plic_int; // PLIC complete
 			return;
 
-	default : printf("Exception : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
+	default : printf("Exception : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 
 	}
 
@@ -114,9 +114,9 @@ __attribute__(( interrupt())) void trap_handler(void){
 
 	// misa
 	const unsigned long misa = CSRR(misa);
-	const int xlen = ((misa >> __riscv_xlen-2)&0b11)==1 ?  32 :
-					 ((misa >> __riscv_xlen-2)&0b11)==2 ?  64 :
-					 ((misa >> __riscv_xlen-2)&0b11)==1 ? 128 :
+	const int xlen = ((misa >> (__riscv_xlen-2))&0b11)==1 ?  32 :
+					 ((misa >> (__riscv_xlen-2))&0b11)==2 ?  64 :
+					 ((misa >> (__riscv_xlen-2))&0b11)==1 ? 128 :
 							 	 	 	 	 	 	 	 	0 ;
 	char misa_str[26+1]="";
 	for (int i=0, j=0; i<26; i++)
@@ -143,10 +143,10 @@ __attribute__(( interrupt())) void trap_handler(void){
 	printf("Architecture  : 0x%08x %s \n", (int)marchid, marchid_str);
 
 	// mimpid
-	printf("Implementation: 0x%08x \n", CSRR(mimpid) );
+	printf("Implementation: 0x%08x \n", (unsigned)CSRR(mimpid) );
 
 	// mhartid
-	printf("Hart id       : 0x%1x \n", CSRR(mhartid) );
+	printf("Hart id       : 0x%1x \n", (unsigned)CSRR(mhartid) );
 
 	// CPU clk
 	printf("CPU clock     : %d MHz \n", (int)(CPU_FREQ/1E+6) );
@@ -185,7 +185,7 @@ void print_stats(void){
 
 	int max_cycle = 0;
 	for (int i=0; i<COUNT; i++)	max_cycle = (cycles[i] > max_cycle ? cycles[i] : max_cycle);
-	char str[16]; sprintf(str, "%lu", max_cycle); const int col_len = strlen(str);
+	char str[16]; sprintf(str, "%d", max_cycle); const int col_len = strlen(str);
 
 	for (int i=0; i<COUNT; i++)
 		printf("%*d instr %*d cycles %*d us \n", col_len, instrs[i], col_len, cycles[i], col_len, cycles[i]/MHZ);
@@ -296,7 +296,7 @@ void print_pmp(void){
 
 		} else break;
 
-		printf("0x%08x 0x%08x %s %s \n", (unsigned long)start, (unsigned int)end, rwx, type);
+		printf("0x%08x 0x%08x %s %s \n", (unsigned)start, (unsigned)end, rwx, type);
 
 	}
 
@@ -314,7 +314,7 @@ void msg_handler() {
 		if (MZONE_RECV(zone, msg)) {
 
 			if (strcmp("ping", msg) == 0) {
-				MZONE_SEND(zone, "pong");
+				MZONE_SEND(zone, (char[16]){"pong"});
 
 			} else {
 				write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
@@ -412,7 +412,7 @@ void cmd_handler(){
 		const unsigned long C2 = MZONE_CSRR(CSR_MCYCLE);
 		const unsigned long C = C2-C1;
 		const int T = C/(CPU_FREQ/1000000);
-		printf( (C>0 ? "yield : elapsed cycles %d / time %dus \n" : "yield : n/a \n"), C, T);
+		printf( (C>0 ? "yield : elapsed cycles %d / time %dus \n" : "yield : n/a \n"), (int)C, T);
 
 	// --------------------------------------------------------------------
 	} else if (strcmp(tk[0], "timer")==0){
@@ -452,7 +452,7 @@ void cmd_handler(){
 		  //regval = CSRR(mip);
 		  //regval = MZONE_CSRR(CSR_MIP);
 		unsigned long C1 = MZONE_CSRR(CSR_MCYCLE);
-		printf( "0x%08x (%d cycles) \n", regval, (int)(C1-C0) );
+		printf( "0x%08x (%d cycles) \n", (unsigned)regval, (int)(C1-C0) );
 
 	} else {
 		printf("Commands: yield send recv pmp load store exec stats timer restart ");

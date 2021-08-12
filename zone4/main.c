@@ -15,7 +15,7 @@ int main (void){
 		// Message handler
 		char msg[16];
 		if (MZONE_RECV(1, msg)) {
-			if (strcmp("ping", msg)==0) MZONE_SEND(1, "pong");
+			if (strcmp("ping", msg)==0) MZONE_SEND(1, (char[16]){"pong"});
 			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
 			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
 			else if (strcmp("block", msg)==0) {

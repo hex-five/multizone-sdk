@@ -63,7 +63,7 @@ __attribute__((interrupt())) void btn0_handler(void) {
 	const uint64_t T = MZONE_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		MZONE_SEND(1, "IRQ BTN0");
+		MZONE_SEND(1, (char[16]){"IRQ BTN0"});
 		LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
 		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
@@ -76,7 +76,7 @@ __attribute__((interrupt())) void btn1_handler(void) {
 	const uint64_t T = MZONE_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		MZONE_SEND(1, "IRQ BTN1");
+		MZONE_SEND(1, (char[16]){"IRQ BTN1"});
 		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
@@ -89,7 +89,7 @@ __attribute__((interrupt())) void btn2_handler(void) {
 	const uint64_t T = MZONE_RDTIME();
 	if (T > debounce){
 		debounce = T + 250*RTC_FREQ/1000;
-		MZONE_SEND(1, "IRQ BTN2");
+		MZONE_SEND(1, (char[16]){"IRQ BTN2"});
 		LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
 		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
@@ -185,7 +185,7 @@ int main (void){
 		// Message handler
 		char msg[16];
 		if (MZONE_RECV(1, msg)) {
-			if (strcmp("ping", msg)==0) MZONE_SEND(1, "pong");
+			if (strcmp("ping", msg)==0) MZONE_SEND(1, (char[16]){"pong"});
 			else if (strcmp("mie=0", msg)==0) CSRC(mstatus, 1<<3);
 			else if (strcmp("mie=1", msg)==0) CSRS(mstatus, 1<<3);
 			else if (strcmp("block", msg)==0) {

@@ -15,7 +15,7 @@
 #define KEEP_ALIVE_TIME 1*RTC_FREQ // 1 sec
 #define LED_TIME 20*RTC_FREQ/1000 //  20ms
 
-static uint8_t CRC8(const uint8_t const bytes[]){
+static uint8_t CRC8(const uint8_t bytes[]){
 
     const uint8_t generator = 0x1D;
     uint8_t crc = 0;
@@ -35,7 +35,7 @@ static uint8_t CRC8(const uint8_t const bytes[]){
 }
 static uint32_t spi_rw(const uint32_t cmd){
 
-	const uint8_t const bytes[] = {(uint8_t)cmd, (uint8_t)(cmd>>8), (uint8_t)(cmd>>16)};
+	const uint8_t bytes[] = {(uint8_t)cmd, (uint8_t)(cmd>>8), (uint8_t)(cmd>>16)};
 	const uint32_t tx_data = bytes[0]<<24 | bytes[1]<<16 | bytes[2]<<8 | CRC8(bytes);
 
 	uint32_t rx_data = 0;
@@ -122,10 +122,10 @@ uint64_t task2(){ // Keep alive 1sec
     if (rx_data != usb_state){
     	if (rx_data==0x12670000){
     		LED = LED_GRN;
-    		MZONE_SEND(1, "USB ID 12670000");
+    		MZONE_SEND(1, (char[16]){"USB ID 12670000"});
     	} else if (usb_state==0x12670000){
     		LED = LED_RED;
-    		MZONE_SEND(1, "USB DISCONNECT");
+    		MZONE_SEND(1, (char[16]){"USB DISCONNECT"});
     		owi_sequence_stop();
     	}
     	usb_state=rx_data;
@@ -167,7 +167,7 @@ __attribute__(( interrupt())) void trap_handler(void){
 void msg_handler(const char *msg){
 
 	if (strcmp("ping", msg)==0){
-		MZONE_SEND(1, "pong");
+		MZONE_SEND(1, (char[16]){"pong"});
 
 	} else if (usb_state==0x12670000 && man_cmd==CMD_STOP){
 
