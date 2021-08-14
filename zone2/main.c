@@ -28,6 +28,8 @@ __attribute__((interrupt())) void trp_handler(void)	 { // trap handler (0)
 	case 8:	break; // Environment call from U-mode
 	}
 
+	asm volatile("ebreak");
+
 }
 __attribute__((interrupt())) void msi_handler(void)  { // machine software interrupt (3)
 	asm volatile("ebreak");
@@ -53,7 +55,7 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 #endif
 
 	// set timer (clears mip)
-	MZONE_ADTIMECMP((uint64_t)25*RTC_FREQ/1000);
+	MZONE_ADTIMECMP((uint64_t)1*RTC_FREQ/1000);
 
 }
 
@@ -174,7 +176,7 @@ int main (void){
 	b2_irq_init();
 
     // set & enable timer
-	MZONE_ADTIMECMP((uint64_t)25*RTC_FREQ/1000);
+	MZONE_ADTIMECMP((uint64_t)1*RTC_FREQ/1000);
     CSRS(mie, 1<<7);
 
     // enable global interrupts (BTN0, BTN1, BTN2, TMR)
