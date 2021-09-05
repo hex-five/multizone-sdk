@@ -139,7 +139,7 @@
 #define DMA_TR_DEST_OFF		0x4C /* +ch*0x14 */
 #define DMA_TR_SIZE_OFF		0x50 /* +ch*0x14 */
 
-#define DMA_IRQ				3
+#define DMA_IRQ				19 /* Mockup */
 
 // -----------------------------------------------------------------------------
 // C Helper functions
