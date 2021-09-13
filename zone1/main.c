@@ -80,9 +80,9 @@ __attribute__(( interrupt())) void trap_handler(void){
 	case IRQ | 3 :	// Software interrupt msip/inbox
 
 			for (Zone zone = zone1; zone <= zone4; zone++) {
-				char tmp[16];
-				if (MZONE_RECV(zone, tmp))
-					memcpy((char*) &inbox[zone - 1][0], tmp, sizeof inbox[0]);
+				char msg[16];
+				if (MZONE_RECV(zone, msg))
+					memcpy((char*) &inbox[zone-1][0], msg, sizeof inbox[0]);
 			}
 
 			return;
@@ -658,8 +658,8 @@ int main (void) {
     	// Inbox event handler
 		msg_handler();
 
-		// Do something for ~4ms @20MHz
-		for(volatile int i=0; i<10000; i++){;}
+		// Do something for ~4ms
+		//for(volatile int i=0; i<???; i++){;}
 
 		if (buffer_empty() && inbox_empty())
 			MZONE_WFI();

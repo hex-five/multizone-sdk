@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="ilg.gnumcueclipse.debug.gdbjtag.openocd.launchConfigurationType">
-    <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.openocd.doContinue" value="false"/>
+    <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.openocd.doContinue" value="true"/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.openocd.doDebugInRam" value="false"/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.openocd.doFirstReset" value="true"/>
     <booleanAttribute key="ilg.gnumcueclipse.debug.gdbjtag.openocd.doGdbServerAllocateConsole" value="true"/>
