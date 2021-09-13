@@ -5,19 +5,12 @@
 #############################################################
 
 BOARD ?= X300
-ifeq ($(BOARD), X300)
+
+ifeq ($(filter $(BOARD), X300 E31 FE310), $(BOARD))
     ARCH := rv32
     RISCV_ARCH := $(ARCH)imac
     RISCV_ABI := ilp32
-else ifeq ($(BOARD), E31)
-    ARCH := rv32
-    RISCV_ARCH := $(ARCH)imac
-    RISCV_ABI := ilp32
-else ifeq ($(BOARD), FE310)
-    ARCH := rv32
-    RISCV_ARCH := $(ARCH)imac
-    RISCV_ABI := ilp32    
-else ifeq ($(BOARD), S51)
+else ifeq ($(filter $(BOARD), S51), $(BOARD))
     ARCH := rv64
     RISCV_ARCH := $(ARCH)imac
     RISCV_ABI := lp64		
@@ -47,6 +40,7 @@ export OBJDUMP := $(CROSS_COMPILE)objdump
 export OBJCOPY := $(CROSS_COMPILE)objcopy
 export GDB     := $(CROSS_COMPILE)gdb
 export AR      := $(CROSS_COMPILE)ar
+export SIZE    := $(CROSS_COMPILE)size
 
 #############################################################
 # Rules for building multizone
@@ -75,7 +69,7 @@ clean:
 	$(MAKE) -C zone3 clean
 	$(MAKE) -C zone4 clean
 	$(MAKE) -C bsp/$(BOARD)/boot clean
-	rm -f multizone.hex
+	rm -f multizone.hex multizone.bin
 
 #############################################################
 # Load to flash
@@ -96,7 +90,7 @@ GDB_LOAD_CMDS += -ex "set mem inaccessible-by-default off"
 GDB_LOAD_CMDS += -ex "set remotetimeout 240"
 GDB_LOAD_CMDS += -ex "set arch riscv:$(ARCH)"
 GDB_LOAD_CMDS += -ex "target extended-remote localhost:$(GDB_PORT)"
-GDB_LOAD_CMDS += -ex "monitor reset halt"
+GDB_LOAD_CMDS += -ex "monitor reset init"
 GDB_LOAD_CMDS += -ex "monitor flash protect 0 64 last off"
 GDB_LOAD_CMDS += -ex "load"
 GDB_LOAD_CMDS += -ex "monitor resume"

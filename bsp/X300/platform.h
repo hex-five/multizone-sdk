@@ -112,16 +112,16 @@
 // ------------------------------------------------------------------------------
 #define PLIC_BASE 	0x0C000000
 
-#define PLIC_PRI_OFFSET 			0x0
-#define PLIC_PRI_SHIFT_PER_SOURCE 	2
-#define PLIC_EN_OFFSET				0x2000
-#define PLIC_EN_SHIFT_PER_TARGET	1
-#define PLIC_THRES_OFFSET			0x200000
-#define PLIC_CLAIM_OFFSET			0x200004
+#define PLIC_PRI 			0
+#define PLIC_EN				0x002000
+#define PLIC_IP				0x001000
+#define PLIC_THRES			0x200000
+#define PLIC_CLAIM			0x200004
+#define PLIC_SHIFT_PER_TRG	1
+#define PLIC_SHIFT_PER_SRC 	2
 
-#define PLIC_UART_RX_SOURCE			3
-#define PLIC_XEMAC_RX_SOURCE		21
-
+#define PLIC_SRC_UART	3
+#define PLIC_SRC_XEMAC	21
 
 // -----------------------------------------------------------------------------
 // DMA (single channel mockup)

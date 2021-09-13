@@ -10,8 +10,8 @@
 #define mzone ".word 0x00300073;"
 
 /* Thread Management */
-#define MZONE_YIELD() asm volatile ("li a0, 0;" mzone : : : "a0");
-#define MZONE_WFI()   asm volatile ("li a0, 1;" mzone : : : "a0");
+#define MZONE_YIELD() asm volatile ("li a0, 0;" mzone : : : "a0")
+#define MZONE_WFI()   asm volatile ("li a0, 1;" mzone : : : "a0")
 
 /* Secure Messaging */
 #if __riscv_xlen==32

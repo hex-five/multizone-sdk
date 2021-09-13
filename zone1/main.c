@@ -10,16 +10,29 @@
 #include "platform.h"
 #include "multizone.h"
 
+
+typedef enum {zone1=1, zone2, zone3, zone4} Zone;
+
 #define BUFFER_SIZE 32
-static struct{
+static volatile struct{
 	char data[BUFFER_SIZE];
-	volatile int r; // read
-	volatile int w; // write
+	int r; // read
+	int w; // write
 } buffer;
+int buffer_empty(void){
+	return (buffer.w==0);
+}
 
 static char inputline[BUFFER_SIZE+1]="";
 
+static volatile char inbox[4][16] = { {'\0'}, {'\0'}, {'\0'}, {'\0'} };
+int inbox_empty(void){
+	return (inbox[0][0]=='\0' && inbox[1][0]=='\0' && inbox[2][0]=='\0' && inbox[3][0]=='\0');
+}
+
 __attribute__(( interrupt())) void trap_handler(void){
+
+	#define IRQ (1UL << (__riscv_xlen-1))
 
 	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
 	const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
@@ -64,39 +77,35 @@ __attribute__(( interrupt())) void trap_handler(void){
 	case 11: printf("Environment call from M-mode : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			 break;
 
-	#define IRQ (1UL << (__riscv_xlen-1))
+	case IRQ | 3 :	// Software interrupt msip/inbox
 
-#ifdef DMA_REG
-	case IRQ | 3 :	// Machine software interrupt (DMA)
-			write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
-			printf("\rDMA transfer complete \n");
-			printf("source : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_SRC_OFF));
-			printf("dest   : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_DEST_OFF));
-			printf("size   : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_SIZE_OFF));
-			write(1, "\e8\e[4B", 6);   	// restore curs pos & curs down 4x
-			DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
+			for (Zone zone = zone1; zone <= zone4; zone++) {
+				char tmp[16];
+				if (MZONE_RECV(zone, tmp))
+					memcpy((char*) &inbox[zone - 1][0], tmp, sizeof inbox[0]);
+			}
+
 			return;
-#endif
 
 	case IRQ | 7 :	// Machine timer interrupt (one-shot)
 			write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
 			printf("\rTimer interrupt : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 			write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
-			write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down 2x
+			write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down +2 lines
 			CSRC(mie, 1<<7); 			// disable one-shot timer
 			return;
 
 	case IRQ | 11 :	// Machine external interrupt (PLIC)
-			;const uint32_t plic_int = PLIC_REG(PLIC_CLAIM_OFFSET); // PLIC claim
+			;const uint32_t plic_int = PLIC_REG(PLIC_CLAIM); // PLIC claim
 			char temp[8]; int count = read(0, &temp, 8);
 			if (count > 0){
 				//if(buffer.w==BUFFER_SIZE){write(1, "\n>>> BUFFER FULL !!!\n", 21); while(1);}
 				#define MIN(a,b) (((a)<(b))?(a):(b))
 				count = MIN(count, BUFFER_SIZE - buffer.w);
-				memcpy(&buffer.data[buffer.w], temp, count);
+				memcpy((char*) &buffer.data[buffer.w], temp, count);
 				buffer.w += count;
 			}
-			PLIC_REG(PLIC_CLAIM_OFFSET) = plic_int; // PLIC complete
+			PLIC_REG(PLIC_CLAIM) = plic_int; // PLIC complete
 			return;
 
 	default : printf("Exception : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
@@ -109,11 +118,12 @@ __attribute__(( interrupt())) void trap_handler(void){
 }
 
 // ------------------------------------------------------------------------
- void print_cpu_info(void) {
+ void print_sys_info(void) {
 // ------------------------------------------------------------------------
 
 	// misa
-	const unsigned long misa = CSRR(misa);
+	unsigned long misa;	asm volatile ("csrr %0, misa" : "=r"(misa) : );
+//	const unsigned long misa = CSRR(misa);
 	const int xlen = ((misa >> (__riscv_xlen-2))&0b11)==1 ?  32 :
 					 ((misa >> (__riscv_xlen-2))&0b11)==2 ?  64 :
 					 ((misa >> (__riscv_xlen-2))&0b11)==1 ? 128 :
@@ -129,6 +139,7 @@ __attribute__(( interrupt())) void trap_handler(void){
 	const unsigned long  mvendorid = CSRR(mvendorid);
 	const char *mvendorid_str = (mvendorid==0x10e31913 ? "SiFive, Inc.\0" :
 							     mvendorid==0x489      ? "SiFive, Inc.\0" :
+								 mvendorid==0x31e      ? "Andes Technology\0" :
 							     mvendorid==0x57c      ? "Hex Five, Inc.\0" :
 							    		 	 	 	 	 "\0");
 	printf("Vendor        : 0x%08x %s \n", (int)mvendorid, mvendorid_str);
@@ -139,6 +150,7 @@ __attribute__(( interrupt())) void trap_handler(void){
 							   mvendorid==0x489 && (int)misa==0x40101105    && marchid==0x00000001 ? "E31\0"  :
 						       mvendorid==0x489 && misa==0x8000000000101105 && marchid==0x00000001 ? "S51\0"  :
 						       mvendorid==0x57c && (int)misa==0x40101105    && marchid==0x00000001 ? "X300\0" :
+							   mvendorid==0x31e && (int)misa==0x40901105    && marchid==0x80000022 ? "N22\0" :
 						       "\0");
 	printf("Architecture  : 0x%08x %s \n", (int)marchid, marchid_str);
 
@@ -152,7 +164,30 @@ __attribute__(( interrupt())) void trap_handler(void){
 	printf("CPU clock     : %d MHz \n", (int)(CPU_FREQ/1E+6) );
 
 	// RTC clk
+	if (RTC_FREQ < 1E+6)
 	printf("RTC clock     : %d KHz \n", (int)(RTC_FREQ/1E+3) );
+	else
+		printf("RTC clock     : %d MHz \n", (int)(RTC_FREQ/1E+6) );
+
+	// Platform info
+
+	printf(" \n");
+
+#ifdef PLIC_BASE
+	printf("PLIC @0x%08x \n", (unsigned)PLIC_BASE);
+#endif
+#ifdef CLIC_BASE
+	printf("CLIC @0x%08x \n", (unsigned)CLIC_BASE);
+#endif
+#ifdef DMA_BASE
+	printf("DMAC @0x%08x \n", (unsigned)DMA_BASE);
+#endif
+#ifdef UART_BASE
+	printf("UART @0x%08x \n", (unsigned)UART_BASE);
+#endif
+#ifdef GPIO_BASE
+	printf("GPIO @0x%08x \n", (unsigned)GPIO_BASE);
+#endif
 
 }
 
@@ -208,7 +243,7 @@ void print_stats(void){
 	const unsigned long instr_min = MZONE_CSRR(CSR_MHPMCOUNTER28);
 	const unsigned long instr_max = MZONE_CSRR(CSR_MHPMCOUNTER29);
 	const unsigned long cycle_min = MZONE_CSRR(CSR_MHPMCOUNTER30);
-	const unsigned long cycle_max = MZONE_CSRR(CSR_MHPMCOUNTER31); // <= reset kern stats
+	const unsigned long cycle_max = MZONE_CSRR(CSR_MHPMCOUNTER31); // <= resets kern stats
 
 	if (instr_min>0){
 
@@ -305,35 +340,36 @@ void print_pmp(void){
 // ------------------------------------------------------------------------
 void msg_handler() {
 
-	typedef enum {zone1=1, zone2, zone3, zone4} Zone;
+	CSRC(mie, 1<<3);
 
 	for (Zone zone=zone1; zone<=zone4; zone++){
 
-		char msg[16]={0};
+			if (inbox[zone-1][0] != '\0') {
 
-		if (MZONE_RECV(zone, msg)) {
-
-			if (strcmp("ping", msg) == 0) {
+				if (strcmp("ping", (const char *) inbox[zone-1]) == 0) {
 				MZONE_SEND(zone, (char[16]){"pong"});
 
 			} else {
 				write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
-				printf("\rZ%d > %.16s\n", zone, msg);
+					printf("\rZ%d > %.16s\n", zone, inbox[zone-1]);
 				write(1, "\nZ1 > ", 6); write(1, inputline, strlen(inputline));
 				write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
 			}
 
+				inbox[zone-1][0] = '\0';
 
 		}
 
 	}
+
+	CSRS(mie, 1<<3);
 
 }
 
 // ------------------------------------------------------------------------
 void cmd_handler(){
 
-	const char * tk[4] = { strtok(inputline, " "), strtok(NULL, " "), strtok(NULL, " "), strtok(NULL, " ")};
+	char * tk[9]; tk[0] = strtok(inputline, " "); for (int i=1; i<9; i++) tk[i] = strtok(NULL, " ");
 
 	if (tk[0] == NULL) tk[0] = "help";
 
@@ -372,7 +408,7 @@ void cmd_handler(){
 			asm ( "jr (%0)" : : "r"(addr));
 		} else printf("Syntax: exec address \n");
 
-#ifdef DMA_REG
+#ifdef DMA_BASE
 	// --------------------------------------------------------------------
 	} else if (strcmp(tk[0], "dma")==0){
 	// --------------------------------------------------------------------
@@ -476,10 +512,10 @@ int readline() {
 	
 		while ( !eol && buffer.w > buffer.r ) {
 
-		PLIC_REG(PLIC_EN_OFFSET) &= ~(1 << PLIC_UART_RX_SOURCE); //CSRC(mie, 1<<11);
+		PLIC_REG(PLIC_EN) &= ~(1 << PLIC_SRC_UART); //CSRC(mie, 1<<11);
 			const char c = buffer.data[buffer.r++];
 			if (buffer.r >= buffer.w) {buffer.r = 0; buffer.w = 0;}
-		PLIC_REG(PLIC_EN_OFFSET) |= 1 << PLIC_UART_RX_SOURCE; //CSRS(mie, 1<<11);
+		PLIC_REG(PLIC_EN) |= 1 << PLIC_SRC_UART; //CSRS(mie, 1<<11);
 
 		if (c=='\e'){
 			esc=1;
@@ -581,14 +617,16 @@ int main (void) {
 	//while(1) MZONE_YIELD();
 	//while(1);
 
-	CSRW(mtvec, trap_handler);  	// register trap handler
-	CSRS(mie, 1<<11 | 1<<3);	// enable external interrupts (PLIC/UART, SW/DMA)
-    CSRS(mstatus, 1<<3);			// enable global interrupts (PLIC, TMR, SW)
+	CSRW(mtvec, trap_handler); // register trap handler
 
-	// Enable UART RX IRQ (PLIC)
-    PLIC_REG(PLIC_PRI_OFFSET + (PLIC_UART_RX_SOURCE << PLIC_PRI_SHIFT_PER_SOURCE)) = 1;
-	PLIC_REG(PLIC_EN_OFFSET) |= 1 << PLIC_UART_RX_SOURCE;
+    CSRS(mie, 1<<3); // enable software interrupt pending msip/inbox
 
+    CSRS(mie, 1<<11); // enable external interrupts (plic)
+	PLIC_REG(PLIC_PRI + (PLIC_SRC_UART << PLIC_SHIFT_PER_SRC)) = 1;
+	PLIC_REG(PLIC_EN) |= 1 << PLIC_SRC_UART;
+
+    CSRS(mstatus, 1<<3); // enable global interrupts
+ 
 	open("UART", 0, 0);
 
 	printf("\e[2J\e[H"); // clear terminal screen
@@ -604,23 +642,29 @@ int main (void) {
 	printf("software does not have these restrictions.                           \n");
 	printf("=====================================================================\n");
 
-    print_cpu_info();
+    print_sys_info();
 
 	write(1, "\n\rZ1 > ", 7);
 
     while(1){
 
+    	// UART RX event handler
 		if (readline()){
 			cmd_handler(); //printf("%s\n", inputline);
 			write(1, "\n\rZ1 > ", 7);
 			inputline[0]='\0';
 		}
 
+    	// Inbox event handler
 		msg_handler();
 
-		if(buffer.w==0)
-			MZONE_WFI();
+		// Do something for ~4ms @20MHz
+		for(volatile int i=0; i<10000; i++){;}
 
+		if (buffer_empty() && inbox_empty())
+			MZONE_WFI();
+		else
+			MZONE_YIELD();
 	}
 
 }
