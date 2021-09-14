@@ -126,7 +126,7 @@
 // -----------------------------------------------------------------------------
 // DMA (single channel mockup)
 // ------------------------------------------------------------------------------
-#define DMA_BASE 	0x10040000
+#define DMA_BASE 	  0x10040000
 
 #define DMA_VER_OFF			0x00
 #define DMA_CFG_OFF			0x10
@@ -139,7 +139,7 @@
 #define DMA_TR_DEST_OFF		0x4C /* +ch*0x14 */
 #define DMA_TR_SIZE_OFF		0x50 /* +ch*0x14 */
 
-#define DMA_IRQ				19 /* Mockup */
+#define DMA_IRQ				  19 /* Mockup */
 
 // -----------------------------------------------------------------------------
 // C Helper functions

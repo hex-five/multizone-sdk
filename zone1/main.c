@@ -78,13 +78,11 @@ __attribute__(( interrupt())) void trap_handler(void){
 			 break;
 
 	case IRQ | 3 :	// Software interrupt msip/inbox
-
 			for (Zone zone = zone1; zone <= zone4; zone++) {
 				char msg[16];
 				if (MZONE_RECV(zone, msg))
 					memcpy((char*) &inbox[zone-1][0], msg, sizeof inbox[0]);
 			}
-
 			return;
 
 	case IRQ | 7 :	// Machine timer interrupt (one-shot)
@@ -107,6 +105,18 @@ __attribute__(( interrupt())) void trap_handler(void){
 			}
 			PLIC_REG(PLIC_CLAIM) = plic_int; // PLIC complete
 			return;
+
+#ifdef DMA_REG
+    case IRQ | DMA_IRQ :  // Machine software interrupt (DMA)
+            write(1, "\e7\e[2K", 6);    // save curs pos & clear entire line
+            printf("\rDMA transfer complete \n");
+            printf("source : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_SRC_OFF));
+            printf("dest   : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_DEST_OFF));
+            printf("size   : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_SIZE_OFF));
+            write(1, "\e8\e[4B", 6);    // restore curs pos & curs down 4x
+            DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0); // clear irq's by writing 1’s (R/W1C)
+            return;
+#endif
 
 	default : printf("Exception : 0x%08x 0x%08x 0x%08x \n", (unsigned)mcause, (unsigned)mepc, (unsigned)mtval);
 
@@ -492,7 +502,7 @@ void cmd_handler(){
 
 	} else {
 		printf("Commands: yield send recv pmp load store exec stats timer restart ");
-#ifdef DMA_REG
+#ifdef DMA_BASE
 		printf("dma ");
 #endif
 		printf("\n");
@@ -617,15 +627,20 @@ int main (void) {
 	//while(1) MZONE_YIELD();
 	//while(1);
 
-	CSRW(mtvec, trap_handler); // register trap handler
+	CSRW(mtvec, trap_handler);  // register trap handler
 
-    CSRS(mie, 1<<3); // enable software interrupt pending msip/inbox
-
-    CSRS(mie, 1<<11); // enable external interrupts (plic)
+	// enable plic sources
 	PLIC_REG(PLIC_PRI + (PLIC_SRC_UART << PLIC_SHIFT_PER_SRC)) = 1;
 	PLIC_REG(PLIC_EN) |= 1 << PLIC_SRC_UART;
 
-    CSRS(mstatus, 1<<3); // enable global interrupts
+#ifdef DMA_BASE
+	// enable DMA interrupt
+    CSRS(mie, 1<<DMA_IRQ);
+#endif
+
+    CSRS(mie, 1<<3);            // enable msip/inbox
+    CSRS(mie, 1<<11);           // enable PLIC interrupts
+    CSRS(mstatus, 1<<3);        // enable global interrupts
  
 	open("UART", 0, 0);
 
