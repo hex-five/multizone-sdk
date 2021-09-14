@@ -1,0 +1,162 @@
+diff --git a/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions/freertos_risc_v_chip_specific_extensions.h b/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions/freertos_risc_v_chip_specific_extensions.h
+index 054ba7a27..2aeae7262 100644
+--- a/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions/freertos_risc_v_chip_specific_extensions.h
++++ b/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions/freertos_risc_v_chip_specific_extensions.h
+@@ -56,6 +56,7 @@
+ #define portasmHAS_SIFIVE_CLINT 1
+ #define portasmHAS_MTIME 1
+ #define portasmADDITIONAL_CONTEXT_SIZE 0 /* Must be even number on 32-bit cores. */
++#define portasmHANDLE_INTERRUPT trap_handler /* MultiZone messaging */
+ 
+ .macro portasmSAVE_ADDITIONAL_REGISTERS
+ 	/* No additional registers to save, so this macro does nothing. */
+diff --git a/portable/GCC/RISC-V/port.c b/portable/GCC/RISC-V/port.c
+index 8a53c07bb..daa4be3fd 100644
+--- a/portable/GCC/RISC-V/port.c
++++ b/portable/GCC/RISC-V/port.c
+@@ -205,8 +205,53 @@ void vPortEndScheduler( void )
+ 	/* Not implemented. */
+ 	for( ;; );
+ }
++/*-----------------------------------------------------------*/
++
++#if ( configUSE_TICKLESS_IDLE == 1 )
++
++	#include "multizone.h"
++	#define MIN(a,b) (((a)<(b))?(a):(b))
++
++	/* Define the function that is called by portSUPPRESS_TICKS_AND_SLEEP(). */
++	__attribute__( ( weak ) ) void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime ) {
++
++		portDISABLE_INTERRUPTS();
++
++		const eSleepModeStatus sleepMode = eTaskConfirmSleepModeStatus();
++
++		if (sleepMode == eAbortSleep){
++
++
++		} else {
++
++			const uint64_t T0 = ullNextTime - uxTimerIncrementsForOneTick;
++
++			if (sleepMode == eNoTasksWaitingTimeout) {
++
++				MZONE_WRTIMECMP( -1ULL );
+ 
++			} else { // eStandardSleep
+ 
++				MZONE_WRTIMECMP( T0 + (xExpectedIdleTime -1) * uxTimerIncrementsForOneTick );
++
++			}
++
++			MZONE_WFI();
++
++			const uint64_t T1 = MZONE_RDTIME();
++			const TickType_t xIdleTime = MIN ((TickType_t) ((T1-T0) / uxTimerIncrementsForOneTick), xExpectedIdleTime);
++
++			vTaskStepTick(xIdleTime); ullNextTime += (xIdleTime * uxTimerIncrementsForOneTick);
++
++			MZONE_WRTIMECMP( T0 + xIdleTime * uxTimerIncrementsForOneTick );
++
++		}
++
++		portENABLE_INTERRUPTS();
++
++	}
++
++#endif
+ 
+ 
+ 
+diff --git a/portable/GCC/RISC-V/portASM.S b/portable/GCC/RISC-V/portASM.S
+index 3aaa89baf..c199c4897 100644
+--- a/portable/GCC/RISC-V/portASM.S
++++ b/portable/GCC/RISC-V/portASM.S
+@@ -116,7 +116,7 @@ at the top of this file. */
+ 
+ /*-----------------------------------------------------------*/
+ 
+-.align 8
++.align 2
+ .func
+ freertos_risc_v_trap_handler:
+ 	addi sp, sp, -portCONTEXT_SIZE
+@@ -186,9 +186,17 @@ handle_asynchronous:
+ 			li t4, -1
+ 			lw t2, 0(t1)				/* Load the low word of ullNextTime into t2. */
+ 			lw t3, 4(t1)				/* Load the high word of ullNextTime into t3. */
+-			sw t4, 0(t0)				/* Low word no smaller than old value to start with - will be overwritten below. */
+-			sw t3, 4(t0)				/* Store high word of ullNextTime into compare register.  No smaller than new value. */
+-			sw t2, 0(t0)				/* Store low word of ullNextTime into compare register. */
++
++			/* Optional: MultiZone fast system call MZONE_WRTIMECMP(a1,a2) */
++			mv a1, t2
++			mv a2, t3
++			li a0, 0x6
++			.word 0x00300073
++
++//			sw t4, 0(t0)				/* Low word no smaller than old value to start with - will be overwritten below. */
++//			sw t3, 4(t0)				/* Store high word of ullNextTime into compare register.  No smaller than new value. */
++//			sw t2, 0(t0)				/* Store low word of ullNextTime into compare register. */
++
+ 			lw t0, uxTimerIncrementsForOneTick	/* Load the value of ullTimerIncrementForOneTick into t0 (could this be optimized by storing in an array next to pullNextTime?). */
+ 			add t4, t0, t2				/* Add the low word of ullNextTime to the timer increments for one tick (assumes timer increment for one tick fits in 32-bits). */
+ 			sltu t5, t4, t2				/* See if the sum of low words overflowed (what about the zero case?). */
+@@ -215,13 +223,19 @@ handle_asynchronous:
+ 		jal vTaskSwitchContext
+ 		j processed_source
+ 
+-	test_if_external_interrupt:			/* If there is a CLINT and the mtimer interrupt is not pending then check to see if an external interrupt is pending. */
+-		addi t1, t1, 4					/* 0x80000007 + 4 = 0x8000000b == Machine external interrupt. */
+-		bne a0, t1, as_yet_unhandled	/* Something as yet unhandled. */
+-
+ #endif /* portasmHAS_MTIME */
+ 
+-	load_x sp, xISRStackTop				/* Switch to ISR stack before function call. */
++test_if_external_interrupt:
++	li t1, (1<<(__riscv_xlen-1)) | 0xb	/* 0x8000000b == Machine external interrupt. */
++	beq a0, t1, 1f
++
++test_if_msi_interrupt:				/* 0x80000003 == Machine software interrupt. */
++	li t1, (1<<(__riscv_xlen-1)) | 0x3
++	beq a0, t1, 1f
++
++	j as_yet_unhandled				/* Something as yet unhandled. */
++
++1:	load_x sp, xISRStackTop				/* Switch to ISR stack before function call. */
+ 	jal portasmHANDLE_INTERRUPT			/* Jump to the interrupt handler if there is no CLINT or if there is a CLINT and it has been determined that an external interrupt is pending. */
+ 	j processed_source
+ 
+@@ -294,7 +308,7 @@ processed_source:
+ 	.endfunc
+ /*-----------------------------------------------------------*/
+ 
+-.align 8
++.align 2
+ .func
+ xPortStartFirstTask:
+ 
+@@ -412,7 +426,7 @@ xPortStartFirstTask:
+  * [chip specific registers go here]
+  * pxCode
+  */
+-.align 8
++.align 2
+ .func
+ pxPortInitialiseStack:
+ 
+diff --git a/portable/GCC/RISC-V/portmacro.h b/portable/GCC/RISC-V/portmacro.h
+index a8eff23b9..6385afbeb 100644
+--- a/portable/GCC/RISC-V/portmacro.h
++++ b/portable/GCC/RISC-V/portmacro.h
+@@ -94,6 +94,10 @@ extern void vTaskSwitchContext( void );
+ #define portYIELD() __asm volatile( "ecall" );
+ #define portEND_SWITCHING_ISR( xSwitchRequired ) if( xSwitchRequired ) vTaskSwitchContext()
+ #define portYIELD_FROM_ISR( x ) portEND_SWITCHING_ISR( x )
++#ifndef portSUPPRESS_TICKS_AND_SLEEP
++	extern void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime );
++	#define portSUPPRESS_TICKS_AND_SLEEP( xExpectedIdleTime )    vPortSuppressTicksAndSleep( xExpectedIdleTime )
++#endif
+ /*-----------------------------------------------------------*/
+ 
+ 
