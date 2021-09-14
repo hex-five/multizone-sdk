@@ -30,7 +30,7 @@ CFLAGS += -mcmodel=medlow
 CFLAGS += -msmall-data-limit=8
 CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -Wall
-CFLAGS += -O0 -ggdb
+CFLAGS += -Os -ggdb
 
 HEX = $(subst .elf,.hex,$(TARGET))
 LST = $(subst .elf,.lst,$(TARGET))

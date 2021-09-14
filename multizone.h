@@ -88,12 +88,12 @@
 	#define MZONE_WRTIMECMP(val) \
 		asm volatile ( \
 		"mv a1, %0; mv a2, %1;" \
-		"li a0, 6;" mzone : : "r"((uint32_t)val), "r"((uint32_t)((uint64_t)val>>32)) : "a0", "a1", "a2" );
+		"li a0, 6;" mzone : : "r" ((uint32_t)val), "r"((uint32_t)(((uint64_t)val)>>32)) : "a0", "a1", "a2" );
 
 	#define MZONE_ADTIMECMP(val) \
 		asm volatile ( \
 		"mv a1, %0; mv a2, %1;" \
-		"li a0, 7;" mzone : : "r"((uint32_t)val), "r"((uint32_t)((uint64_t)val>>32)) : "a0", "a1", "a2" );
+		"li a0, 7;" mzone : : "r" ((uint32_t)val), "r"((uint32_t)(((uint64_t)val)>>32)) : "a0", "a1", "a2" );
 
 #else
 

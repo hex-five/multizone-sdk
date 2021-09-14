@@ -62,7 +62,7 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 #endif
 
 	// set timer (clears mip)
-	MZONE_ADTIMECMP((uint64_t)1*RTC_FREQ/1000);
+	MZONE_ADTIMECMP((uint64_t)5*RTC_FREQ/1000);
 
 }
 
@@ -184,7 +184,7 @@ int main (void){
 	b2_irq_init();
 
     // set & enable timer
-    MZONE_ADTIMECMP((uint64_t)1*RTC_FREQ/1000);
+    MZONE_ADTIMECMP((uint64_t)5*RTC_FREQ/1000);
     CSRS(mie, 1 << 7);
 
     // enable msip/inbox interrupt

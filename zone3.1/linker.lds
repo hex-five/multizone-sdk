@@ -1,0 +1,1 @@
+../zone3/linker.lds

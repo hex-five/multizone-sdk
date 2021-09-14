@@ -7,7 +7,7 @@
 your application. */
 #include "platform.h"
 
-#define configISR_STACK_SIZE_WORDS 		(100)
+#define configISR_STACK_SIZE_WORDS 		(30)
 #define configMTIME_BASE_ADDRESS		( CLINT_BASE + CLINT_MTIME )
 #define configMTIMECMP_BASE_ADDRESS		( CLINT_BASE + CLINT_MTIMECMP )
 
@@ -16,8 +16,8 @@ your application. */
 #define configUSE_TICKLESS_IDLE                 1
 #define configCPU_CLOCK_HZ                      ( (TickType_t) RTC_FREQ )
 #define configTICK_RATE_HZ                      ( (TickType_t) 1000 )
-#define configMAX_PRIORITIES                    4 	//5
-#define configMINIMAL_STACK_SIZE                128 // 32-bit words
+#define configMAX_PRIORITIES                    3 	//5
+#define configMINIMAL_STACK_SIZE                70 // 32-bit words
 // #define configMAX_TASK_NAME_LEN                 16
 #define configUSE_16_BIT_TICKS                  0
 // #define configIDLE_SHOULD_YIELD                 1
@@ -38,14 +38,14 @@ your application. */
 /* Memory allocation related definitions. */
 // #define configSUPPORT_STATIC_ALLOCATION         1
 // #define configSUPPORT_DYNAMIC_ALLOCATION        1
-#define configTOTAL_HEAP_SIZE                   4*1024
+#define configTOTAL_HEAP_SIZE                   2064
 // #define configAPPLICATION_ALLOCATED_HEAP        1
 
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK                     0
 #define configUSE_TICK_HOOK                     0
-#define configCHECK_FOR_STACK_OVERFLOW          0 //2
-#define configUSE_MALLOC_FAILED_HOOK            0 //1
+#define configCHECK_FOR_STACK_OVERFLOW          2 //2
+#define configUSE_MALLOC_FAILED_HOOK            1 //1
 #define configUSE_DAEMON_TASK_STARTUP_HOOK      0
 
 /* Run time and task stats gathering related definitions. */
@@ -61,16 +61,16 @@ your application. */
 
 /* Define to trap errors during development. */
 // #define configASSERT( ( x ) ) if( ( x ) == 0 ) vAssertCalled( __FILE__, __LINE__ )
-// #define configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); __asm volatile( "ebreak" ); for( ;; ); }
+#define configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); __asm volatile( "ebreak" ); for( ;; ); }
 
 /* Optional functions - most linkers will remove unused functions anyway. */
 // #define INCLUDE_vTaskPrioritySet                1
 // #define INCLUDE_uxTaskPriorityGet               1
 // #define INCLUDE_vTaskDelete                     1
-#define INCLUDE_vTaskSuspend                    1
-#define INCLUDE_xResumeFromISR                  1
-#define INCLUDE_vTaskDelayUntil                 1
-#define INCLUDE_vTaskDelay                      1
+#define INCLUDE_vTaskSuspend                       1
+#define INCLUDE_xResumeFromISR                     1
+#define INCLUDE_vTaskDelayUntil                    1
+#define INCLUDE_vTaskDelay                         1
 // #define INCLUDE_xTaskGetSchedulerState          1
 // #define INCLUDE_xTaskGetCurrentTaskHandle       1
 // #define INCLUDE_uxTaskGetStackHighWaterMark     0

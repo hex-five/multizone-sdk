@@ -7,12 +7,12 @@ ENTRY( _start )
 MEMORY {
   flash (rxai!w) : ORIGIN = flash + 0xE000, LENGTH = 8K
   prog  (rxai!w) : ORIGIN = flash + 0xE000, LENGTH = 8K
-  ram   (wa!xri) : ORIGIN = dtim  + 0x3800, LENGTH = 2K
+  ram   (wa!xri) : ORIGIN = dtim  + 0x3C00, LENGTH = 1K
 }
 
 SECTIONS {
 
-  __stack_size = DEFINED(__stack_size) ? __stack_size : 1K;
+  __stack_size = DEFINED(__stack_size) ? __stack_size : 512;
   PROVIDE(__stack_size = __stack_size);
 
 
