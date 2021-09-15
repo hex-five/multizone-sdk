@@ -120,8 +120,8 @@
 #define PLIC_SHIFT_PER_TRG	1
 #define PLIC_SHIFT_PER_SRC 	2
 
-#define PLIC_SRC_UART	3
-#define PLIC_SRC_XEMAC	21
+#define PLIC_SRC_UART		3
+#define PLIC_SRC_XEMAC		21
 
 // -----------------------------------------------------------------------------
 // DMA (single channel mockup)
@@ -149,11 +149,11 @@
 #define _REG32(base, offset) (*(volatile uint32_t *)((base) + (offset)))
 
 #define CLINT_REG(offset) _REG64(CLINT_BASE, offset)
-#define GPIO_REG(offset) _REG32(GPIO_BASE, offset)
-#define PWM_REG(offset) _REG32(PWM_BASE, offset)
-#define UART_REG(offset) _REG32(UART_BASE, offset)
-#define PLIC_REG(offset) _REG32(PLIC_BASE, offset)
-#define DMA_REG(offset) _REG32(DMA_BASE, offset)
+#define GPIO_REG(offset)  _REG32(GPIO_BASE, offset)
+#define PWM_REG(offset)   _REG32(PWM_BASE, offset)
+#define UART_REG(offset)  _REG32(UART_BASE, offset)
+#define PLIC_REG(offset)  _REG32(PLIC_BASE, offset)
+#define DMA_REG(offset)   _REG32(DMA_BASE, offset)
 
 
 #endif /* HEXFIVE_PLATFORM_H */

@@ -5,7 +5,7 @@
 
 
 #define CPU_FREQ	32537487
-#define RTC_FREQ 	32833
+#define RTC_FREQ 	   32833
 
 // -----------------------------------------------------------------------------
 // RTC (CLINT)
@@ -108,14 +108,15 @@
 // ------------------------------------------------------------------------------
 #define PLIC_BASE 	0x0C000000
 
-#define PLIC_PRI_OFFSET 			0x0
-#define PLIC_PRI_SHIFT_PER_SOURCE 	2
-#define PLIC_EN_OFFSET				0x2000
-#define PLIC_EN_SHIFT_PER_TARGET	1
-#define PLIC_THRES_OFFSET			0x200000
-#define PLIC_CLAIM_OFFSET			0x200004
+#define PLIC_PRI 			0
+#define PLIC_EN				0x002000
+#define PLIC_IP				0x001000
+#define PLIC_THRES			0x200000
+#define PLIC_CLAIM			0x200004
+#define PLIC_SHIFT_PER_TRG	1
+#define PLIC_SHIFT_PER_SRC 	2
 
-#define PLIC_UART_RX_SOURCE			17
+#define PLIC_SRC_UART		17
 
 // -----------------------------------------------------------------------------
 // DMA (single channel mockup)
@@ -133,8 +134,7 @@
 #define DMA_TR_DEST_OFF		0x4C /* +ch*0x14 */
 #define DMA_TR_SIZE_OFF		0x50 /* +ch*0x14 */
 
-#define DMA_IRQ				3
-
+#define DMA_IRQ				  19 /* Mockup */
 
 // -----------------------------------------------------------------------------
 // C Helper functions
