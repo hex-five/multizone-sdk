@@ -204,4 +204,21 @@
 })
 
 
+/* Atomic Memory Operations */
+#define BITSET(mem_addr, bit_mask) ({ \
+    const register uint32_t rs1 = mem_addr; \
+    const register uint32_t rs2 = bit_mask; \
+    asm volatile ( "amoor.w x0, %0, (%1)" : : "r"(rs2), "r"(rs1) : "memory" ); \
+})
+#define BITCLR(mem_addr, bit_mask) ({ \
+    const register uint32_t rs1 = mem_addr; \
+    const register uint32_t rs2 = ~(bit_mask); \
+    asm volatile ( "amoand.w x0, %0, (%1)" : : "r"(rs2), "r"(rs1) : "memory" ); \
+})
+#define BITINV(mem_addr, bit_mask) ({ \
+    const register uint32_t rs1 = mem_addr; \
+    const register uint32_t rs2 = bit_mask; \
+    asm volatile ( "amoxor.w x0, %0, (%1)" : : "r"(rs2), "r"(rs1) : "memory" ); \
+})
+
 #endif /* MULTIZONE_H */

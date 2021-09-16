@@ -60,7 +60,7 @@ all: clean
 		--boot bsp/$(BOARD)/boot/boot.hex \
 		zone1/zone1.hex \
 		zone2/zone2.hex \
-		zone3.1/zone3.hex \
+		zone3/zone3.hex \
 		zone4/zone4.hex
 
 .PHONY: clean

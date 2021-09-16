@@ -11,9 +11,9 @@
 #define SPI_TDO  9  // out
 //#define SPI_SYN  8  // out - not used
 
-#define MAN_CMD_TIME 200*RTC_FREQ/1000 // 250ms
-#define KEEP_ALIVE_TIME 1*RTC_FREQ // 1 sec
-#define LED_TIME 20*RTC_FREQ/1000 //  20ms
+#define MAN_CMD_TIME 200*RTC_FREQ/1000 // 200ms
+#define KEEP_ALIVE_TIME 1*RTC_FREQ 	   // 1 sec
+#define LED_TIME 20*RTC_FREQ/1000      //  20ms
 
 static uint8_t CRC8(const uint8_t bytes[]){
 
@@ -40,16 +40,18 @@ static uint32_t spi_rw(const uint32_t cmd){
 
 	uint32_t rx_data = 0;
 
-	for (int i=32-1, bit; i>=0; i--){
+	for (uint32_t i = 1<<31; i != 0; i = i>>1){
 
-		bit = (tx_data >> i) & 1U;
-		GPIO_REG(GPIO_OUTPUT_VAL) = (bit==1 ? GPIO_REG(GPIO_OUTPUT_VAL) | (1 << SPI_TDO) :
-											  GPIO_REG(GPIO_OUTPUT_VAL) & ~(1 << SPI_TDO)  );
+		if (tx_data & i)
+		    GPIO_REG(GPIO_OUTPUT_VAL) |=  (1 << SPI_TDO);
+		else
+			GPIO_REG(GPIO_OUTPUT_VAL) &= ~(1 << SPI_TDO);
 
-		GPIO_REG(GPIO_OUTPUT_VAL) |= (1 << SPI_TCK); volatile int w1=0; while(w1<5) w1++;
-		GPIO_REG(GPIO_OUTPUT_VAL) ^= (1 << SPI_TCK); volatile int w2=0; while(w2<5) w2++;
-		bit = ( GPIO_REG(GPIO_INPUT_VAL) >> SPI_TDI) & 1U;
-		rx_data = ( bit==1 ? rx_data |  (1 << i) : rx_data & ~(1 << i) );
+		GPIO_REG(GPIO_OUTPUT_VAL) |=  (1 << SPI_TCK);
+		GPIO_REG(GPIO_OUTPUT_VAL) &= ~(1 << SPI_TCK);
+
+		if( GPIO_REG(GPIO_INPUT_VAL) & (1<< SPI_TDI) )
+		    rx_data |= i;
 
 	}
 
@@ -59,10 +61,10 @@ static uint32_t spi_rw(const uint32_t cmd){
 #define CMD_DUMMY 0xFFFFFF
 #define CMD_STOP  0x000000
 
+static volatile char msg[16] = {'\0'};
 static volatile uint32_t usb_state = 0;
 static volatile uint32_t man_cmd = CMD_STOP;
 static volatile int LED = LED_RED;
-static volatile char msg[16] = {'\0'};
 
 uint64_t task0(); // OWI Sequence
 uint64_t task1(); // Manual cmd stop
@@ -186,27 +188,41 @@ void msg_handler(const char *msg){
 
 		else if (!owi_sequence_is_running()){
 
-			     if (strcmp("start", msg)==0) {owi_sequence_start(MAIN);   timer_set(0, 0);}
-			else if (strcmp("fold",  msg)==0) {owi_sequence_start(FOLD);   timer_set(0, 0);}
-			else if (strcmp("unfold",msg)==0) {owi_sequence_start(UNFOLD); timer_set(0, 0);}
+            if (strcmp("start", msg) == 0) {
+                owi_sequence_start(MAIN);
+                timer_set(0, 0);
 
-			// Manual single-command adjustments
-				 if (strcmp("q", msg)==0) man_cmd = 0x000001; // grip close
-			else if (strcmp("a", msg)==0) man_cmd = 0x000002; // grip open
-			else if (strcmp("w", msg)==0) man_cmd = 0x000004; // wrist up
-			else if (strcmp("s", msg)==0) man_cmd = 0x000008; // wrist down
-			else if (strcmp("e", msg)==0) man_cmd = 0x000010; // elbow up
-			else if (strcmp("d", msg)==0) man_cmd = 0x000020; // elbow down
-			else if (strcmp("r", msg)==0) man_cmd = 0x000040; // shoulder up
-			else if (strcmp("f", msg)==0) man_cmd = 0x000080; // shoulder down
-			else if (strcmp("t", msg)==0) man_cmd = 0x000100; // base clockwise
-			else if (strcmp("g", msg)==0) man_cmd = 0x000200; // base counterclockwise
-			else if (strcmp("y", msg)==0) man_cmd = 0x010000; // light on
+            } else if (strcmp("fold", msg) == 0) {
+                owi_sequence_start(FOLD);
+                timer_set(0, 0);
 
-			if (man_cmd != CMD_STOP){
-				spi_rw(man_cmd);
-				timer_set(1, MZONE_RDTIME() + MAN_CMD_TIME);
-			}
+            } else if (strcmp("unfold", msg) == 0) {
+                owi_sequence_start(UNFOLD);
+                timer_set(0, 0);}
+
+		    } else {
+
+                // Manual single-command adjustments
+                switch (msg[0]){
+                    case 'q' : man_cmd = 0x000001; break; // grip close
+                    case 'a' : man_cmd = 0x000002; break; // grip open
+                    case 'w' : man_cmd = 0x000004; break; // wrist up
+                    case 's' : man_cmd = 0x000008; break; // wrist down
+                    case 'e' : man_cmd = 0x000010; break; // elbow up
+                    case 'd' : man_cmd = 0x000020; break; // elbow down
+                    case 'r' : man_cmd = 0x000040; break; // shoulder up
+                    case 'f' : man_cmd = 0x000080; break; // shoulder down
+                    case 't' : man_cmd = 0x000100; break; // base clockwise
+                    case 'g' : man_cmd = 0x000200; break; // base counterclockwise
+                    case 'y' : man_cmd = 0x010000; break; // light on
+                }
+
+                if (man_cmd != CMD_STOP){
+                    spi_rw(man_cmd);
+                    timer_set(1, MZONE_RDTIME() + MAN_CMD_TIME);
+                }
+
+		    }
 
 		}
 
