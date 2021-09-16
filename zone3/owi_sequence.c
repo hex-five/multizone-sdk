@@ -44,7 +44,7 @@ static struct sequence_step main_sequence[] = {
 	{ .command = BASE_COUNTERCLK,	.duration_ms = T_BASE },
     { .command = BASE_COUNTERCLK,	.duration_ms = T_ARM   *  80/100}, //  80%
 	{ .command = ARM_UP, 			.duration_ms = T_ARM   * 105/100}, // 105%
-	{ .command = ELBOW_UP, 			.duration_ms = T_ARM   *  10/100}, //  10%
+	{ .command = ELBOW_UP, 			.duration_ms = T_ARM   *   5/100}, //   5%
 	{ .command = WRIST_DWN, 		.duration_ms = T_WRIST *  80/100}, //  80%
 	{ .command = GRIP_OPEN, 		.duration_ms = T_GRIP },
 };

@@ -179,14 +179,15 @@ __attribute__(( interrupt())) void trap_handler(void){
 
 void msg_handler(const char *msg){
 
-	if (strcmp("ping", msg)==0){
-		MZONE_SEND(1, (char[16]){"pong"});
+    if (strcmp("ping", msg) == 0) {
+        MZONE_SEND(1, (char[16]){"pong"});
 
-	} else if (usb_state==0x12670000 && man_cmd==CMD_STOP){
+    } else if (usb_state == 0x12670000 && man_cmd == CMD_STOP) {
 
-		if (strcmp("stop", msg)==0) owi_sequence_stop_req();
+        if (strcmp("stop", msg) == 0)
+            owi_sequence_stop_req();
 
-		else if (!owi_sequence_is_running()){
+        else if (!owi_sequence_is_running()) {
 
             if (strcmp("start", msg) == 0) {
                 owi_sequence_start(MAIN);
@@ -198,35 +199,36 @@ void msg_handler(const char *msg){
 
             } else if (strcmp("unfold", msg) == 0) {
                 owi_sequence_start(UNFOLD);
-                timer_set(0, 0);}
+                timer_set(0, 0);
 
-		    } else {
+            } else if (strnlen(msg, sizeof msg)==1){
+
 
                 // Manual single-command adjustments
-                switch (msg[0]){
-                    case 'q' : man_cmd = 0x000001; break; // grip close
-                    case 'a' : man_cmd = 0x000002; break; // grip open
-                    case 'w' : man_cmd = 0x000004; break; // wrist up
-                    case 's' : man_cmd = 0x000008; break; // wrist down
-                    case 'e' : man_cmd = 0x000010; break; // elbow up
-                    case 'd' : man_cmd = 0x000020; break; // elbow down
-                    case 'r' : man_cmd = 0x000040; break; // shoulder up
-                    case 'f' : man_cmd = 0x000080; break; // shoulder down
-                    case 't' : man_cmd = 0x000100; break; // base clockwise
-                    case 'g' : man_cmd = 0x000200; break; // base counterclockwise
-                    case 'y' : man_cmd = 0x010000; break; // light on
+                switch (msg[0]) {
+                    case 'q': man_cmd = 0x000001; break; // grip close
+                    case 'a': man_cmd = 0x000002; break; // grip open
+                    case 'w': man_cmd = 0x000004; break; // wrist up
+                    case 's': man_cmd = 0x000008; break; // wrist down
+                    case 'e': man_cmd = 0x000010; break; // elbow up
+                    case 'd': man_cmd = 0x000020; break; // elbow down
+                    case 'r': man_cmd = 0x000040; break; // shoulder up
+                    case 'f': man_cmd = 0x000080; break; // shoulder down
+                    case 't': man_cmd = 0x000100; break; // base clockwise
+                    case 'g': man_cmd = 0x000200; break; // base counterclockwise
+                    case 'y': man_cmd = 0x010000; break; // light on
                 }
 
-                if (man_cmd != CMD_STOP){
+                if (man_cmd != CMD_STOP) {
                     spi_rw(man_cmd);
                     timer_set(1, MZONE_RDTIME() + MAN_CMD_TIME);
                 }
 
-		    }
+            }
 
-		}
+        }
 
-	}
+    }
 
 }
 

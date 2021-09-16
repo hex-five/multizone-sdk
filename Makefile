@@ -51,7 +51,7 @@ all: clean
 	$(MAKE) -C zone1
 	$(MAKE) -C zone2
 	$(MAKE) -C zone3
-	$(MAKE) -C zone3.1
+#	$(MAKE) -C zone3.1
 	$(MAKE) -C zone4
 	$(MAKE) -C bsp/$(BOARD)/boot
 	java -jar multizone.jar \

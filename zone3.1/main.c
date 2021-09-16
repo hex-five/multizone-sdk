@@ -125,7 +125,7 @@ void msg_handler_task( void *pvParameters ){ // msg_handler_task
         char msg[16]; memcpy(msg, (const char *)inbox, sizeof msg);
         taskEXIT_CRITICAL();
 
-		if (strncmp("ping", msg, sizeof msg)==0){
+		if (strcmp("ping", msg)==0){
 
 			MZONE_SEND(zone1, (char [16]){"pong"});
 
@@ -137,19 +137,19 @@ void msg_handler_task( void *pvParameters ){ // msg_handler_task
 
 			else if (!owi_sequence_is_running()){
 
-                if (strncmp("start", msg, sizeof msg) == 0) {
+                if (strcmp("start", msg) == 0) {
                     owi_sequence_start(MAIN);
                     vTaskResume(robot_seq_task_handle);
 
-                } else if (strncmp("fold", msg, sizeof msg) == 0) {
+                } else if (strcmp("fold", msg) == 0) {
                     owi_sequence_start(FOLD);
                     vTaskResume(robot_seq_task_handle);
 
-                } else if (strncmp("unfold", msg, sizeof msg) == 0) {
+                } else if (strcmp("unfold", msg) == 0) {
                     owi_sequence_start(UNFOLD);
                     vTaskResume(robot_seq_task_handle);
 
-                } else {
+                } else if (strnlen(msg, sizeof msg)==1){
 
                     // Manual single-command adjustments
                     switch (msg[0]){
