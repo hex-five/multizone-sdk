@@ -11,9 +11,9 @@
 #define SPI_TDO  9  // out
 //#define SPI_SYN  8  // out - not used
 
-#define MAN_CMD_TIME 200*RTC_FREQ/1000 // 200ms
+#define MAN_CMD_TIME RTC_FREQ/1000*200 // 200ms
 #define KEEP_ALIVE_TIME 1*RTC_FREQ 	   // 1 sec
-#define LED_TIME 20*RTC_FREQ/1000      //  20ms
+#define LED_TIME RTC_FREQ/1000*20      //  20ms
 
 static uint8_t CRC8(const uint8_t bytes[]){
 
@@ -40,20 +40,21 @@ static uint32_t spi_rw(const uint32_t cmd){
 
 	uint32_t rx_data = 0;
 
-	for (uint32_t i = 1<<31; i != 0; i = i>>1){
+    for (uint32_t i = 1<<31; i != 0; i >>= 1){
 
-		if (tx_data & i)
-		    GPIO_REG(GPIO_OUTPUT_VAL) |=  (1 << SPI_TDO);
-		else
-			GPIO_REG(GPIO_OUTPUT_VAL) &= ~(1 << SPI_TDO);
+        BITSET(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TCK);
 
-		GPIO_REG(GPIO_OUTPUT_VAL) |=  (1 << SPI_TCK);
-		GPIO_REG(GPIO_OUTPUT_VAL) &= ~(1 << SPI_TCK);
+        if (tx_data & i)
+            BITSET(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TDO);
+        else
+            BITCLR(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TDO);
 
-		if( GPIO_REG(GPIO_INPUT_VAL) & (1<< SPI_TDI) )
-		    rx_data |= i;
+        BITCLR(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TCK);
 
-	}
+        if( GPIO_REG(GPIO_INPUT_VAL) & (1<< SPI_TDI) )
+            rx_data |= i;
+
+    }
 
 	return rx_data;
 }
@@ -137,13 +138,13 @@ uint64_t task2(){ // Keep alive 1sec
 	const uint64_t time = MZONE_RDTIME();
 
     // Turn on LED & start LED timer
-    GPIO_REG(GPIO_OUTPUT_VAL) |= (1<<LED);
+	BITSET(GPIO_BASE+GPIO_OUTPUT_VAL, 1<<LED);
     timer_set(3, time + LED_TIME);
 
 	return time + KEEP_ALIVE_TIME;
 }
 uint64_t task3(){ // LED off
-	GPIO_REG(GPIO_OUTPUT_VAL) &= ~(1<<LED);
+    BITCLR(GPIO_BASE+GPIO_OUTPUT_VAL, 1<<LED);
 	return UINT64_MAX;
 }
 

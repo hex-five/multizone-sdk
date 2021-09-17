@@ -45,12 +45,12 @@ static uint32_t spi_rw(const uint32_t cmd){
 
     for (uint32_t i = 1<<31; i != 0; i >>= 1){
 
+        BITSET(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TCK);
+
         if (tx_data & i)
             BITSET(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TDO);
         else
             BITCLR(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TDO);
-
-        BITSET(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TCK);
 
         BITCLR(GPIO_BASE+GPIO_OUTPUT_VAL, 1 << SPI_TCK);
 

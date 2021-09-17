@@ -54,6 +54,7 @@ all: clean
 #	$(MAKE) -C zone3.1
 	$(MAKE) -C zone4
 	$(MAKE) -C bsp/$(BOARD)/boot
+
 	java -jar multizone.jar \
 		--arch $(BOARD) \
 		--config bsp/$(BOARD)/multizone.cfg \
