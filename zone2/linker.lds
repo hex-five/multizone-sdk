@@ -5,9 +5,9 @@ OUTPUT_ARCH( "riscv" )
 ENTRY( _start )
 
 MEMORY {
-  flash (rxai!w) : ORIGIN = flash + 0xA000, LENGTH = 8K
-  prog  (rxai!w) : ORIGIN = flash + 0xA000, LENGTH = 8K
-  ram   (wa!xri) : ORIGIN = dtim  + 0x2800, LENGTH = 2K
+  flash (rxai!w) : ORIGIN = flash + 0x6000, LENGTH = 8K
+  prog  (rxai!w) : ORIGIN = flash + 0x6000, LENGTH = 8K
+  ram   (wa!xri) : ORIGIN = dtim  + 0x2000, LENGTH = 4K
 }
 
 SECTIONS {

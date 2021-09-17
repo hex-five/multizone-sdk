@@ -94,7 +94,7 @@ int main (void){
 	xTaskCreate(msg_handler_task, "msg_handler_task", configMINIMAL_STACK_SIZE, NULL, 1, &msg_handler_task_handle);
 
     /* Create the task. */
-	xTaskCreate(spi_poll_task, "spi_poll_task", configMINIMAL_STACK_SIZE, NULL, 1, &spi_poll_task_handle);
+	xTaskCreate(spi_poll_task, "spi_poll_task", configMINIMAL_STACK_SIZE, NULL, 0, &spi_poll_task_handle);
 
     /* Create the task. */
 	xTaskCreate(robot_cmd_task, "robot_cmd_task", configMINIMAL_STACK_SIZE, NULL, 1, &robot_cmd_task_handle);

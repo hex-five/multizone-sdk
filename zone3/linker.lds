@@ -5,14 +5,14 @@ OUTPUT_ARCH( "riscv" )
 ENTRY( _start )
 
 MEMORY {
-  flash (rxai!w) : ORIGIN = flash + 0xC000, LENGTH = 8K
-  prog  (rxai!w) : ORIGIN = flash + 0xC000, LENGTH = 8K
-  ram   (wa!xri) : ORIGIN = dtim  + 0x3000, LENGTH = 3K
+  flash (rxai!w) : ORIGIN = flash + 0x4000, LENGTH = 8K
+  prog  (rxai!w) : ORIGIN = flash + 0x4000, LENGTH = 8K
+  ram   (wa!xri) : ORIGIN = dtim  + 0x1000, LENGTH = 4K
 }
 
 SECTIONS {
 
-  __stack_size = DEFINED(__stack_size) ? __stack_size : 128;
+  __stack_size = DEFINED(__stack_size) ? __stack_size : 256;
   PROVIDE(__stack_size = __stack_size);
 
 

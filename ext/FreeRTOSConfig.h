@@ -11,7 +11,7 @@ your application. */
 set configUSE_TICKLESS_IDLE 1 and configUSE_IDLE_HOOK 0 to enable
 MultiZone vPortSuppressTicksAndSleep() */
 
-#define configISR_STACK_SIZE_WORDS 		(30)
+#define configISR_STACK_SIZE_WORDS 		(100)
 #define configMTIME_BASE_ADDRESS		( CLINT_BASE + CLINT_MTIME )
 #define configMTIMECMP_BASE_ADDRESS		( CLINT_BASE + CLINT_MTIMECMP )
 
@@ -22,7 +22,7 @@ MultiZone vPortSuppressTicksAndSleep() */
 #define configCPU_CLOCK_HZ                      ( (TickType_t) RTC_FREQ )
 #define configTICK_RATE_HZ                      ( (TickType_t) 1000 )
 #define configMAX_PRIORITIES                    2
-#define configMINIMAL_STACK_SIZE                72
+#define configMINIMAL_STACK_SIZE                100
 // #define configMAX_TASK_NAME_LEN                 16
 #define configUSE_16_BIT_TICKS                  0
 // #define configIDLE_SHOULD_YIELD                 1
@@ -43,7 +43,7 @@ MultiZone vPortSuppressTicksAndSleep() */
 /* Memory allocation related definitions. */
 // #define configSUPPORT_STATIC_ALLOCATION         1
 // #define configSUPPORT_DYNAMIC_ALLOCATION        1
-#define configTOTAL_HEAP_SIZE                   2080
+#define configTOTAL_HEAP_SIZE                   2704
 // #define configAPPLICATION_ALLOCATED_HEAP        1
 
 /* Hook function related definitions. */
