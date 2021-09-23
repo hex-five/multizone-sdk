@@ -6,14 +6,14 @@
 
 BOARD ?= X300
 
-ifeq ($(filter $(BOARD), X300 E31 FE310), $(BOARD))
+ifeq ($(filter $(BOARD), X300 E21 E31 FE310), $(BOARD))
     ARCH := rv32
     RISCV_ARCH := $(ARCH)imac
     RISCV_ABI := ilp32
 else ifeq ($(filter $(BOARD), S51), $(BOARD))
     ARCH := rv64
     RISCV_ARCH := $(ARCH)imac
-    RISCV_ABI := lp64		
+    RISCV_ABI := lp64
 else
     $(error Unsupported board $(BOARD))
 endif

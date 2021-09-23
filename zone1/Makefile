@@ -8,9 +8,8 @@ NEWLIB_DIR := $(PLATFORM_DIR)/newlib
 
 LINKER_SCRIPT := linker.lds
 
-C_SRCS += main.c
+C_SRCS += main.c printf.c strtok.c
 
 INCLUDES += -I ../ 
 
 include $(NEWLIB_DIR)/newlib.mk
-

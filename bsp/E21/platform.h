@@ -3,14 +3,8 @@
 #ifndef HEXFIVE_PLATFORM_H
 #define HEXFIVE_PLATFORM_H
 
-
-#define CPU_FREQ	64998442 
-#define RTC_FREQ 	   16416
-
-// -----------------------------------------------------------------------------
-// Ethernet
-// -----------------------------------------------------------------------------
-#define XEMAC_BASE 0x60000000
+#define CPU_FREQ    32500000
+#define RTC_FREQ    32832
 
 // -----------------------------------------------------------------------------
 // RTC (CLINT)
@@ -22,9 +16,18 @@
 #define CLINT_MTIME	    0xBFF8
 
 // -----------------------------------------------------------------------------
+// CLIC
+// ------------------------------------------------------------------------------
+#define CLIC_BASE   0x02800000
+#define CLIC_INT_PENDING    0x000  // CLIC Interrupt Pending Registers
+#define CLIC_INT_ENABLE     0x400  // CLIC Interrupt Enable Registers
+#define CLIC_INT_ATTR       0x800  // CLIC Interrupt Attribute Registers
+#define CLIC_CFG            0xC00  // CLIC Configuration Register
+
+// -----------------------------------------------------------------------------
 // UART
 // -----------------------------------------------------------------------------
-#define UART_BASE 	0x10013000
+#define UART_BASE 	0x20000000
 
 #define UART_TXFIFO 0x00
 #define UART_RXFIFO 0x04
@@ -34,12 +37,12 @@
 #define UART_IP 	0x14
 #define UART_DIV 	0x18
 
-#define UART_IRQ    11 // PLIC_SRC_UART 3
+#define UART_IRQ    159
 
 // -----------------------------------------------------------------------------
 // PWM
 // -----------------------------------------------------------------------------
-#define PWM_BASE	0x10025000
+#define PWM_BASE	0x20005000
 
 #define PWM_CFG		0x00
 #define PWM_COUNT	0x08
@@ -71,7 +74,7 @@
 // -----------------------------------------------------------------------------
 // GPIO
 // ------------------------------------------------------------------------------
-#define GPIO_BASE 	0x10012000
+#define GPIO_BASE 	0x20002000
 
 #define GPIO_INPUT_VAL  0x00
 #define GPIO_INPUT_EN   0x04
@@ -94,41 +97,26 @@
 // -----------------------------------------------------------------------------
 // Buttons (GPIO and IRQ assignments)
 // ------------------------------------------------------------------------------
-#define BTN0  15
-#define BTN1  30
-#define BTN2  31
+#define BTN0  4
+#define BTN1  5
+#define BTN2  6
+#define BTN3  7
 
-#define BTN0_IRQ 16 // CLINT
-#define BTN1_IRQ 17 // CLINT
-#define BTN2_IRQ 18 // CLINT
+#define BTN0_IRQ 16+4
+#define BTN1_IRQ 16+5
+#define BTN2_IRQ 16+6
 
 // -----------------------------------------------------------------------------
 // LED0 (GPIO)
 // ------------------------------------------------------------------------------
-#define LED_RED	 1
-#define LED_GRN	 2
-#define LED_BLUE 3
-
-// -----------------------------------------------------------------------------
-// PLIC (shared)
-// ------------------------------------------------------------------------------
-#define PLIC_BASE 	0x0C000000
-
-#define PLIC_PRI 			0
-#define PLIC_EN				0x002000
-#define PLIC_IP				0x001000
-#define PLIC_THRES			0x200000
-#define PLIC_CLAIM			0x200004
-#define PLIC_SHIFT_PER_TRG	1
-#define PLIC_SHIFT_PER_SRC 	2
-
-#define PLIC_SRC_UART		3
-#define PLIC_SRC_XEMAC		21
+#define LED_RED	 0
+#define LED_GRN	 1
+#define LED_BLUE 2
 
 // -----------------------------------------------------------------------------
 // DMA (single channel mockup)
 // ------------------------------------------------------------------------------
-#define DMA_BASE 	  0x10040000
+#define DMA_BASE 	0x20001000
 
 #define DMA_VER_OFF			0x00
 #define DMA_CFG_OFF			0x10
@@ -141,7 +129,7 @@
 #define DMA_TR_DEST_OFF		0x4C /* +ch*0x14 */
 #define DMA_TR_SIZE_OFF		0x50 /* +ch*0x14 */
 
-#define DMA_IRQ				  19 /* Mockup */
+#define DMA_IRQ               19 /* Mockup (SW3) */
 
 // -----------------------------------------------------------------------------
 // C Helper functions
@@ -150,12 +138,11 @@
 #define _REG64(base, offset) (*(volatile uint64_t *)((base) + (offset)))
 #define _REG32(base, offset) (*(volatile uint32_t *)((base) + (offset)))
 
-#define CLINT_REG(offset) _REG64(CLINT_BASE, offset)
-#define GPIO_REG(offset)  _REG32(GPIO_BASE, offset)
-#define PWM_REG(offset)   _REG32(PWM_BASE, offset)
-#define UART_REG(offset)  _REG32(UART_BASE, offset)
-#define PLIC_REG(offset)  _REG32(PLIC_BASE, offset)
-#define DMA_REG(offset)   _REG32(DMA_BASE, offset)
+#define CLIC_REG(offset) _REG64(CLIC_BASE, offset)
+#define GPIO_REG(offset) _REG32(GPIO_BASE, offset)
+#define PWM_REG(offset)  _REG32(PWM_BASE, offset)
+#define UART_REG(offset) _REG32(UART_BASE, offset)
+#define DMA_REG(offset)  _REG32(DMA_BASE, offset)
 
 
 #endif /* HEXFIVE_PLATFORM_H */

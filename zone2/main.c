@@ -65,7 +65,6 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	MZONE_ADTIMECMP((uint64_t)5*RTC_FREQ/1000);
 
 }
-
 __attribute__((interrupt())) void btn0_handler(void) {
 
 	static uint64_t debounce = 0;
@@ -120,7 +119,11 @@ void b0_irq_init()  {
     GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN0);
 
     // enable irq
+#ifdef CLIC_BASE
+    *(volatile uint8_t *)(CLIC_BASE + CLIC_INT_ENABLE + BTN0_IRQ) = 0x1;
+#else
     CSRS(mie, 1<<(BTN0_IRQ));
+#endif
 
 }
 
@@ -137,8 +140,11 @@ void b1_irq_init()  {
     // set to interrupt on rising edge
     GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN1);
 
-    // enable irq
+#ifdef CLIC_BASE
+    *(volatile uint8_t *)(CLIC_BASE + CLIC_INT_ENABLE + BTN1_IRQ) = 0x1;
+#else
     CSRS(mie, 1<<(BTN1_IRQ));
+#endif
 
 }
 
@@ -152,11 +158,15 @@ void b2_irq_init()  {
     GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN2);
     GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BTN2);
 
-    //s et to interrupt on rising edge
+    //set to interrupt on rising edge
     GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN2);
 
-    // enable irq
+#ifdef CLIC_BASE
+    *(volatile uint8_t *)(CLIC_BASE + CLIC_INT_ENABLE + BTN2_IRQ) = 0x1;
+#else
     CSRS(mie, 1<<(BTN2_IRQ));
+#endif
+
 }
 
 int main (void){
@@ -218,9 +228,6 @@ int main (void){
         }
 
         CSRS(mie, 1 << 3);
-
-        // Test workload ~4ms
-        //for (volatile int i = 0; i < ???; i++);
 
         // Wait For Interrupt
         MZONE_WFI();

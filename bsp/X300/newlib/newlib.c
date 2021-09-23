@@ -78,7 +78,7 @@ int _read(int file, char *ptr, size_t len) {
 
 	if (isatty(file)) {
 
-		ssize_t count = 0;
+		size_t count = 0;
 		int rxfifo = -1;
 
 		while( count<len && ((rxfifo = UART_REG(UART_RXFIFO)) >0) ){
@@ -90,6 +90,21 @@ int _read(int file, char *ptr, size_t len) {
 	}
 
 	return -1;
+}
+
+// ----------------------------------------------------------------------------
+void _putchar(const char c) {
+// ----------------------------------------------------------------------------
+
+    while (UART_REG(UART_TXFIFO) & 0x80000000){;}
+
+    UART_REG(UART_TXFIFO) = c;
+
+    if (c == '\n') {
+        while (UART_REG(UART_TXFIFO) & 0x80000000){;}
+        UART_REG(UART_TXFIFO) = '\r';
+    }
+
 }
 
 // ----------------------------------------------------------------------------

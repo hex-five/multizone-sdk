@@ -82,7 +82,7 @@ void timer_set(const int i, const uint64_t timecmp){
 	timer[i].timecmp = timecmp;
 
 	uint64_t timecmp_min = UINT64_MAX;
-	for (int i=0; i<sizeof(timer)/sizeof(timer[0]); i++)
+	for (size_t i=0; i<sizeof(timer)/sizeof(timer[0]); i++)
 		timecmp_min = timer[i].timecmp < timecmp_min ? timer[i].timecmp : timecmp_min;
 
 	MZONE_WRTIMECMP(timecmp_min);
@@ -90,7 +90,7 @@ void timer_set(const int i, const uint64_t timecmp){
 }
 void timer_handler(const uint64_t time){
 
-	for (int i=0; i<sizeof(timer)/sizeof(timer[0]); i++)
+	for (size_t i=0; i<sizeof(timer)/sizeof(timer[0]); i++)
 		if(time >= timer[i].timecmp){
 			timer_set(i, timer[i].task());
 			break;

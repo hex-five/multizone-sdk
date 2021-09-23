@@ -1,0 +1,20 @@
+/* Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved */
+
+To run zone1 program in ram (ITIM0 @0x80004000):
+
+
+- edit MEMORY {prog ...} in zone1/linker.lds
+
+MEMORY {
+  flash ...
+  prog  (rxai!w) : ORIGIN = dtim  + 0x4000, LENGTH = 16K
+  ram   ...
+}
+
+
+- edit zone1 first region in bsp/E21/multizone.cfg
+
+Zone = 1
+    ...
+    base = 0x80004000; size =   16K; rwx = rx; load = 0x40408000
+    ...   

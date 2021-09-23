@@ -36,9 +36,6 @@ int main (void){
 				MZONE_SEND(1, msg);
 		}
 
-		// Do something for ~4ms
-		// for(volatile int i=0; i<???; i++){;}
-
 		// Suspend waiting for incoming msg
 		MZONE_WFI();
 

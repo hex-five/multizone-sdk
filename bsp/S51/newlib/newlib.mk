@@ -14,7 +14,7 @@ LDFLAGS += --specs=nano.specs
 LDFLAGS += --specs=nosys.specs
 LDFLAGS += -nostartfiles
 LDFLAGS += -Xlinker --gc-sections
-LDFLAGS += -Wl,-Map,$(MAP)
+LDFLAGS += -Wl,-Map,$(MAP) -Wl,--cref
 
 ASM_OBJS := $(ASM_SRCS:.S=.o)
 C_OBJS := $(C_SRCS:.c=.o)
@@ -29,7 +29,7 @@ CFLAGS += -mabi=$(RISCV_ABI)
 CFLAGS += -mcmodel=medany
 CFLAGS += -msmall-data-limit=8
 CFLAGS += -ffunction-sections -fdata-sections
-CFLAGS += -Wall
+CFLAGS += -Wall -Wextra -Wno-unused-parameter
 CFLAGS += -Os -ggdb
 
 HEX = $(subst .elf,.hex,$(TARGET))

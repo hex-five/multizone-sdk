@@ -45,11 +45,11 @@ Note: GtkTerm is optional and required only to connect to the reference applicat
 
 **GNU RISC-V Toolchain**
 
-Hex Five reference build: RISC-V GNU Toolchain Linux 64-bit August 07, 2021
+Hex Five reference build: RISC-V GNU Toolchain Linux 64-bit June 18, 2021
 ```
 cd ~
-wget https://hex-five.com/wp-content/uploads/riscv-gnu-toolchain-20210807.tar.gz
-tar -xvf riscv-gnu-toolchain-20210807.tar.gz
+wget https://hex-five.com/wp-content/uploads/riscv-gnu-toolchain-20210618.tar.xz
+tar -xvf riscv-gnu-toolchain-20210618.tar.xz
 ```
 
 **OpenOCD on-chip debugger**
@@ -248,5 +248,3 @@ Please remember that export/import and/or use of strong cryptography software, p
 MultiZone and HEX-Five are registered trademarks of Hex Five Security, Inc.
 
 MultiZone technology is patent pending US 16450826, PCT US1938774.
-
-
