@@ -20,7 +20,7 @@ ASM_SRCS += $(FREERTOS_SRC_DIR)/portable/GCC/RISC-V/portASM.S
 INCLUDES += -I ../
 INCLUDES += -I ../ext
 
-INCLUDES += -I$(FREERTOS_SRC_DIR)/include 
+INCLUDES += -I$(FREERTOS_SRC_DIR)/include
 INCLUDES += -I$(FREERTOS_SRC_DIR)/portable/GCC/RISC-V
 INCLUDES += -I$(FREERTOS_SRC_DIR)/portable/GCC/RISC-V/chip_specific_extensions/RV32I_CLINT_no_extensions
 

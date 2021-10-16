@@ -60,7 +60,7 @@ int _open(const char* name, int flags, int mode) {
 
 	if (strcmp(name, "UART")==0){
 
-		UART_REG(UART_DIV) = CPU_FREQ/115200-1;
+		UART_REG(UART_DIV) = CPU_FREQ/(115200-1);
 		UART_REG(UART_TXCTRL) = 0b01;
 		UART_REG(UART_RXCTRL) = 0b01;
 		UART_REG(UART_IE)     = 0b10; // RX irq
@@ -117,14 +117,8 @@ size_t _write(int file, const void *ptr, size_t len) {
 
 		for (size_t i = 0; i < len; i++) {
 
-			while (UART_REG(UART_TXFIFO) & 0x80000000){;}
+		    _putchar(buff[i]);
 
-			UART_REG(UART_TXFIFO) = buff[i];
-
-			if (buff[i] == '\n') {
-				while (UART_REG(UART_TXFIFO) & 0x80000000){;}
-				UART_REG(UART_TXFIFO) = '\r';
-			}
 		}
 
 		return len;

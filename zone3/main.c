@@ -67,19 +67,32 @@ static volatile uint32_t usb_state = 0;
 static volatile uint32_t man_cmd = CMD_STOP;
 static volatile int LED = LED_RED;
 
-uint64_t task0(); // OWI Sequence
-uint64_t task1(); // Manual cmd stop
-uint64_t task2(); // Keep alive
-uint64_t task3(); // LED off
+typedef enum {zone1=1, zone2, zone3, zone4} Zone;
+
+typedef enum {
+	ROBOT_SEQ_TASK,
+	ROBOT_CMD_TASK,
+	KEEP_ALIVE_TASK,
+	LED_OFF_TASK
+} Task;
+
+uint64_t robot_seq_task(); 	// OWI sequence
+uint64_t robot_cmd_task(); 	// Manual cmd stop
+uint64_t keep_alive_task(); // Keep alive
+uint64_t led_off_task(); 	// LED off
 
 static struct {
 	uint64_t (*task)(void);
 	uint64_t timecmp;
-} timer[] = {{task0, UINT64_MAX}, {task1, UINT64_MAX}, {task2, UINT64_MAX}, {task3, UINT64_MAX}};
+} timer[] = {{robot_seq_task, UINT64_MAX},
+	{robot_cmd_task, UINT64_MAX},
+	{keep_alive_task, UINT64_MAX},
+	{led_off_task, UINT64_MAX}
+};
 
-void timer_set(const int i, const uint64_t timecmp){
+void timer_set(const Task task, const uint64_t timecmp){
 
-	timer[i].timecmp = timecmp;
+	timer[task].timecmp = timecmp;
 
 	uint64_t timecmp_min = UINT64_MAX;
 	for (size_t i=0; i<sizeof(timer)/sizeof(timer[0]); i++)
@@ -97,7 +110,7 @@ void timer_handler(const uint64_t time){
 		}
 }
 
-uint64_t task0(){ // OWI sequence
+uint64_t robot_seq_task(){ // OWI sequence
 
 	uint64_t timecmp = UINT64_MAX;
 
@@ -113,11 +126,11 @@ uint64_t task0(){ // OWI sequence
 	return timecmp;
 
 }
-uint64_t task1(){ // Manual cmd stop
+uint64_t robot_cmd_task(){ // Manual cmd stop
 	spi_rw(man_cmd = CMD_STOP);
 	return UINT64_MAX;
 }
-uint64_t task2(){ // Keep alive 1sec
+uint64_t keep_alive_task(){ // Keep alive 1sec
 
 	// Send keep alive packet and check ret value
 	volatile uint32_t rx_data = spi_rw(CMD_DUMMY);
@@ -139,11 +152,11 @@ uint64_t task2(){ // Keep alive 1sec
 
     // Turn on LED & start LED timer
 	BITSET(GPIO_BASE+GPIO_OUTPUT_VAL, 1<<LED);
-    timer_set(3, time + LED_TIME);
+    timer_set(LED_OFF_TASK, time + LED_TIME);
 
 	return time + KEEP_ALIVE_TIME;
 }
-uint64_t task3(){ // LED off
+uint64_t led_off_task(){ // LED off
     BITCLR(GPIO_BASE+GPIO_OUTPUT_VAL, 1<<LED);
 	return UINT64_MAX;
 }
@@ -178,58 +191,42 @@ __attribute__(( interrupt())) void trap_handler(void){
 
 }
 
-void msg_handler(const char *msg){
+void msg_handler(const Zone zone, const char *msg){
 
-    if (strcmp("ping", msg) == 0) {
-        MZONE_SEND(1, (char[16]){"pong"});
+	if (strcmp("ping", msg)==0){
+		MZONE_SEND(zone, "pong");
 
-    } else if (usb_state == 0x12670000 && man_cmd == CMD_STOP) {
+	} else if (usb_state==0x12670000 && man_cmd==CMD_STOP){
 
-        if (strcmp("stop", msg) == 0)
-            owi_sequence_stop_req();
+		if (strcmp("stop", msg)==0) owi_sequence_stop_req();
 
-        else if (!owi_sequence_is_running()) {
+		else if (!owi_sequence_is_running()){
 
-            if (strcmp("start", msg) == 0) {
-                owi_sequence_start(MAIN);
-                timer_set(0, 0);
+			     if (strcmp("start", msg)==0) {owi_sequence_start(MAIN);   timer_set(ROBOT_SEQ_TASK, 0);}
+			else if (strcmp("fold",  msg)==0) {owi_sequence_start(FOLD);   timer_set(ROBOT_SEQ_TASK, 0);}
+			else if (strcmp("unfold",msg)==0) {owi_sequence_start(UNFOLD); timer_set(ROBOT_SEQ_TASK, 0);}
 
-            } else if (strcmp("fold", msg) == 0) {
-                owi_sequence_start(FOLD);
-                timer_set(0, 0);
+			// Manual single-command adjustments
+			else if (strcmp("q", msg)==0) man_cmd = 0x000001; // grip close
+			else if (strcmp("a", msg)==0) man_cmd = 0x000002; // grip open
+			else if (strcmp("w", msg)==0) man_cmd = 0x000004; // wrist up
+			else if (strcmp("s", msg)==0) man_cmd = 0x000008; // wrist down
+			else if (strcmp("e", msg)==0) man_cmd = 0x000010; // elbow up
+			else if (strcmp("d", msg)==0) man_cmd = 0x000020; // elbow down
+			else if (strcmp("r", msg)==0) man_cmd = 0x000040; // shoulder up
+			else if (strcmp("f", msg)==0) man_cmd = 0x000080; // shoulder down
+			else if (strcmp("t", msg)==0) man_cmd = 0x000100; // base clockwise
+			else if (strcmp("g", msg)==0) man_cmd = 0x000200; // base counterclockwise
+			else if (strcmp("y", msg)==0) man_cmd = 0x010000; // light on
 
-            } else if (strcmp("unfold", msg) == 0) {
-                owi_sequence_start(UNFOLD);
-                timer_set(0, 0);
+			if (man_cmd != CMD_STOP){
+				spi_rw(man_cmd);
+				timer_set(ROBOT_CMD_TASK, MZONE_RDTIME() + MAN_CMD_TIME);
+			}
 
-            } else if (strnlen(msg, sizeof msg)==1){
+		}
 
-
-                // Manual single-command adjustments
-                switch (msg[0]) {
-                    case 'q': man_cmd = 0x000001; break; // grip close
-                    case 'a': man_cmd = 0x000002; break; // grip open
-                    case 'w': man_cmd = 0x000004; break; // wrist up
-                    case 's': man_cmd = 0x000008; break; // wrist down
-                    case 'e': man_cmd = 0x000010; break; // elbow up
-                    case 'd': man_cmd = 0x000020; break; // elbow down
-                    case 'r': man_cmd = 0x000040; break; // shoulder up
-                    case 'f': man_cmd = 0x000080; break; // shoulder down
-                    case 't': man_cmd = 0x000100; break; // base clockwise
-                    case 'g': man_cmd = 0x000200; break; // base counterclockwise
-                    case 'y': man_cmd = 0x010000; break; // light on
-                }
-
-                if (man_cmd != CMD_STOP) {
-                    spi_rw(man_cmd);
-                    timer_set(1, MZONE_RDTIME() + MAN_CMD_TIME);
-                }
-
-            }
-
-        }
-
-    }
+	}
 
 }
 
@@ -250,14 +247,14 @@ int main (void){
     CSRS(mstatus, 1<<3);		// enable global interrupts
 
     // Start task2: Hartbeat LED, USB status, Keep alive pkt
-    timer_set(2, 0);
+    timer_set(KEEP_ALIVE_TASK, 0);
 
 	while(1){
 
 		// Message handler
 		CSRC(mie, 1 << 3);
 			if (msg[0] != '\0') {
-				msg_handler((const char *)msg);
+				msg_handler(zone1, (char *)msg);
 				msg[0] = '\0';
 			}
 		CSRS(mie, 1 << 3);

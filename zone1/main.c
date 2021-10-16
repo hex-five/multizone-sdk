@@ -99,9 +99,9 @@ __attribute__((interrupt())) void msi_isr(void)  { // msip/inbox (3)
 }
 __attribute__((interrupt())) void tmr_isr(void)  { // timer (7)
 
-    const unsigned mcause = MZONE_CSRR(CSR_MCAUSE);
-    const unsigned mepc   = MZONE_CSRR(CSR_MEPC);
-    const unsigned mtval  = MZONE_CSRR(CSR_MTVAL);
+    const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
+    const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
+    const unsigned long mtval  = MZONE_CSRR(CSR_MTVAL);
 
     write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
     printf("\rTimer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
@@ -132,9 +132,9 @@ __attribute__((interrupt())) void dma_isr(void)  { // dma
 #ifdef DMA_BASE
     write(1, "\e7\e[2K", 6);    // save curs pos & clear entire line
     printf("\rDMA transfer complete \n");
-    printf("source : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_SRC_OFF));
-    printf("dest   : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_DEST_OFF));
-    printf("size   : 0x%08x \n", (unsigned)DMA_REG(DMA_TR_SIZE_OFF));
+    printf("source : 0x%08x \n", DMA_REG(DMA_TR_SRC_OFF));
+    printf("dest   : 0x%08x \n", DMA_REG(DMA_TR_DEST_OFF));
+    printf("size   : 0x%08x \n", DMA_REG(DMA_TR_SIZE_OFF));
     write(1, "\e8\e[4B", 6);    // restore curs pos & curs down 4x
 
     // clear irq's by writing 1’s (R/W1C)
@@ -179,10 +179,10 @@ void print_sys_info(void) {
 	printf("Architecture  : 0x%08x %s \n", (int)marchid, marchid_str);
 
 	// mimpid
-	printf("Implementation: 0x%08x \n", (unsigned)CSRR(mimpid) );
+	printf("Implementation: 0x%08x \n", CSRR(mimpid) );
 
 	// mhartid
-	printf("Hart id       : 0x%1x \n", (unsigned)CSRR(mhartid) );
+	printf("Hart id       : 0x%1x \n", CSRR(mhartid) );
 
 	// CPU clk
 	printf("CPU clock     : %d MHz \n", (int)(CPU_FREQ/1E+6) );
@@ -198,19 +198,19 @@ void print_sys_info(void) {
 	printf(" \n");
 
 #ifdef PLIC_BASE
-	printf("PLIC @0x%08x \n", (unsigned)PLIC_BASE);
+	printf("PLIC @0x%08x \n", PLIC_BASE);
 #endif
 #ifdef CLIC_BASE
-	printf("CLIC @0x%08x \n", (unsigned)CLIC_BASE);
+	printf("CLIC @0x%08x \n", CLIC_BASE);
 #endif
 #ifdef DMA_BASE
-	printf("DMAC @0x%08x \n", (unsigned)DMA_BASE);
+	printf("DMAC @0x%08x \n", DMA_BASE);
 #endif
 #ifdef UART_BASE
-	printf("UART @0x%08x \n", (unsigned)UART_BASE);
+	printf("UART @0x%08x \n", UART_BASE);
 #endif
 #ifdef GPIO_BASE
-	printf("GPIO @0x%08x \n", (unsigned)GPIO_BASE);
+	printf("GPIO @0x%08x \n", GPIO_BASE);
 #endif
 
 }
@@ -364,29 +364,32 @@ void print_pmp(void){
 // ------------------------------------------------------------------------
 void msg_handler() {
 
-	CSRC(mie, 1<<3);
+    CSRC(mie, 1 << 3);
 
-	for (Zone zone=zone1; zone<=zone4; zone++){
+    for (Zone zone = zone1; zone <= zone4; zone++) {
 
-			if (inbox[zone-1][0] != '\0') {
+        char * const msg = (char *)inbox[zone-1];
 
-				if (strcmp("ping", (const char *) inbox[zone-1]) == 0) {
-				MZONE_SEND(zone, (char[16]){"pong"});
+        if (*msg != '\0') {
 
-			} else {
-				write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
-					printf("\rZ%d > %.16s\n", zone, inbox[zone-1]);
-				write(1, "\nZ1 > ", 6); write(1, inputline, strlen(inputline));
-				write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
-			}
+            if (strcmp("ping", msg) == 0) {
+                MZONE_SEND(zone, msg);
 
-				inbox[zone-1][0] = '\0';
+            } else {
+                write(1, "\e7\e[2K", 6);   // save curs pos & clear entire line
+                printf("\rZ%d > %.16s\n", zone, msg);
+                write(1, "\nZ1 > ", 6);
+                write(1, inputline, strlen(inputline));
+                write(1, "\e8\e[2B", 6);   // restore curs pos & curs down 2x
+            }
 
-		}
+            *msg = '\0';
 
-	}
+        }
 
-	CSRS(mie, 1<<3);
+    }
+
+    CSRS(mie, 1 << 3);
 
 }
 
