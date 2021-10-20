@@ -15,14 +15,23 @@ This release of the MultiZone SDK supports the following development boards:
 This repository is for the Digilent Arty A7 and the SiFive HiFive1 Rev B boards.
 
 The Digilent Arty A7 FPGA is certified for the following bitstreams:
-- ARTY 35T: [Hex Five X300](https://github.com/hex-five/multizone-fpga) v1.0.1 RV32ACIMU – Open source. No license required.
-- ARTY 100T: [SiFive E21](https://www.sifive.com/cores/e21) 20G1.05.00 RV32ACIMU – SiFive evaluation license required.
-- ARTY 100T: [SiFive E31](https://www.sifive.com/cores/e31) 20G1.05.00 RV32ACIMU – SiFive evaluation license required.
-- ARTY 100T: [SiFive S51](https://www.sifive.com/cores/e51) 20G1.05.00 RV64ACIMU – SiFive evaluation license required.
+- [Hex Five X300](https://github.com/hex-five/multizone-fpga) v2.0.0 RV32ACIMU – Free open source. No license required.
+- [SiFive E21](https://www.sifive.com/cores/e21) 20G1.05.00 RV32ACIMU – SiFive evaluation license required.
+- [SiFive E31](https://www.sifive.com/cores/e31) 20G1.05.00 RV32ACIMU – SiFive evaluation license required.
+- [SiFive S51](https://www.sifive.com/cores/e51) 20G1.05.00 RV64ACIMU – SiFive evaluation license required.
 
-Note: The Digilent Arty A7 FPGA is available in two versions: 35T and 100T. The Hex Five X300 bitstream works with the smaller 35T. The SiFive bitstreams require the larger 100T.
+*Note: The Digilent Arty A7 FPGA board is available in two versions: 35T and 100T. Hex Five's X300 bitstream works with both. SiFive's bitstreams work only with the larger, more expensive, 100T.*
 
 For instructions on how to upload the bitstream to the ARTY board and how to connect the [Olimex debug head ARM-USB-TINY-H](https://www.olimex.com/Products/ARM/JTAG/ARM-USB-TINY-H/) see [Arty FPGA Dev Kit Getting Started Guide](https://sifive.cdn.prismic.io/sifive%2Fed96de35-065f-474c-a432-9f6a364af9c8_sifive-e310-arty-gettingstarted-v1.0.6.pdf)
+
+### Quick Start ###
+
+Prebuilt fpga bitstreams including the X300 RISC-V SoC and the MultiZone SDK firmware are provided as release assets ready to go:
+
+- [multizone-sdk-arty-35t.mcs](https://github.com/hex-five/multizone-sdk/releases/download/v2.2.1/multizone-sdk-arty-35t.mcs)
+- [multizone-sdk-arty-100t.mcs](https://github.com/hex-five/multizone-sdk/releases/download/v2.2.1/multizone-sdk-arty-100t.mcs)
+
+If you are impatient to run the MultiZone SDK reference firmware, just upload the right bitstream to your Arty board and skip all steps below. For this you'll only need [Xilinx Vivado Lab](https://www.xilinx.com/support/download.html) an the instructions at https://github.com/hex-five/multizone-fpga#readme   
 
 
 ### MultiZone SDK Installation ###
