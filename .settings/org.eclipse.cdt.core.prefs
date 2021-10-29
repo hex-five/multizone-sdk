@@ -26,7 +26,7 @@ environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890143/OPENOCD/value=${HOME}/riscv-openocd-20210807
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890143/PATH/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890143/PATH/operation=replace
-environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890143/PATH/value=${RISCV}/bin\:/usr/local/bin\:/usr/bin
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890143/PATH/value=${PATH}\:${RISCV}/bin
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890143/RISCV/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890143/RISCV/operation=replace
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.1711890143/RISCV/value=${HOME}/riscv-gnu-toolchain-20210618
@@ -40,7 +40,7 @@ environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.4312424
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.431242482/OPENOCD/value=${HOME}/riscv-openocd-20210807
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.431242482/PATH/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.431242482/PATH/operation=replace
-environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.431242482/PATH/value=${RISCV}/bin\:/usr/local/bin\:/usr/bin
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.431242482/PATH/value=${PATH}\:${RISCV}/bin
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.431242482/RISCV/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.431242482/RISCV/operation=replace
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.431242482/RISCV/value=${HOME}/riscv-gnu-toolchain-20210618
@@ -68,7 +68,7 @@ environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.5905724
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468.475102828/OPENOCD/value=${HOME}/riscv-openocd-20210807
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468.475102828/PATH/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468.475102828/PATH/operation=replace
-environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468.475102828/PATH/value=${RISCV}/bin\:/usr/local/bin\:/usr/bin
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468.475102828/PATH/value=${PATH}\:${RISCV}/bin
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468.475102828/RISCV/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468.475102828/RISCV/operation=replace
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468.475102828/RISCV/value=${HOME}/riscv-gnu-toolchain-20210618
@@ -82,7 +82,7 @@ environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.5905724
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468/OPENOCD/value=${HOME}/riscv-openocd-20210807
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468/PATH/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468/PATH/operation=replace
-environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468/PATH/value=${RISCV}/bin\:/usr/local/bin\:/usr/bin
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468/PATH/value=${PATH}\:${RISCV}/bin
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468/RISCV/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468/RISCV/operation=replace
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.590572468/RISCV/value=${HOME}/riscv-gnu-toolchain-20210618
@@ -96,7 +96,7 @@ environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.8402146
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.840214652/OPENOCD/value=${HOME}/riscv-openocd-20210807
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.840214652/PATH/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.840214652/PATH/operation=replace
-environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.840214652/PATH/value=${RISCV}/bin\:/usr/local/bin\:/usr/bin
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.840214652/PATH/value=${PATH}\:${RISCV}/bin
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.840214652/RISCV/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.840214652/RISCV/operation=replace
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180.840214652/RISCV/value=${HOME}/riscv-gnu-toolchain-20210618
@@ -110,7 +110,7 @@ environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/OPENOCD
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/OPENOCD/value=${HOME}/riscv-openocd-20210807
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/PATH/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/PATH/operation=replace
-environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/PATH/value=${RISCV}/bin\:/usr/local/bin\:/usr/bin
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/PATH/value=${PATH}\:${RISCV}/bin
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/RISCV/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/RISCV/operation=replace
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1603369180/RISCV/value=${HOME}/riscv-gnu-toolchain-20210618

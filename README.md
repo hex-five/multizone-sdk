@@ -36,7 +36,7 @@ If you are impatient to run the MultiZone SDK reference firmware, just upload th
 
 ### MultiZone SDK Installation ###
 
-The MultiZone SDK works with any versions of Linux, Windows, and Mac capable of running Java 1.8 or greater. The directions in this readme have been verified with fresh installations of Ubuntu 20.04, Ubuntu 19.10, Ubuntu 18.04.5, and Debian 10.5. Other Linux distros are similar. Windows developers may want to install a Linux emulation environment like Cygwin or run the SDK in a Linux VM guest (2GB Disk, 2GB Ram)
+The MultiZone SDK works with any versions of Linux, Windows, and Mac capable of running Java 1.8 or greater. The directions in this readme have been carefully verified with fresh installations of Ubuntu 20.04, Ubuntu 19.10, Ubuntu 18.04.5, and Debian 10.5. Other Linux distros are similar. Windows developers may want to install a Linux emulation environment like MYSYS2/MinGW64 or, even better, Windows Subsystem for Linux. Hex Five's precompiled gnu toolchain and openOCD for Windows are available at https://hex-five.com/download/
 
 **Linux prerequisites**
 
