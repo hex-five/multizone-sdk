@@ -15,6 +15,12 @@
 
 static volatile char msg[16] = {'\0'};
 
+// ------------------------------------------------------------------------
+#ifdef E21
+    static void (*trap_vect[173])(void) = {};
+#else
+    static void (*trap_vect[__riscv_xlen])(void) = {};
+#endif
 __attribute__((interrupt())) void trp_handler(void)	 { // trap handler (0)
 
 	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
@@ -75,7 +81,7 @@ __attribute__((interrupt())) void btn0_handler(void) {
 		LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
 		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
-	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN0); //clear gpio irq
+	BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN0); //clear gpio irq
 
 }
 __attribute__((interrupt())) void btn1_handler(void) {
@@ -88,7 +94,7 @@ __attribute__((interrupt())) void btn1_handler(void) {
 		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
 		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
-	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN1); //clear gpio irq
+    BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN1); //clear gpio irq
 
 }
 __attribute__((interrupt())) void btn2_handler(void) {
@@ -101,9 +107,11 @@ __attribute__((interrupt())) void btn2_handler(void) {
 		LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
 		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
 	}
-	GPIO_REG(GPIO_HIGH_IP) |= (1<<BTN2); //clear gpio irq
+    BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN2); //clear gpio irq
 
 }
+
+// ------------------------------------------------------------------------
 
 // configures Button0 as local interrupt
 void b0_irq_init()  {
@@ -175,8 +183,7 @@ int main (void){
 	//while(1) MZONE_YIELD();
 	//while(1);
 
-	// vectored trap handler
-	static void (*trap_vect[32])(void) = {};
+    // setup vectored trap handler
 	trap_vect[0] = trp_handler;
 	trap_vect[3] = msi_handler;
 	trap_vect[7] = tmr_handler;

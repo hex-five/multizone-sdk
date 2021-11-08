@@ -3,6 +3,8 @@
 #ifndef HEXFIVE_PLATFORM_H
 #define HEXFIVE_PLATFORM_H
 
+#define E21
+
 #define CPU_FREQ    32500000
 #define RTC_FREQ    32832
 

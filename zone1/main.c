@@ -32,13 +32,16 @@ int inbox_empty(void){
 }
 
 // ------------------------------------------------------------------------
-static void (*trap_vect[32+128])(void) = {};
-
+#ifdef E21
+    static void (*trap_vect[173])(void) = {};
+#else
+    static void (*trap_vect[__riscv_xlen])(void) = {};
+#endif
 __attribute__((interrupt())) void trp_isr(void)  { // nmi traps (0)
 
-    const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
-    const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
-    const unsigned long mtval  = MZONE_CSRR(CSR_MTVAL);
+	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
+	const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
+	const unsigned long mtval  = MZONE_CSRR(CSR_MTVAL);
 
     switch(mcause){
 
@@ -661,7 +664,6 @@ int main (void) {
 
     print_sys_info();
 
-
     // setup vectored trap handler
     trap_vect[0] = trp_isr;
     trap_vect[3] = msi_isr;
@@ -675,7 +677,7 @@ int main (void) {
     // enable interrupt sources
     CSRS(mie, 1<<3);
 #ifdef PLIC_BASE
-    CSRS(mie, 1<<DMA_IRQ);
+    CSRS(mie, 1L<<DMA_IRQ);
     CSRS(mie, 1<<11);
     PLIC_REG(PLIC_PRI + (PLIC_SRC_UART << PLIC_SHIFT_PER_SRC)) = 1;
     PLIC_REG(PLIC_EN) |= 1 << PLIC_SRC_UART;
