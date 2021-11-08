@@ -256,4 +256,4 @@ Please remember that export/import and/or use of strong cryptography software, p
 
 MultiZone and HEX-Five are registered trademarks of Hex Five Security, Inc.
 
-MultiZone technology is patent pending US 16450826, PCT US1938774.
+MultiZone technology is protected by patents US 16450826 and PCT US1938774.
