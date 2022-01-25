@@ -651,16 +651,17 @@ int main (void) {
 
 	printf("\e[2J\e[H"); // clear terminal screen
 
-	printf("=====================================================================\n");
-	printf("      	             Hex Five MultiZone® Security                    \n");
-	printf("    Copyright© 2020 Hex Five Security, Inc. - All Rights Reserved    \n");
-	printf("=====================================================================\n");
-	printf("This version of MultiZone® Security is meant for evaluation purposes \n");
-	printf("only. As such, use of this software is governed by the Evaluation    \n");
-	printf("License. There may be other functional limitations as described in   \n");
-	printf("the evaluation SDK documentation. The commercial version of the      \n");
-	printf("software does not have these restrictions.                           \n");
-	printf("=====================================================================\n");
+    printf("====================================================================\n");
+    printf("                     Hex Five MultiZone® Security                   \n");
+    printf("              Patents US 11,151,262 and PCT/US2019/03877            \n");
+    printf("    Copyright© 2020 Hex Five Security, Inc. - All Rights Reserved   \n");
+    printf("====================================================================\n");
+    printf("This version of MultiZone® Security is meant for evaluation purposes\n");
+    printf("only. As such, use of this software is governed by the Evaluation   \n");
+    printf("License. There may be other functional limitations as described in  \n");
+    printf("the evaluation SDK documentation. The commercial version of the     \n");
+    printf("software does not have these restrictions.                          \n");
+    printf("====================================================================\n");
 
     print_sys_info();
 
