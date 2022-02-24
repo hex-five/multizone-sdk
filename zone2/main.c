@@ -13,7 +13,7 @@
 #define LD1_GRN_OFF PWM_REG(PWM_CMP2)  = 0xFF;
 #define LD1_BLU_OFF PWM_REG(PWM_CMP3)  = 0xFF;
 
-static volatile char msg[16] = {'\0'};
+static volatile char inbox[16] = "";
 
 // ------------------------------------------------------------------------
 #ifdef E21
@@ -41,10 +41,7 @@ __attribute__((interrupt())) void trp_handler(void)	 { // trap handler (0)
 }
 __attribute__((interrupt())) void msi_handler(void)  { // machine software interrupt (3)
 
-	char const tmp[16];
-
-	if (MZONE_RECV(1, tmp))
-		memcpy((char *)msg, tmp, sizeof msg);
+    MZONE_RECV(1, inbox);
 
 }
 __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrupt (7)
@@ -117,7 +114,7 @@ __attribute__((interrupt())) void btn2_handler(void) {
 void b0_irq_init()  {
 
     // disable hw io function
-    GPIO_REG(GPIO_IOF_EN ) &= ~(1 << BTN0);
+    GPIO_REG(GPIO_IOF_EN ) &= ~(1<<BTN0);
 
     // set to input
     GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN0);
@@ -139,7 +136,7 @@ void b0_irq_init()  {
 void b1_irq_init()  {
 
     // disable hw io function
-    GPIO_REG(GPIO_IOF_EN ) &= ~(1 << BTN1);
+    GPIO_REG(GPIO_IOF_EN ) &= ~(1<<BTN1);
 
     // set to input
     GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN1);
@@ -160,7 +157,7 @@ void b1_irq_init()  {
 void b2_irq_init()  {
 
     // disable hw io function
-    GPIO_REG(GPIO_IOF_EN ) &= ~(1 << BTN2);
+    GPIO_REG(GPIO_IOF_EN ) &= ~(1<<BTN2);
 
     // set to input
     GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN2);
@@ -193,6 +190,7 @@ int main (void){
 	CSRW(mtvec, trap_vect);
 	CSRS(mtvec, 0x1);
 
+	// setup peripherals
 	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS | PWM_CFG_ZEROCMP);
 	PWM_REG(PWM_CMP0)  = 0xFE;
 
@@ -202,7 +200,7 @@ int main (void){
 
     // set & enable timer
     MZONE_ADTIMECMP((uint64_t)5*RTC_FREQ/1000);
-    CSRS(mie, 1 << 7);
+    CSRS(mie, 1<<7);
 
     // enable msip/inbox interrupt
 	CSRS(mie, 1<<3);
@@ -212,32 +210,39 @@ int main (void){
 
     while (1) {
 
-        // Message handler
-        CSRC(mie, 1 << 3);
+        // Asynchronous message handling example
+        CSRC(mie, 1<<3);
+        char msg[16]; memcpy(msg, (char*)inbox, sizeof msg); inbox[0]='\0';
+        CSRS(mie, 1<<3);
 
         if (msg[0] != '\0') {
 
-            if (strncmp("ping", (char*) msg, sizeof msg[0]) == 0)
+            if (strcmp("ping", msg)==0)
                 MZONE_SEND(1, (char[16]){"pong"});
-            else if (strcmp("mie=0", (char*) msg) == 0)
-                CSRC(mstatus, 1 << 3);
-            else if (strcmp("mie=1", (char*) msg) == 0)
-                CSRS(mstatus, 1 << 3);
-            else if (strcmp("block", (char*) msg) == 0) {
-                CSRC(mstatus, 1 << 3);
-                for (;;)
-                    ;
+
+            /* test: wfi resume with global irq disabled - irqs not taken */
+            else if (strcmp("mstatus.mie=0", msg)==0)
+                CSRC(mstatus, 1<<3);
+
+            /* test: wfi resume with global irq enabled - irqs taken */
+            else if (strcmp("mstatus.mie=1", msg)==0)
+                CSRS(mstatus, 1<<3);
+
+            /* test: preemptive scheduler - block for good */
+            else if (strcmp("block", msg)==0){
+                CSRC(mstatus, 1<<3); for(;;);
+
             } else
                 MZONE_SEND(1, msg);
 
-            msg[0] = '\0';
-
         }
 
-        CSRS(mie, 1 << 3);
-
-        // Wait For Interrupt
+        // Wait For Interrupt - irqs taken if mstatus.mie=1
         MZONE_WFI();
+
+        // test: wfi resume with global irq disabled - poll inbox
+        if ( (CSRR(mstatus) & 1<<3) ==0 && MZONE_RECV(1, msg)==1)
+                memcpy((char *)inbox, msg, sizeof inbox);
 
     }
 
