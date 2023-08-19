@@ -12,36 +12,27 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
-typedef enum {zone1=1, zone2, zone3, zone4} Zone;
-
 #define BUFFER_SIZE 32
 static volatile struct{
-	char data[BUFFER_SIZE];
-	int r; // read
-	int w; // write
+    char data[BUFFER_SIZE];
+    int r; // read
+    int w; // write
 } buffer;
 int buffer_empty(void){
-	return (buffer.w==0);
+    return (buffer.w==0);
 }
+
+typedef enum {zone1=1, zone2, zone3, zone4} Zone;
 
 static char inputline[BUFFER_SIZE+1]="";
 
 static volatile char inbox[4][16] = { {'\0'}, {'\0'}, {'\0'}, {'\0'} };
-int inbox_empty(void){
-	return (inbox[0][0]=='\0' && inbox[1][0]=='\0' && inbox[2][0]=='\0' && inbox[3][0]=='\0');
-}
 
-// ------------------------------------------------------------------------
-#ifdef E21
-    static void (*trap_vect[173])(void) = {};
-#else
-    static void (*trap_vect[__riscv_xlen])(void) = {};
-#endif
 __attribute__((interrupt())) void trp_isr(void)  { // nmi traps (0)
 
-	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
-	const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
-	const unsigned long mtval  = MZONE_CSRR(CSR_MTVAL);
+    const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
+    const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
+    const unsigned long mtval  = MZONE_CSRR(CSR_MTVAL);
 
     switch(mcause){
 
@@ -91,6 +82,7 @@ __attribute__((interrupt())) void trp_isr(void)  { // nmi traps (0)
     asm ("j _start");
 
 }
+
 __attribute__((interrupt())) void msi_isr(void)  { // msip/inbox (3)
 
     for (Zone zone = zone1; zone <= zone4; zone++) {
@@ -100,19 +92,21 @@ __attribute__((interrupt())) void msi_isr(void)  { // msip/inbox (3)
     }
 
 }
+
 __attribute__((interrupt())) void tmr_isr(void)  { // timer (7)
 
     const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
     const unsigned long mepc   = MZONE_CSRR(CSR_MEPC);
     const unsigned long mtval  = MZONE_CSRR(CSR_MTVAL);
 
-    write(1, "\e7\e[2K", 6);   	// save curs pos & clear entire line
+    write(1, "\e7\e[2K", 6);    // save curs pos & clear entire line
     printf("\rTimer interrupt : 0x%08x 0x%08x 0x%08x \n", mcause, mepc, mtval);
     write(1, "\nZ1 > %s", 6); write(1, inputline, strlen(inputline));
-    write(1, "\e8\e[2B", 6);   	// restore curs pos & curs down +2 lines
-    CSRC(mie, 1<<7); 			// disable one-shot timer
+    write(1, "\e8\e[2B", 6);    // restore curs pos & curs down +2 lines
+    CSRC(mie, 1<<7);            // disable one-shot timer
 
 }
+
 __attribute__((interrupt())) void uart_isr(void) { // uart
 
 #ifdef PLIC_BASE
@@ -130,6 +124,7 @@ __attribute__((interrupt())) void uart_isr(void) { // uart
 #endif
 
 }
+
 __attribute__((interrupt())) void dma_isr(void)  { // dma
 
 #ifdef DMA_BASE
@@ -146,9 +141,119 @@ __attribute__((interrupt())) void dma_isr(void)  { // dma
 
 }
 
-// ------------------------------------------------------------------------
+int inbox_empty(void){
+    return (inbox[0][0]=='\0' && inbox[1][0]=='\0' && inbox[2][0]=='\0' && inbox[3][0]=='\0');
+}
+
+int readline() {
+
+    static size_t p=0;
+    static int esc=0;
+    static char history[8][sizeof(inputline)]={"","","","","","","",""}; static int h=-1;
+
+    int eol = 0; // end of line
+
+        while ( !eol && buffer.w > buffer.r ) {
+
+        CSRC(mstatus, 1<<3); // CSRC(mie, 1<<11); // PLIC_REG(PLIC_EN) &= ~(1 << PLIC_SRC_UART);
+            const char c = buffer.data[buffer.r++];
+            if (buffer.r >= buffer.w) {buffer.r = 0; buffer.w = 0;}
+        CSRS(mstatus, 1<<3); // CSRS(mie, 1<<11); //PLIC_REG(PLIC_EN) |= 1 << PLIC_SRC_UART;
+
+        if (c=='\e'){
+            esc=1;
+
+        } else if (esc==1 && c=='['){
+            esc=2;
+
+        } else if (esc==2 && c=='3'){
+            esc=3;
+
+        } else if (esc==3 && c=='~'){ // del key
+            for (size_t i=p; i<strlen(inputline); i++) inputline[i]=inputline[i+1];
+            write(1, "\e7", 2); // save curs pos
+            write(1, "\e[K", 3); // clear line from curs pos
+            write(1, &inputline[p], strlen(inputline)-p);
+            write(1, "\e8", 2); // restore curs pos
+            esc=0;
+
+        } else if (esc==2 && c=='C'){ // right arrow
+            esc=0;
+            if (p < strlen(inputline)){
+                p++;
+                write(1, "\e[C", 3);
+            }
+
+        } else if (esc==2 && c=='D'){ // left arrow
+            esc=0;
+            if (p>0){
+                p--;
+                write(1, "\e[D", 3);
+            }
+
+        } else if (esc==2 && c=='A'){ // up arrow (history)
+            esc=0;
+            if (h<8-1 && strlen(history[h+1])>0){
+                h++;
+                strcpy(inputline, history[h]);
+                write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
+                write(1, "\rZ1 > ", 6);
+                write(1, inputline, strlen(inputline));
+                p=strlen(inputline);
+
+            }
+
+        } else if (esc==2 && c=='B'){ // down arrow (history)
+            esc=0;
+            if (h>0 && strlen(history[h-1])>0){
+                h--;
+                strcpy(inputline, history[h]);
+                write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
+                write(1, "\rZ1 > ", 6);
+                write(1, inputline, strlen(inputline));
+                p=strlen(inputline);
+            }
+
+        } else if ((c=='\b' || c=='\x7f') && p>0 && esc==0){ // backspace
+            p--;
+            for (size_t i=p; i<strlen(inputline); i++) inputline[i]=inputline[i+1];
+            write(1, "\e[D", 3);
+            write(1, "\e7", 2);
+            write(1, "\e[K", 3);
+            write(1, &inputline[p], strlen(inputline)-p);
+            write(1, "\e8", 2);
+
+        } else if (c>=' ' && c<='~' && p < sizeof(inputline)-1 && esc==0){
+            for (size_t i = sizeof(inputline)-1-1; i > p; i--) inputline[i]=inputline[i-1]; // make room for 1 ch
+            inputline[p]=c;
+            write(1, "\e7", 2); // save curs pos
+            write(1, "\e[K", 3); // clear line from curs pos
+            write(1, &inputline[p], strlen(inputline)-p); p++;
+            write(1, "\e8", 2); // restore curs pos
+            write(1, "\e[C", 3); // move curs right 1 pos
+
+        } else if (c=='\r') {
+            p=0; esc=0; eol = 1;
+            // trim
+            while (inputline[strlen(inputline)-1]==' ') inputline[strlen(inputline)-1]='\0';
+            while (inputline[0]==' ') for (size_t i = 0; i < strlen(inputline); i++) inputline[i]=inputline[i+1];
+            // save line to history
+            if (strlen(inputline)>0 && strcmp(inputline, history[0])!=0){
+                for (int i = 8-1; i > 0; i--) strcpy(history[i], history[i-1]);
+                strcpy(history[0], inputline);
+            } h = -1;
+            write(1, "\n", 1);
+
+        } else
+            esc=0;
+
+    }
+
+    return eol;
+
+}
+
 void print_sys_info(void) {
-// ------------------------------------------------------------------------
 
 	// misa
 	unsigned long misa;	asm volatile ("csrr %0, misa" : "=r"(misa) : );
@@ -218,7 +323,6 @@ void print_sys_info(void) {
 
 }
 
-// ------------------------------------------------------------------------
 int cmpfunc(const void* a, const void* b){
 
     const int ai = *(const int* )a;
@@ -226,7 +330,6 @@ int cmpfunc(const void* a, const void* b){
     return ai < bi ? -1 : ai > bi ? 1 : 0;
 }
 
-// ------------------------------------------------------------------------
 void print_stats(void){
 
 	#define MHZ (CPU_FREQ/1000000)
@@ -292,9 +395,7 @@ void print_stats(void){
 
 }
 
-// ------------------------------------------------------------------------
 void print_pmp(void){
-// ------------------------------------------------------------------------
 
 	#define TOR   0b00001000
 	#define NA4   0b00010000
@@ -364,7 +465,6 @@ void print_pmp(void){
 
 }
 
-// ------------------------------------------------------------------------
 void msg_handler() {
 
     CSRC(mie, 1 << 3);
@@ -396,7 +496,6 @@ void msg_handler() {
 
 }
 
-// ------------------------------------------------------------------------
 void cmd_handler(){
 
 	char * tk[9]; tk[0] = strtok(inputline, " "); for (int i=1; i<9; i++) tk[i] = strtok(NULL, " ");
@@ -530,122 +629,22 @@ void cmd_handler(){
 
 }
 
-// ------------------------------------------------------------------------
-int readline() {
-// ------------------------------------------------------------------------
-
-	static size_t p=0;
-	static int esc=0;
-	static char history[8][sizeof(inputline)]={"","","","","","","",""}; static int h=-1;
-
-	int eol = 0; // end of line
-	
-		while ( !eol && buffer.w > buffer.r ) {
-
-		CSRC(mstatus, 1<<3); // CSRC(mie, 1<<11); // PLIC_REG(PLIC_EN) &= ~(1 << PLIC_SRC_UART);
-			const char c = buffer.data[buffer.r++];
-			if (buffer.r >= buffer.w) {buffer.r = 0; buffer.w = 0;}
-		CSRS(mstatus, 1<<3); // CSRS(mie, 1<<11); //PLIC_REG(PLIC_EN) |= 1 << PLIC_SRC_UART;
-
-		if (c=='\e'){
-			esc=1;
-
-		} else if (esc==1 && c=='['){
-			esc=2;
-
-		} else if (esc==2 && c=='3'){
-			esc=3;
-
-		} else if (esc==3 && c=='~'){ // del key
-			for (size_t i=p; i<strlen(inputline); i++) inputline[i]=inputline[i+1];
-			write(1, "\e7", 2); // save curs pos
-			write(1, "\e[K", 3); // clear line from curs pos
-			write(1, &inputline[p], strlen(inputline)-p);
-			write(1, "\e8", 2); // restore curs pos
-			esc=0;
-
-		} else if (esc==2 && c=='C'){ // right arrow
-			esc=0;
-			if (p < strlen(inputline)){
-				p++;
-				write(1, "\e[C", 3);
-			}
-
-		} else if (esc==2 && c=='D'){ // left arrow
-			esc=0;
-			if (p>0){
-				p--;
-				write(1, "\e[D", 3);
-			}
-
-		} else if (esc==2 && c=='A'){ // up arrow (history)
-			esc=0;
-			if (h<8-1 && strlen(history[h+1])>0){
-				h++;
-				strcpy(inputline, history[h]);
-				write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-				write(1, "\rZ1 > ", 6);
-				write(1, inputline, strlen(inputline));
-				p=strlen(inputline);
-
-			}
-
-		} else if (esc==2 && c=='B'){ // down arrow (history)
-			esc=0;
-			if (h>0 && strlen(history[h-1])>0){
-				h--;
-				strcpy(inputline, history[h]);
-				write(1, "\e[2K", 4); // 2K clear entire line - cur pos dosn't change
-				write(1, "\rZ1 > ", 6);
-				write(1, inputline, strlen(inputline));
-				p=strlen(inputline);
-			}
-
-		} else if ((c=='\b' || c=='\x7f') && p>0 && esc==0){ // backspace
-			p--;
-			for (size_t i=p; i<strlen(inputline); i++) inputline[i]=inputline[i+1];
-			write(1, "\e[D", 3);
-			write(1, "\e7", 2);
-			write(1, "\e[K", 3);
-			write(1, &inputline[p], strlen(inputline)-p);
-			write(1, "\e8", 2);
-
-		} else if (c>=' ' && c<='~' && p < sizeof(inputline)-1 && esc==0){
-			for (size_t i = sizeof(inputline)-1-1; i > p; i--) inputline[i]=inputline[i-1]; // make room for 1 ch
-			inputline[p]=c;
-			write(1, "\e7", 2); // save curs pos
-			write(1, "\e[K", 3); // clear line from curs pos
-			write(1, &inputline[p], strlen(inputline)-p); p++;
-			write(1, "\e8", 2); // restore curs pos
-			write(1, "\e[C", 3); // move curs right 1 pos
-
-		} else if (c=='\r') {
-			p=0; esc=0; eol = 1;
-			// trim
-			while (inputline[strlen(inputline)-1]==' ') inputline[strlen(inputline)-1]='\0';
-			while (inputline[0]==' ') for (size_t i = 0; i < strlen(inputline); i++) inputline[i]=inputline[i+1];
-			// save line to history
-			if (strlen(inputline)>0 && strcmp(inputline, history[0])!=0){
-				for (int i = 8-1; i > 0; i--) strcpy(history[i], history[i-1]);
-				strcpy(history[0], inputline);
-			} h = -1;
-			write(1, "\n", 1);
-
-		} else
-			esc=0;
-
-	}
-
-	return eol;
-
-}
-
-// ------------------------------------------------------------------------
 int main (void) {
 
-	//while(1) MZONE_WFI();
-	//while(1) MZONE_YIELD();
-	//while(1);
+    // enable interrupts
+    CSRS(mie, 1<<3);
+#ifdef PLIC_BASE
+    CSRS(mie, 1L<<DMA_IRQ);
+    CSRS(mie, 1<<11);
+    PLIC_REG(PLIC_PRI + (PLIC_SRC_UART << PLIC_SHIFT_PER_SRC)) = 1;
+    PLIC_REG(PLIC_EN) |= 1 << PLIC_SRC_UART;
+#elif CLIC_BASE
+    CLIC_REG(CLIC_INT_ENABLE + 4*(DMA_IRQ/4)) |= 1<<8*(DMA_IRQ%4);
+    CLIC_REG(CLIC_INT_ENABLE + 4*(UART_IRQ/4)) |= 1<<8*(UART_IRQ%4);
+#endif
+
+    // enable global interrupt
+    CSRS(mstatus, 1<<3);
 
 	open("UART", 0, 0);
 
@@ -664,31 +663,6 @@ int main (void) {
     printf("====================================================================\n");
 
     print_sys_info();
-
-    // setup vectored trap handler
-    trap_vect[0] = trp_isr;
-    trap_vect[3] = msi_isr;
-    trap_vect[7] = tmr_isr;
-    trap_vect[DMA_IRQ] = dma_isr;
-    trap_vect[UART_IRQ] = uart_isr;
-
-    // register trap vector
-    CSRW(mtvec, trap_vect); CSRS(mtvec, 1);
-
-    // enable interrupt sources
-    CSRS(mie, 1<<3);
-#ifdef PLIC_BASE
-    CSRS(mie, 1L<<DMA_IRQ);
-    CSRS(mie, 1<<11);
-    PLIC_REG(PLIC_PRI + (PLIC_SRC_UART << PLIC_SHIFT_PER_SRC)) = 1;
-    PLIC_REG(PLIC_EN) |= 1 << PLIC_SRC_UART;
-#elif CLIC_BASE
-    *(volatile uint8_t *)(CLIC_BASE + CLIC_INT_ENABLE + DMA_IRQ)  = 0x1;
-    *(volatile uint8_t *)(CLIC_BASE + CLIC_INT_ENABLE + UART_IRQ) = 0x1;
-#endif
-
-    // enable global interrupt
-    CSRS(mstatus, 1<<3);
 
 	write(1, "\n\rZ1 > ", 7);
 
@@ -711,5 +685,3 @@ int main (void) {
 	}
 
 }
-
-

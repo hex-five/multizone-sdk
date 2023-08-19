@@ -104,9 +104,9 @@
 #define BTN2  6
 #define BTN3  7
 
-#define BTN0_IRQ 16+4
-#define BTN1_IRQ 16+5
-#define BTN2_IRQ 16+6
+#define BTN0_IRQ 20
+#define BTN1_IRQ 21
+#define BTN2_IRQ 22
 
 // -----------------------------------------------------------------------------
 // LED0 (GPIO)
@@ -140,7 +140,7 @@
 #define _REG64(base, offset) (*(volatile uint64_t *)((base) + (offset)))
 #define _REG32(base, offset) (*(volatile uint32_t *)((base) + (offset)))
 
-#define CLIC_REG(offset) _REG64(CLIC_BASE, offset)
+#define CLIC_REG(offset) _REG32(CLIC_BASE, offset)
 #define GPIO_REG(offset) _REG32(GPIO_BASE, offset)
 #define PWM_REG(offset)  _REG32(PWM_BASE, offset)
 #define UART_REG(offset) _REG32(UART_BASE, offset)

@@ -7,6 +7,12 @@
 _start:
 	.cfi_startproc
 	.cfi_undefined ra
+
+    /* setup trap vector */
+    la a0, _mtvec
+    csrw mtvec, a0
+    csrs mtvec, 1
+
 .option push
 .option norelax
 	la gp, __global_pointer$
@@ -36,7 +42,6 @@ _start:
 	bltu a0, a1, 1b
 2:
 
-
 	/* Call global constructors */
 	la a0, __libc_fini_array
 	call atexit
@@ -65,3 +70,5 @@ _init: ret
   	.type   _fini, @function
 _fini: ret
   	.size  _fini, .-_fini
+  	
+    .include "mtvec.s"

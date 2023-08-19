@@ -110,7 +110,7 @@ void timer_handler(const uint64_t time){
 		}
 }
 
-uint64_t robot_seq_task(){ // OWI sequence
+uint64_t robot_seq_task(){ 	    // OWI sequence
 
 	uint64_t timecmp = UINT64_MAX;
 
@@ -126,11 +126,11 @@ uint64_t robot_seq_task(){ // OWI sequence
 	return timecmp;
 
 }
-uint64_t robot_cmd_task(){ // Manual cmd stop
+uint64_t robot_cmd_task(){ 	    // Manual cmd stop
 	spi_rw(man_cmd = CMD_STOP);
 	return UINT64_MAX;
 }
-uint64_t keep_alive_task(){ // Keep alive 1sec
+uint64_t keep_alive_task(){ 	// Keep alive 1sec
 
 	// Send keep alive packet and check ret value
 	volatile uint32_t rx_data = spi_rw(CMD_DUMMY);
@@ -156,12 +156,12 @@ uint64_t keep_alive_task(){ // Keep alive 1sec
 
 	return time + KEEP_ALIVE_TIME;
 }
-uint64_t led_off_task(){ // LED off
+uint64_t led_off_task(){ 	    // LED off
     BITCLR(GPIO_BASE+GPIO_OUTPUT_VAL, 1<<LED);
 	return UINT64_MAX;
 }
 
-__attribute__(( interrupt())) void trap_handler(void){
+__attribute__(( interrupt())) void trap_isr(void){
 
 	#define IRQ ( 1UL<< (__riscv_xlen-1) )
 
@@ -232,16 +232,12 @@ void msg_handler(const Zone zone, const char *msg){
 
 int main (void){
 
-	//while(1) MZONE_WFI();
-	//while(1) MZONE_YIELD();
-	//while(1);
-
 	GPIO_REG(GPIO_INPUT_EN)  |=  (1 << SPI_TDI);
 	GPIO_REG(GPIO_PULLUP_EN) |=  (1 << SPI_TDI);
 	GPIO_REG(GPIO_OUTPUT_EN) |=  (1 << SPI_TCK | 1<< SPI_TDO | 1 << LED_RED | 1 << LED_GRN );
     GPIO_REG(GPIO_DRIVE)     |=  (1 << SPI_TCK | 1<< SPI_TDO );
 
-	CSRW(mtvec, trap_handler);  // register trap handler
+	CSRW(mtvec, trap_isr);  // register trap handler
 	CSRS(mie, 1<<3);    		// enable msip/inbox interrupt
 	CSRS(mie, 1<<7); 			// enable timer interrupts
     CSRS(mstatus, 1<<3);		// enable global interrupts

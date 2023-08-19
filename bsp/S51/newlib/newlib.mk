@@ -6,6 +6,7 @@ all: $(TARGET)
 ASM_SRCS += $(NEWLIB_DIR)/crt0.S
 C_SRCS += $(NEWLIB_DIR)/newlib.c
 
+INCLUDES += -I$(NEWLIB_DIR)
 INCLUDES += -I$(PLATFORM_DIR)
 
 LDFLAGS += -T $(PLATFORM_DIR)/memory.lds

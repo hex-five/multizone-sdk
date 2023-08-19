@@ -15,13 +15,8 @@
 
 static volatile char inbox[16] = "";
 
-// ------------------------------------------------------------------------
-#ifdef E21
-    static void (*trap_vect[173])(void) = {};
-#else
-    static void (*trap_vect[__riscv_xlen])(void) = {};
-#endif
-__attribute__((interrupt())) void trp_handler(void)	 { // trap handler (0)
+__attribute__((interrupt())) void trp_isr
+        (void)	 { // trap handler (0)
 
 	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
 
@@ -39,12 +34,14 @@ __attribute__((interrupt())) void trp_handler(void)	 { // trap handler (0)
 	for(;;);
 
 }
-__attribute__((interrupt())) void msi_handler(void)  { // machine software interrupt (3)
+
+__attribute__((interrupt())) void msi_isr(void)  { // machine software interrupt (3)
 
     MZONE_RECV(1, inbox);
 
 }
-__attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrupt (7)
+
+__attribute__((interrupt())) void tmr_isr(void)  { // machine timer interrupt (7)
 
 	static uint16_t r=0x3F;
 	static uint16_t g=0;
@@ -68,7 +65,8 @@ __attribute__((interrupt())) void tmr_handler(void)  { // machine timer interrup
 	MZONE_ADTIMECMP((uint64_t)5*RTC_FREQ/1000);
 
 }
-__attribute__((interrupt())) void btn0_handler(void) {
+
+__attribute__((interrupt())) void btn0_isr(void) {
 
 	static uint64_t debounce = 0;
 	const uint64_t T = MZONE_RDTIME();
@@ -81,7 +79,8 @@ __attribute__((interrupt())) void btn0_handler(void) {
 	BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN0); //clear gpio irq
 
 }
-__attribute__((interrupt())) void btn1_handler(void) {
+
+__attribute__((interrupt())) void btn1_isr(void) {
 
 	static uint64_t debounce = 0;
 	const uint64_t T = MZONE_RDTIME();
@@ -94,7 +93,8 @@ __attribute__((interrupt())) void btn1_handler(void) {
     BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN1); //clear gpio irq
 
 }
-__attribute__((interrupt())) void btn2_handler(void) {
+
+__attribute__((interrupt())) void btn2_isr(void) {
 
 	static uint64_t debounce = 0;
 	const uint64_t T = MZONE_RDTIME();
@@ -107,8 +107,6 @@ __attribute__((interrupt())) void btn2_handler(void) {
     BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN2); //clear gpio irq
 
 }
-
-// ------------------------------------------------------------------------
 
 // configures Button0 as local interrupt
 void b0_irq_init()  {
@@ -125,7 +123,7 @@ void b0_irq_init()  {
 
     // enable irq
 #ifdef CLIC_BASE
-    *(volatile uint8_t *)(CLIC_BASE + CLIC_INT_ENABLE + BTN0_IRQ) = 0x1;
+    CLIC_REG(CLIC_INT_ENABLE + 4*(BTN0_IRQ/4)) |= 1<<8*(BTN0_IRQ%4);
 #else
     CSRS(mie, 1<<(BTN0_IRQ));
 #endif
@@ -146,7 +144,7 @@ void b1_irq_init()  {
     GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN1);
 
 #ifdef CLIC_BASE
-    *(volatile uint8_t *)(CLIC_BASE + CLIC_INT_ENABLE + BTN1_IRQ) = 0x1;
+    CLIC_REG(CLIC_INT_ENABLE + 4*(BTN0_IRQ/4)) |= 1<<8*(BTN1_IRQ%4);
 #else
     CSRS(mie, 1<<(BTN1_IRQ));
 #endif
@@ -167,7 +165,7 @@ void b2_irq_init()  {
     GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN2);
 
 #ifdef CLIC_BASE
-    *(volatile uint8_t *)(CLIC_BASE + CLIC_INT_ENABLE + BTN2_IRQ) = 0x1;
+    CLIC_REG(CLIC_INT_ENABLE + 4*(BTN2_IRQ/4)) |= 1<<8*(BTN2_IRQ%4);
 #else
     CSRS(mie, 1<<(BTN2_IRQ));
 #endif
@@ -175,20 +173,6 @@ void b2_irq_init()  {
 }
 
 int main (void){
-
-	//while(1) MZONE_WFI();
-	//while(1) MZONE_YIELD();
-	//while(1);
-
-    // setup vectored trap handler
-	trap_vect[0] = trp_handler;
-	trap_vect[3] = msi_handler;
-	trap_vect[7] = tmr_handler;
-	trap_vect[BTN0_IRQ] = btn0_handler;
-	trap_vect[BTN1_IRQ] = btn1_handler;
-	trap_vect[BTN2_IRQ] = btn2_handler;
-	CSRW(mtvec, trap_vect);
-	CSRS(mtvec, 0x1);
 
 	// setup peripherals
 	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS | PWM_CFG_ZEROCMP);

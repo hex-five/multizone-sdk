@@ -3,7 +3,7 @@
 #include <string.h>
 #include "multizone.h"
 
-__attribute__(( interrupt())) void trap_handler(void){
+__attribute__(( interrupt())) void trap_isr(void){
 
 	for( ;; );
 
@@ -11,13 +11,9 @@ __attribute__(( interrupt())) void trap_handler(void){
 
 int main (void){
 
-	//while(1) MZONE_WFI();
-	//while(1) MZONE_YIELD();
-	//while(1);
-
-	CSRW(mtvec, trap_handler); // register trap handler
-	CSRS(mie, 1<<3); 		   // wake up on msip/inbox
-	CSRC(mstatus, 1<<3);	   // disable global interrupts - no irq taken
+	CSRW(mtvec, trap_isr); // register trap handler
+	CSRS(mie, 1<<3); 	   // wake up on msip/inbox
+	CSRC(mstatus, 1<<3);   // disable global interrupts - no irq taken
 
 	while (1) {
 

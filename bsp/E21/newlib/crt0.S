@@ -7,6 +7,12 @@
 _start:
 	.cfi_startproc
 	.cfi_undefined ra
+
+    /* setup trap vector - CLIC vectored mode */
+    la a0, _mtvec
+    csrw mtvec, a0
+    csrs mtvec, 0b11
+
 .option push
 .option norelax
 	la gp, __global_pointer$
@@ -64,3 +70,5 @@ _init: ret
   	.type   _fini, @function
 _fini: ret
   	.size  _fini, .-_fini
+  	
+    .include "mtvec.s"

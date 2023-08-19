@@ -78,10 +78,6 @@ void robot_seq_task(void *pvParameters); TaskHandle_t robot_seq_task_handle;
 
 int main (void){
 
-	//while(1) MZONE_WFI();
-	//while(1) MZONE_YIELD();
-	//while(1);
-
     /* Setup hardware */
     GPIO_REG(GPIO_INPUT_EN)  |= (1 << SPI_TDI);
     GPIO_REG(GPIO_PULLUP_EN) |= (1 << SPI_TDI);
