@@ -281,13 +281,17 @@ void print_sys_info(void) {
 	const unsigned long  marchid = CSRR(marchid);
 	const char *marchid_str = (mvendorid==0x489 && marchid==0x80000002 ? "2-Series (E2, S2)" :
 							   mvendorid==0x489 && marchid==0x00000001 ? "3/5-Series (E3, S5, U5)" :
+		                       mvendorid==0x489 && marchid==0x80000007 ? "6/7/P200/X200-Series" :
 						       mvendorid==0x57c && marchid==0x00000001 ? "X300" :
 							   mvendorid==0x31e && marchid==0x80000022 ? "N22" :
 							                                             "");
 	printf("Architecture  : 0x%08x %s \n", (int)marchid, marchid_str);
 
 	// mimpid
-	printf("Implementation: 0x%08x \n", CSRR(mimpid) );
+    const unsigned long  mimpid = CSRR(mimpid);
+    const char *mimpid_str = (mvendorid==0x489 && mimpid==0x06220425 ? "21G3.04.00" :
+                                                                       "");
+	printf("Implementation: 0x%08x \n", mimpid_str );
 
 	// mhartid
 	printf("Hart id       : 0x%1x \n", CSRR(mhartid) );
