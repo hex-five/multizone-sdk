@@ -11,9 +11,9 @@ __attribute__(( interrupt())) void trap_isr(void){
 
 int main (void){
 
-	CSRW(mtvec, trap_isr); // register trap handler
-	CSRS(mie, 1<<3); 	   // wake up on msip/inbox
-	CSRC(mstatus, 1<<3);   // disable global interrupts - no irq taken
+    CSRC(mtvec, 1);         // set trap mode "direct"
+	CSRS(mie, 1<<3);        // wake up on msip/inbox
+	CSRC(mstatus, 1<<3);    // disable global interrupts - no irq taken
 
 	while (1) {
 

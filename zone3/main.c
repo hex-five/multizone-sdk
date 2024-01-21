@@ -161,7 +161,7 @@ uint64_t led_off_task(){ 	    // LED off
 	return UINT64_MAX;
 }
 
-__attribute__(( interrupt())) void trap_isr(void){
+__attribute__(( interrupt())) void trp_isr(void){
 
 	#define IRQ ( 1UL<< (__riscv_xlen-1) )
 
@@ -237,10 +237,10 @@ int main (void){
 	GPIO_REG(GPIO_OUTPUT_EN) |=  (1 << SPI_TCK | 1<< SPI_TDO | 1 << LED_RED | 1 << LED_GRN );
     GPIO_REG(GPIO_DRIVE)     |=  (1 << SPI_TCK | 1<< SPI_TDO );
 
-	CSRW(mtvec, trap_isr);  // register trap handler
-	CSRS(mie, 1<<3);    		// enable msip/inbox interrupt
-	CSRS(mie, 1<<7); 			// enable timer interrupts
-    CSRS(mstatus, 1<<3);		// enable global interrupts
+	CSRC(mtvec, 1);         // set trap mode "direct"
+	CSRS(mie, 1<<3);    	// enable msip/inbox interrupt
+	CSRS(mie, 1<<7); 		// enable timer interrupts
+    CSRS(mstatus, 1<<3);	// enable global interrupts
 
     // Start task2: Hartbeat LED, USB status, Keep alive pkt
     timer_set(KEEP_ALIVE_TASK, 0);
