@@ -107,7 +107,7 @@ __attribute__((interrupt())) void tmr_isr(void)  { // timer (7)
 
 }
 
-__attribute__((interrupt())) void uart_isr(void) { // uart
+__attribute__((interrupt())) void plic_isr(void) { // uart
 
 #ifdef PLIC_BASE
     const uint32_t plic_int = PLIC_REG(PLIC_CLAIM); // PLIC claim
@@ -121,22 +121,6 @@ __attribute__((interrupt())) void uart_isr(void) { // uart
     }
 #ifdef PLIC_BASE
     PLIC_REG(PLIC_CLAIM) = plic_int; // PLIC complete
-#endif
-
-}
-
-__attribute__((interrupt())) void dma_isr(void)  { // dma
-
-#ifdef DMA_BASE
-    write(1, "\e7\e[2K", 6);    // save curs pos & clear entire line
-    printf("\rDMA transfer complete \n");
-    printf("source : 0x%08x \n", DMA_REG(DMA_TR_SRC_OFF));
-    printf("dest   : 0x%08x \n", DMA_REG(DMA_TR_DEST_OFF));
-    printf("size   : 0x%08x \n", DMA_REG(DMA_TR_SIZE_OFF));
-    write(1, "\e8\e[4B", 6);    // restore curs pos & curs down 4x
-
-    // clear irq's by writing 1’s (R/W1C)
-    DMA_REG(DMA_CH_STATUS_OFF) = (1<<16 | 1<<8 | 1<<0);
 #endif
 
 }
@@ -537,18 +521,6 @@ void cmd_handler(){
 			asm ( "jr (%0)" : : "r"(addr));
 		} else printf("Syntax: exec address \n");
 
-#ifdef DMA_BASE
-	// --------------------------------------------------------------------
-	} else if (strcmp(tk[0], "dma")==0){
-	// --------------------------------------------------------------------
-		if (tk[1] != NULL && tk[2] != NULL && tk[3] != NULL){
-			DMA_REG(DMA_TR_SRC_OFF)  = strtoul(tk[1], NULL, 16);
-			DMA_REG(DMA_TR_DEST_OFF) = strtoul(tk[2], NULL, 16);
-			DMA_REG(DMA_TR_SIZE_OFF) = strtoul(tk[3], NULL, 16);
-			DMA_REG(DMA_CH_CTRL_OFF) = 0b0001; // en irqs & start transfer
-		} else printf("Syntax: dma source dest size \n");
-#endif
-
 	// --------------------------------------------------------------------
 	} else if (strcmp(tk[0], "send")==0){
 	// --------------------------------------------------------------------
@@ -678,10 +650,8 @@ int main (void) {
     	// Inbox event handler
 		msg_handler();
 
-		if (buffer_empty() && inbox_empty())
-		    MZONE_WFI();
-		else
-			MZONE_YIELD();
-	}
+		MZONE_WFI();
+
+    }
 
 }

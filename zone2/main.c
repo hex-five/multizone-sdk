@@ -1,232 +1,129 @@
-/* Copyright(C) 2020 Hex Five Security, Inc. - All Rights Reserved */
+/* Copyright(C) 2024 Hex Five Security, Inc. - All Rights Reserved */
 
-#include <string.h>
+/*
+| GPIO | ARTY CONNECTION | CLINT IRQ | PLIC IRQ |
+| -----| ----------------| --------- | -------- |
+|    0 | IO8             |           |       22 |
+|    1 |                 |           |          |
+|    2 |                 |           |          |
+|    3 |                 |           |          |
+|    4 | IO12            |           |       26 |
+|    5 | IO13            |           |       27 |
+|    6 |                 |           |          |
+|    7 |                 |           |          |
+|    8 | PMODA [1]       |           |       30 |
+|    9 | PMODA [2]       |           |       31 |
+|   10 | PMODA [3]       |           |       32 |
+|   11 | PMODA [4]       |           |       33 |
+|   12 |                 |           |          |
+|   13 |                 |           |          |
+|   14 |                 |           |          |
+|   15 | BTN0            |        16 |       37 |
+|   16 |                 |           |          |
+|   17 |                 |           |          |
+|   18 | IO02            |           |       40 |
+|   19 |                 |           |          |
+|   20 | IO04            |           |       42 |
+|   21 |                 |           |          |
+|   22 |                 |           |          |
+|   23 | IO07            |           |       45 |
+|   24 |                 |           |          |
+|   25 |                 |           |          |
+|   26 |                 |           |          |
+|   27 |                 |           |          |
+|   28 |                 |           |          |
+|   29 |                 |           |          |
+|   30 | BTN1            |        17 |       52 |
+|   31 | BTN2            |        18 |       53 |
+*/
 
+#include <stdio.h>
 #include "platform.h"
 #include "multizone.h"
 
-#define LD1_RED_ON PWM_REG(PWM_CMP1)  = 0x0;
-#define LD1_GRN_ON PWM_REG(PWM_CMP2)  = 0x0;
-#define LD1_BLU_ON PWM_REG(PWM_CMP3)  = 0x0;
+__attribute__((interrupt())) void trp_isr(void)  {
 
-#define LD1_RED_OFF PWM_REG(PWM_CMP1)  = 0xFF;
-#define LD1_GRN_OFF PWM_REG(PWM_CMP2)  = 0xFF;
-#define LD1_BLU_OFF PWM_REG(PWM_CMP3)  = 0xFF;
+    char str[16] = "";
 
-static volatile char inbox[16] = "";
+    const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
 
-__attribute__((interrupt())) void trp_isr
-        (void)	 { // trap handler (0)
+    if (mcause == 0x8000000b ) {
 
-	const unsigned long mcause = MZONE_CSRR(CSR_MCAUSE);
+        // plic interrupt
 
-	switch (mcause) {
-	case 0:	break; // Instruction address misaligned
-	case 1:	break; // Instruction access fault
-	case 3:	break; // Breakpoint
-	case 4:	break; // Load address misaligned
-	case 5:	break; // Load access fault
-	case 6:	break; // Store/AMO address misaligned
-	case 7:	break; // Store access fault
-	case 8:	break; // Environment call from U-mode
-	}
+        const uint32_t plic_int = PLIC_REG(PLIC_CLAIM); // PLIC claim
 
-	for(;;);
+        GPIO_REG(GPIO_RISE_IP) = 0xffffffff;
 
-}
+        PLIC_REG(PLIC_CLAIM) = plic_int; // PLIC complete
 
-__attribute__((interrupt())) void msi_isr(void)  { // machine software interrupt (3)
+        snprintf(str, sizeof str, "plic %ld", plic_int); MZONE_SEND(1, str);
 
-    MZONE_RECV(1, inbox);
+    } else if ( (mcause & 0xffff0000) != 0){
 
-}
+        // local interrupt
+        snprintf(str, sizeof str, "ip    %08lx", GPIO_REG(GPIO_RISE_IP)); MZONE_SEND(1, str);
+        snprintf(str, sizeof str, "mip   %08lx", MZONE_CSRR(CSR_MIP)); MZONE_SEND(1, str);
 
-__attribute__((interrupt())) void tmr_isr(void)  { // machine timer interrupt (7)
+        GPIO_REG(GPIO_RISE_IP) = 0xffffffff;
 
-	static uint16_t r=0x3F;
-	static uint16_t g=0;
-	static uint16_t b=0;
+    } else {
 
-	if (r > 0 && b == 0) {r--; g++;}
-	if (g > 0 && r == 0) {g--; b++;}
-	if (b > 0 && g == 0) {r++; b--;}
+       //  trap
 
-#ifdef FE310
-	PWM_REG(PWM_CMP1) = r;
-	PWM_REG(PWM_CMP2) = g;
-	PWM_REG(PWM_CMP3) = b;
-#else
-	PWM_REG(PWM_CMP1) = 0xFF - (r >> 2);
-	PWM_REG(PWM_CMP2) = 0xFF - (g >> 2);
-	PWM_REG(PWM_CMP3) = 0xFF - (b >> 2);
-#endif
+       snprintf(str, sizeof str, "mcause %08lx", mcause); MZONE_SEND(1, str);
 
-	// set timer (clears mip)
-	MZONE_ADTIMECMP((uint64_t)5*RTC_FREQ/1000);
+       for(;;);
 
-}
-
-__attribute__((interrupt())) void btn0_isr(void) {
-
-	static uint64_t debounce = 0;
-	const uint64_t T = MZONE_RDTIME();
-	if (T > debounce){
-		debounce = T + 250*RTC_FREQ/1000;
-		MZONE_SEND(1, (char[16]){"IRQ BTN0"});
-		LD1_RED_OFF; LD1_GRN_ON; LD1_BLU_OFF;
-		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
-	}
-	BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN0); //clear gpio irq
-
-}
-
-__attribute__((interrupt())) void btn1_isr(void) {
-
-	static uint64_t debounce = 0;
-	const uint64_t T = MZONE_RDTIME();
-	if (T > debounce){
-		debounce = T + 250*RTC_FREQ/1000;
-		MZONE_SEND(1, (char[16]){"IRQ BTN1"});
-		LD1_RED_ON; LD1_GRN_OFF; LD1_BLU_OFF;
-		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
-	}
-    BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN1); //clear gpio irq
-
-}
-
-__attribute__((interrupt())) void btn2_isr(void) {
-
-	static uint64_t debounce = 0;
-	const uint64_t T = MZONE_RDTIME();
-	if (T > debounce){
-		debounce = T + 250*RTC_FREQ/1000;
-		MZONE_SEND(1, (char[16]){"IRQ BTN2"});
-		LD1_RED_OFF; LD1_GRN_OFF; LD1_BLU_ON;
-		MZONE_ADTIMECMP((uint64_t)250*RTC_FREQ/1000);
-	}
-    BITSET(GPIO_BASE+GPIO_HIGH_IP, 1<<BTN2); //clear gpio irq
-
-}
-
-// configures Button0 as local interrupt
-void b0_irq_init()  {
-
-    // disable hw io function
-    GPIO_REG(GPIO_IOF_EN ) &= ~(1<<BTN0);
-
-    // set to input
-    GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN0);
-    GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BTN0);
-
-    // set to interrupt on rising edge
-    GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN0);
-
-    // enable irq
-#ifdef CLIC_BASE
-    CLIC_REG(CLIC_INT_ENABLE + 4*(BTN0_IRQ/4)) |= 1<<8*(BTN0_IRQ%4);
-#else
-    CSRS(mie, 1<<(BTN0_IRQ));
-#endif
-
-}
-
-// configures Button1 as local interrupt
-void b1_irq_init()  {
-
-    // disable hw io function
-    GPIO_REG(GPIO_IOF_EN ) &= ~(1<<BTN1);
-
-    // set to input
-    GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN1);
-    GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BTN1);
-
-    // set to interrupt on rising edge
-    GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN1);
-
-#ifdef CLIC_BASE
-    CLIC_REG(CLIC_INT_ENABLE + 4*(BTN0_IRQ/4)) |= 1<<8*(BTN1_IRQ%4);
-#else
-    CSRS(mie, 1<<(BTN1_IRQ));
-#endif
-
-}
-
-// configures Button2 as local interrupt
-void b2_irq_init()  {
-
-    // disable hw io function
-    GPIO_REG(GPIO_IOF_EN ) &= ~(1<<BTN2);
-
-    // set to input
-    GPIO_REG(GPIO_INPUT_EN)   |= (1<<BTN2);
-    GPIO_REG(GPIO_PULLUP_EN)  |= (1<<BTN2);
-
-    //set to interrupt on rising edge
-    GPIO_REG(GPIO_HIGH_IE)    |= (1<<BTN2);
-
-#ifdef CLIC_BASE
-    CLIC_REG(CLIC_INT_ENABLE + 4*(BTN2_IRQ/4)) |= 1<<8*(BTN2_IRQ%4);
-#else
-    CSRS(mie, 1<<(BTN2_IRQ));
-#endif
+    }
 
 }
 
 int main (void){
 
-	// setup peripherals
-	PWM_REG(PWM_CFG)   = (PWM_CFG_ENALWAYS | PWM_CFG_ZEROCMP);
-	PWM_REG(PWM_CMP0)  = 0xFE;
+    // setup GPIO ports
+    GPIO_REG(GPIO_INPUT_EN)  = 0xffffffff;
+    GPIO_REG(GPIO_PULLUP_EN) = 0xffffffff;
+    GPIO_REG(GPIO_RISE_IP)   = 0xffffffff;
+    GPIO_REG(GPIO_RISE_IE)   = 0xffffffff;
 
-	b0_irq_init();
-	b1_irq_init();
-	b2_irq_init();
+#if 0
+    // enable local interrupts
+    CSRS(mie, 0xFFFF0000);
+#else
+    // enable plic interrupts
+    CSRS(mie, 1<<11);
+    for (int src = 22; src<54; src++) {
+        PLIC_REG(PLIC_EN + ((src/32)<<PLIC_SHIFT_PER_SRC)) |= (1 << (src%32));
+        PLIC_REG(PLIC_PRI + (src<<PLIC_SHIFT_PER_SRC)) = 1;
+    }
+#endif
 
-    // set & enable timer
-    MZONE_ADTIMECMP((uint64_t)5*RTC_FREQ/1000);
-    CSRS(mie, 1<<7);
+    // trap mode "direct"
+    CSRC(mtvec, 1);
 
-    // enable msip/inbox interrupt
-	CSRS(mie, 1<<3);
-
-	// enable global interrupts
+    // enable global interrupts
     CSRS(mstatus, 1<<3);
+
+    char str[16] = "";
+
+    uint32_t gpio_input_val = GPIO_REG(GPIO_INPUT_VAL);
+
+    snprintf(str, sizeof str, "gpio 0x%08lx", gpio_input_val); MZONE_SEND(1, str);
 
     while (1) {
 
-        // Asynchronous message handling example
-        CSRC(mie, 1<<3);
-        char msg[16]; memcpy(msg, (char*)inbox, sizeof msg); inbox[0]='\0';
-        CSRS(mie, 1<<3);
+        const uint32_t val = GPIO_REG(GPIO_INPUT_VAL);
 
-        if (msg[0] != '\0') {
+        if (val != gpio_input_val){
 
-            if (strcmp("ping", msg)==0)
-                MZONE_SEND(1, (char[16]){"pong"});
+            snprintf(str, sizeof str, "xor 0x%08lx", gpio_input_val ^ val); MZONE_SEND(1, str);
 
-            /* test: wfi resume with global irq disabled - irqs not taken */
-            else if (strcmp("mstatus.mie=0", msg)==0)
-                CSRC(mstatus, 1<<3);
-
-            /* test: wfi resume with global irq enabled - irqs taken */
-            else if (strcmp("mstatus.mie=1", msg)==0)
-                CSRS(mstatus, 1<<3);
-
-            /* test: preemptive scheduler - block for good */
-            else if (strcmp("block", msg)==0){
-                CSRC(mstatus, 1<<3); for(;;);
-
-            } else
-                MZONE_SEND(1, msg);
+            gpio_input_val = val;
 
         }
 
-        // Wait For Interrupt - irqs taken if mstatus.mie=1
-        MZONE_WFI();
-
-        // test: wfi resume with global irq disabled - poll inbox
-        if ( (CSRR(mstatus) & 1<<3) ==0 && MZONE_RECV(1, msg)==1)
-                memcpy((char *)inbox, msg, sizeof inbox);
+        MZONE_YIELD();
 
     }
 

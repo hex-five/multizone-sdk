@@ -18,15 +18,15 @@ irq7:   j tmr_isr
 irq8:   j .
 irq9:   j .
 irq10:  j .
-irq11:  j uart_isr
+irq11:  j plic_isr
 irq12:  j .
 irq13:  j .
 irq14:  j .
 irq15:  j .
-irq16:  j btn0_isr
-irq17:  j btn1_isr
-irq18:  j btn2_isr
-irq19:  j dma_isr
+irq16:  j .
+irq17:  j .
+irq18:  j .
+irq19:  j .
 irq20:  j .
 irq21:  j .
 irq22:  j .
@@ -42,14 +42,10 @@ irq31:  j .
 
         .option pop
 
-        .weak trp_isr, msi_isr, tmr_isr, dma_isr, uart_isr, btn0_isr, btn1_isr, btn2_isr
+        .weak trp_isr, msi_isr, tmr_isr, plic_isr
 
 trp_isr:
 msi_isr:
 tmr_isr:
-dma_isr:
-uart_isr:
-btn0_isr:
-btn1_isr:
-btn2_isr:
+plic_isr:
         j .
